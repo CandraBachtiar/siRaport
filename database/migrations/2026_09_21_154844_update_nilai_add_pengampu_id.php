@@ -15,15 +15,23 @@ return new class extends Migration
             $table->index('siswa_id', 'nilai_siswa_id_index');
         });
 
+        // Hapus unique constraint dan foreign key terlebih dahulu.
         Schema::table('nilai', function (Blueprint $table) {
             $table->dropUnique(
                 'nilai_siswa_id_mata_pelajaran_id_guru_id_tahun_ajaran_id_unique'
             );
 
+            $table->dropForeign(['guru_id']);
+            $table->dropForeign(['mata_pelajaran_id']);
+            $table->dropForeign(['tahun_ajaran_id']);
+        });
+
+        // Setelah foreign key dilepas, kolom baru boleh dihapus.
+        Schema::table('nilai', function (Blueprint $table) {
             $table->dropColumn([
                 'guru_id',
                 'mata_pelajaran_id',
-                'tahun_ajaran_id'
+                'tahun_ajaran_id',
             ]);
         });
     }
@@ -34,18 +42,20 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('nilai', function (Blueprint $table) {
+            $table->dropIndex('nilai_siswa_id_index');
+
             $table->foreignId('guru_id')
-                ->after('siswa_id')
+                ->nullable()
                 ->constrained('guru')
                 ->cascadeOnDelete();
 
             $table->foreignId('mata_pelajaran_id')
-                ->after('guru_id')
+                ->nullable()
                 ->constrained('mata_pelajaran')
                 ->cascadeOnDelete();
 
             $table->foreignId('tahun_ajaran_id')
-                ->after('mata_pelajaran_id')
+                ->nullable()
                 ->constrained('tahun_ajaran')
                 ->cascadeOnDelete();
 
@@ -54,7 +64,7 @@ return new class extends Migration
                     'siswa_id',
                     'mata_pelajaran_id',
                     'guru_id',
-                    'tahun_ajaran_id'
+                    'tahun_ajaran_id',
                 ],
                 'nilai_siswa_id_mata_pelajaran_id_guru_id_tahun_ajaran_id_unique'
             );

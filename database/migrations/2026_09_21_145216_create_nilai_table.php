@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('nilai', function (Blueprint $table) {
@@ -34,7 +31,6 @@ return new class extends Migration
             $table->decimal('ulangan_harian', 5, 2)->nullable();
             $table->decimal('uts', 5, 2)->nullable();
             $table->decimal('uas', 5, 2)->nullable();
-
             $table->decimal('nilai_akhir', 5, 2)->nullable();
 
             $table->timestamps();
@@ -43,14 +39,11 @@ return new class extends Migration
                 'siswa_id',
                 'mata_pelajaran_id',
                 'guru_id',
-                'tahun_ajaran_id'
+                'tahun_ajaran_id',
             ]);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('nilai');
