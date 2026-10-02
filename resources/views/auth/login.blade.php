@@ -26,7 +26,7 @@
                     <span class="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold tracking-widest text-emerald-300">
                         <span class="size-1.5 rounded-full bg-emerald-300"></span> AKSES ADMIN
                     </span>
-                    <h1 class="mt-6 text-4xl font-extrabold leading-tight tracking-tight">Kelola data sekolah dalam satu ruang kerja.</h1>
+                    <h1 class="mt-6 text-4xl font-extrabold leading-tight tracking-tight text-white">Kelola data sekolah dalam satu ruang kerja.</h1>
                     <p class="mt-5 leading-7 text-slate-300">Masuk untuk mengakses dashboard administrasi EduRaport secara aman.</p>
                 </div>
 
@@ -51,7 +51,7 @@
 
                         <div class="grid gap-2">
                             <label for="email" class="text-sm font-semibold text-slate-700">Email</label>
-                            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="admin@localhost.test" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('email') ? 'border-red-400' : 'border-slate-300' }}">
+                            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="admin@gmail.com" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('email') ? 'border-red-400' : 'border-slate-300' }}">
                             @error('email')
                                 <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
                             @enderror

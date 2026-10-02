@@ -1,0 +1,94 @@
+@extends('layouts.admin')
+
+@section('title', 'Data Siswa')
+
+@section('content')
+    <section class="mx-auto max-w-7xl">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <p class="text-sm font-semibold text-emerald-600">Master Data</p>
+                <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#102d4b]">Data Siswa</h1>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Kelola identitas siswa dan penempatan kelas di EduRaport.</p>
+            </div>
+            <a href="{{ route('admin.siswa.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20">
+                <span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Siswa
+            </a>
+        </div>
+
+        <form method="GET" action="{{ route('admin.siswa.index') }}" class="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/[0.03] md:grid-cols-[minmax(0,1fr)_16rem_auto] md:items-end">
+            <div class="grid gap-2">
+                <label for="search" class="text-sm font-semibold text-slate-700">Cari Siswa</label>
+                <input id="search" name="search" type="search" value="{{ $search }}" placeholder="Cari nama atau NISN" class="h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
+            </div>
+
+            <div class="grid gap-2">
+                <label for="kelas_id" class="text-sm font-semibold text-slate-700">Kelas</label>
+                <select id="kelas_id" name="kelas_id" class="h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
+                    <option value="">Semua Kelas</option>
+                    @foreach ($kelasList as $kelas)
+                        <option value="{{ $kelas->id }}" @selected($kelasId === $kelas->id)>{{ $kelas->tingkat }} {{ $kelas->nama }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="flex gap-2">
+                <button type="submit" class="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#102d4b] px-5 text-sm font-bold text-white transition hover:bg-[#0b2945] md:flex-none">Cari</button>
+                @if ($search !== '' || $kelasId > 0)
+                    <a href="{{ route('admin.siswa.index') }}" class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-600 transition hover:bg-slate-50">Reset</a>
+                @endif
+            </div>
+        </form>
+
+        <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="w-16 px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">No</th>
+                            <th class="px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">NISN</th>
+                            <th class="px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Nama Siswa</th>
+                            <th class="px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Jenis Kelamin</th>
+                            <th class="px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Kelas</th>
+                            <th class="px-5 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                        @forelse ($siswa as $item)
+                            <tr class="transition hover:bg-slate-50/80">
+                                <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-500">{{ $siswa->firstItem() + $loop->index }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-sm font-semibold text-slate-700">{{ $item->nisn ?: '—' }}</td>
+                                <td class="px-5 py-4 text-sm font-bold text-[#102d4b]">{{ $item->nama }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $item->jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan' }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $item->kelas->tingkat }} {{ $item->kelas->nama }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-right">
+                                    <div class="inline-flex items-center gap-2">
+                                        <a href="{{ route('admin.siswa.edit', $item) }}" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">Edit</a>
+                                        <form method="POST" action="{{ route('admin.siswa.destroy', $item) }}" onsubmit="return confirm('Yakin ingin menghapus data siswa ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50">Hapus</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-5 py-16 text-center">
+                                    <span class="mx-auto grid size-12 place-items-center rounded-full bg-slate-100 text-lg font-bold text-slate-400">S</span>
+                                    <p class="mt-4 font-bold text-slate-700">Data siswa tidak ditemukan</p>
+                                    <p class="mt-1 text-sm text-slate-500">Tambahkan siswa baru atau sesuaikan pencarian dan filter.</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            @if ($siswa->hasPages())
+                <div class="border-t border-slate-200 px-5 py-4">
+                    {{ $siswa->links() }}
+                </div>
+            @endif
+        </div>
+    </section>
+@endsection

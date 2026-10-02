@@ -32,18 +32,43 @@ trait CreatesAdminTestSchema
 
         Schema::create('kelas', function (Blueprint $table): void {
             $table->id();
+            $table->string('nama')->default('A');
+            $table->string('tingkat')->default('VII');
             $table->foreignId('wali_kelas_id')->nullable();
+            $table->timestamps();
         });
 
         Schema::create('pengampu', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('guru_id');
+            $table->foreignId('kelas_id')->nullable();
+            $table->foreignId('mata_pelajaran_id')->nullable();
         });
 
-        foreach (['siswa', 'mata_pelajaran'] as $tableName) {
-            Schema::create($tableName, function (Blueprint $table): void {
-                $table->id();
-            });
-        }
+        Schema::create('siswa', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('kelas_id');
+            $table->string('nis')->unique();
+            $table->string('nisn')->nullable()->unique();
+            $table->string('nama');
+            $table->enum('jenis_kelamin', ['L', 'P']);
+            $table->date('tanggal_lahir')->nullable();
+            $table->string('tempat_lahir')->nullable();
+            $table->text('alamat')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('nilai', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('siswa_id');
+        });
+
+        Schema::create('mata_pelajaran', function (Blueprint $table): void {
+            $table->id();
+            $table->string('kode')->unique();
+            $table->string('nama');
+            $table->decimal('kkm', 5, 2)->default(75);
+            $table->timestamps();
+        });
     }
 }

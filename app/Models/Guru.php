@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['user_id', 'nip', 'nama', 'no_hp', 'alamat'])]
 class Guru extends Model
@@ -19,5 +20,10 @@ class Guru extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function kelasWali(): HasMany
+    {
+        return $this->hasMany(Kelas::class, 'wali_kelas_id');
     }
 }
