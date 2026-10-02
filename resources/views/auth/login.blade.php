@@ -26,7 +26,7 @@
                     <span class="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold tracking-widest text-emerald-300">
                         <span class="size-1.5 rounded-full bg-emerald-300"></span> AKSES ADMIN
                     </span>
-                    <h1 class="mt-6 text-4xl font-extrabold leading-tight tracking-tight text-white">Kelola data sekolah dalam satu ruang kerja.</h1>
+                    <h1 class="mt-6 text-4xl font-extrabold leading-tight tracking-tight !text-white">Kelola data sekolah dalam satu ruang kerja.</h1>
                     <p class="mt-5 leading-7 text-slate-300">Masuk untuk mengakses dashboard administrasi EduRaport secara aman.</p>
                 </div>
 
