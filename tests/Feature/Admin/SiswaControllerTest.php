@@ -3,9 +3,10 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Kelas;
+use App\Models\Nilai;
+use App\Models\Penilaian;
 use App\Models\Siswa;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
 
@@ -196,7 +197,10 @@ class SiswaControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $siswa = Siswa::factory()->create();
-        DB::table('nilai')->insert(['siswa_id' => $siswa->id]);
+        Nilai::factory()->create([
+            'siswa_id' => $siswa->id,
+            'penilaian_id' => Penilaian::factory(),
+        ]);
 
         $response = $this->actingAs($admin)->delete(route('admin.siswa.destroy', $siswa));
 

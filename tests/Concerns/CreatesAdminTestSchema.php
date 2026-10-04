@@ -68,16 +68,23 @@ trait CreatesAdminTestSchema
             $table->timestamps();
         });
 
+        Schema::create('penilaian', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('pengampu_id')->constrained('pengampu')->cascadeOnDelete();
+            $table->string('nama');
+            $table->enum('jenis', ['tugas', 'ulangan_harian', 'uts', 'uas']);
+            $table->date('tanggal');
+            $table->decimal('bobot', 5, 2)->nullable();
+            $table->unsignedInteger('urutan');
+            $table->timestamps();
+        });
+
         Schema::create('nilai', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('siswa_id');
-            $table->foreignId('pengampu_id')->nullable();
-            $table->decimal('tugas', 5, 2)->nullable();
-            $table->decimal('ulangan_harian', 5, 2)->nullable();
-            $table->decimal('uts', 5, 2)->nullable();
-            $table->decimal('uas', 5, 2)->nullable();
-            $table->decimal('nilai_akhir', 5, 2)->nullable();
-            $table->unique(['siswa_id', 'pengampu_id'], 'nilai_siswa_id_pengampu_id_unique');
+            $table->foreignId('siswa_id')->constrained('siswa')->cascadeOnDelete();
+            $table->foreignId('penilaian_id')->constrained('penilaian')->cascadeOnDelete();
+            $table->decimal('nilai', 5, 2);
+            $table->unique(['siswa_id', 'penilaian_id'], 'nilai_siswa_id_penilaian_id_unique');
             $table->timestamps();
         });
 

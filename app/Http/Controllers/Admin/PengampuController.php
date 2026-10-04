@@ -106,7 +106,7 @@ class PengampuController extends Controller
         $deleted = DB::transaction(function () use ($pengampu): bool {
             $lockedPengampu = Pengampu::query()->lockForUpdate()->findOrFail($pengampu->getKey());
 
-            if (Schema::hasColumn('nilai', 'pengampu_id') && DB::table('nilai')->where('pengampu_id', $lockedPengampu->getKey())->exists()) {
+            if (Schema::hasTable('penilaian') && DB::table('penilaian')->where('pengampu_id', $lockedPengampu->getKey())->exists()) {
                 return false;
             }
 

@@ -83,8 +83,7 @@ class TahunAjaranController extends Controller
                 return 'aktif';
             }
 
-            $isInUse = DB::table('pengampu')->where('tahun_ajaran_id', $lockedTahunAjaran->getKey())->exists()
-                || DB::table('nilai')->where('tahun_ajaran_id', $lockedTahunAjaran->getKey())->exists();
+            $isInUse = DB::table('pengampu')->where('tahun_ajaran_id', $lockedTahunAjaran->getKey())->exists();
 
             if ($isInUse) {
                 return 'digunakan';

@@ -5,10 +5,12 @@ namespace Tests\Feature\Admin;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\Nilai;
 use App\Models\Pengampu;
+use App\Models\Penilaian;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
 
@@ -122,11 +124,15 @@ class PengampuControllerTest extends TestCase
         $this->assertModelMissing($pengampu);
     }
 
-    public function test_pengampu_used_by_nilai_cannot_be_deleted_when_column_exists(): void
+    public function test_pengampu_used_by_penilaian_cannot_be_deleted(): void
     {
         $admin = User::factory()->admin()->create();
         $pengampu = Pengampu::factory()->create();
-        DB::table('nilai')->insert(['siswa_id' => 1, 'pengampu_id' => $pengampu->id]);
+        $penilaian = Penilaian::factory()->create(['pengampu_id' => $pengampu->id]);
+        Nilai::factory()->create([
+            'siswa_id' => Siswa::factory(),
+            'penilaian_id' => $penilaian->id,
+        ]);
 
         $this->actingAs($admin)->delete(route('admin.pengampu.destroy', $pengampu))
             ->assertRedirectToRoute('admin.pengampu.index')

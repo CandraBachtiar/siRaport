@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['siswa_id', 'pengampu_id', 'tugas', 'ulangan_harian', 'uts', 'uas', 'nilai_akhir'])]
+#[Fillable(['siswa_id', 'penilaian_id', 'nilai'])]
 class Nilai extends Model
 {
     /** @use HasFactory<NilaiFactory> */
@@ -21,20 +21,16 @@ class Nilai extends Model
         return $this->belongsTo(Siswa::class);
     }
 
-    public function pengampu(): BelongsTo
+    public function penilaian(): BelongsTo
     {
-        return $this->belongsTo(Pengampu::class);
+        return $this->belongsTo(Penilaian::class);
     }
 
     /** @return array<string, string> */
     protected function casts(): array
     {
         return [
-            'tugas' => 'decimal:2',
-            'ulangan_harian' => 'decimal:2',
-            'uts' => 'decimal:2',
-            'uas' => 'decimal:2',
-            'nilai_akhir' => 'decimal:2',
+            'nilai' => 'decimal:2',
         ];
     }
 }

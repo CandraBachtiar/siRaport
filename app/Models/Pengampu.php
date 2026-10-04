@@ -37,8 +37,8 @@ class Pengampu extends Model
         return $this->belongsTo(TahunAjaran::class);
     }
 
-    public function nilai(): HasMany
+    public function penilaian(): HasMany
     {
-        return $this->hasMany(Nilai::class);
+        return $this->hasMany(Penilaian::class);
     }
 }
