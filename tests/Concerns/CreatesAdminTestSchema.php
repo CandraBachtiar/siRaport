@@ -71,7 +71,7 @@ trait CreatesAdminTestSchema
 
         Schema::create('penilaian', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('pengampu_id')->constrained('pengampu')->cascadeOnDelete();
+            $table->foreignId('pengampu_id')->constrained('pengampu')->restrictOnDelete();
             $table->string('nama');
             $table->enum('jenis', ['tugas', 'ulangan_harian', 'uts', 'uas']);
             $table->date('tanggal');
@@ -82,8 +82,8 @@ trait CreatesAdminTestSchema
 
         Schema::create('nilai', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('siswa_id')->constrained('siswa')->cascadeOnDelete();
-            $table->foreignId('penilaian_id')->constrained('penilaian')->cascadeOnDelete();
+            $table->foreignId('siswa_id')->constrained('siswa')->restrictOnDelete();
+            $table->foreignId('penilaian_id')->constrained('penilaian')->restrictOnDelete();
             $table->decimal('nilai', 5, 2);
             $table->unique(['siswa_id', 'penilaian_id'], 'nilai_siswa_id_penilaian_id_unique');
             $table->timestamps();
@@ -91,7 +91,7 @@ trait CreatesAdminTestSchema
 
         Schema::create('deskripsi', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('nilai_id')->constrained('nilai')->cascadeOnDelete();
+            $table->foreignId('nilai_id')->constrained('nilai')->restrictOnDelete();
             $table->text('rekomendasi')->nullable();
             $table->text('deskripsi_akhir')->nullable();
             $table->enum('status', ['draft', 'tervalidasi'])->default('draft');

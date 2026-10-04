@@ -48,6 +48,24 @@ class NilaiStructureTest extends TestCase
         Nilai::create(['siswa_id' => $siswa->id, 'penilaian_id' => $penilaian->id, 'nilai' => 90]);
     }
 
+    public function test_database_restricts_deleting_siswa_with_nilai(): void
+    {
+        $siswa = Siswa::factory()->create();
+        Nilai::factory()->create(['siswa_id' => $siswa->id]);
+
+        $this->expectException(QueryException::class);
+        $siswa->delete();
+    }
+
+    public function test_database_restricts_deleting_penilaian_with_nilai(): void
+    {
+        $penilaian = Penilaian::factory()->create();
+        Nilai::factory()->create(['penilaian_id' => $penilaian->id]);
+
+        $this->expectException(QueryException::class);
+        $penilaian->delete();
+    }
+
     public function test_nilai_rejects_unknown_penilaian_foreign_key(): void
     {
         $siswa = Siswa::factory()->create();

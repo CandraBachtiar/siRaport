@@ -66,6 +66,24 @@ class DeskripsiStructureTest extends TestCase
         Deskripsi::create(['nilai_id' => 999999, 'status' => 'draft']);
     }
 
+    public function test_database_restricts_deleting_nilai_with_deskripsi(): void
+    {
+        $nilai = Nilai::factory()->create();
+        Deskripsi::factory()->create(['nilai_id' => $nilai->id]);
+
+        $this->expectException(QueryException::class);
+        $nilai->delete();
+    }
+
+    public function test_database_restricts_deleting_pengampu_with_penilaian(): void
+    {
+        $pengampu = Pengampu::factory()->create();
+        Penilaian::factory()->create(['pengampu_id' => $pengampu->id]);
+
+        $this->expectException(QueryException::class);
+        $pengampu->delete();
+    }
+
     public function test_deskripsi_status_is_limited_to_draft_or_tervalidasi(): void
     {
         $nilai = Nilai::factory()->create();

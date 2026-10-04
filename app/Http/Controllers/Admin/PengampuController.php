@@ -116,7 +116,7 @@ class PengampuController extends Controller
         });
 
         if (! $deleted) {
-            return redirect()->route('admin.pengampu.index')->with('error', 'Data pengampu tidak dapat dihapus karena sudah digunakan pada data nilai.');
+            return redirect()->route('admin.pengampu.index')->with('error', 'Data pengampu tidak dapat dihapus karena masih memiliki penilaian atau nilai.');
         }
 
         return redirect()->route('admin.pengampu.index')->with('success', 'Data pengampu berhasil dihapus.');

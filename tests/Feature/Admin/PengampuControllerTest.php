@@ -136,7 +136,7 @@ class PengampuControllerTest extends TestCase
 
         $this->actingAs($admin)->delete(route('admin.pengampu.destroy', $pengampu))
             ->assertRedirectToRoute('admin.pengampu.index')
-            ->assertSessionHas('error', 'Data pengampu tidak dapat dihapus karena sudah digunakan pada data nilai.');
+            ->assertSessionHas('error', 'Data pengampu tidak dapat dihapus karena masih memiliki penilaian atau nilai.');
 
         $this->assertModelExists($pengampu);
     }
