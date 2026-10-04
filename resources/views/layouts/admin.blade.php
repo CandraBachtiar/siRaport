@@ -55,7 +55,14 @@
                 ])>
                     <span class="grid size-7 place-items-center rounded-lg bg-emerald-400/10">M</span> Mata Pelajaran
                 </a>
-                @foreach (['Tahun Ajaran', 'Pengampu', 'Import Data'] as $menu)
+                <a href="{{ route('admin.tahun-ajaran.index') }}" @class([
+                    'flex shrink-0 items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition',
+                    'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/20' => request()->routeIs('admin.tahun-ajaran.*'),
+                    'text-slate-400 hover:bg-white/5 hover:text-slate-200' => ! request()->routeIs('admin.tahun-ajaran.*'),
+                ])>
+                    <span class="grid size-7 place-items-center rounded-lg bg-emerald-400/10">T</span> Data Tahun Ajaran
+                </a>
+                @foreach (['Pengampu', 'Import Data'] as $menu)
                     <span aria-disabled="true" title="Fitur akan tersedia pada tahap berikutnya" class="flex shrink-0 cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-500">
                         <span class="grid size-7 place-items-center rounded-lg bg-white/5">·</span> {{ $menu }}
                     </span>

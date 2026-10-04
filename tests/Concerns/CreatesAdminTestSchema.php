@@ -38,11 +38,20 @@ trait CreatesAdminTestSchema
             $table->timestamps();
         });
 
+        Schema::create('tahun_ajaran', function (Blueprint $table): void {
+            $table->id();
+            $table->string('tahun');
+            $table->enum('semester', ['Ganjil', 'Genap']);
+            $table->boolean('aktif')->default(false);
+            $table->timestamps();
+        });
+
         Schema::create('pengampu', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('guru_id');
             $table->foreignId('kelas_id')->nullable();
             $table->foreignId('mata_pelajaran_id')->nullable();
+            $table->foreignId('tahun_ajaran_id')->nullable();
         });
 
         Schema::create('siswa', function (Blueprint $table): void {
@@ -61,6 +70,7 @@ trait CreatesAdminTestSchema
         Schema::create('nilai', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('siswa_id');
+            $table->foreignId('tahun_ajaran_id')->nullable();
         });
 
         Schema::create('mata_pelajaran', function (Blueprint $table): void {
