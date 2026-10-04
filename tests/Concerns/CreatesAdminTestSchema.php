@@ -88,6 +88,16 @@ trait CreatesAdminTestSchema
             $table->timestamps();
         });
 
+        Schema::create('deskripsi', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('nilai_id')->constrained('nilai')->cascadeOnDelete();
+            $table->text('rekomendasi')->nullable();
+            $table->text('deskripsi_akhir')->nullable();
+            $table->enum('status', ['draft', 'tervalidasi'])->default('draft');
+            $table->unique('nilai_id', 'deskripsi_nilai_id_unique');
+            $table->timestamps();
+        });
+
         Schema::create('mata_pelajaran', function (Blueprint $table): void {
             $table->id();
             $table->string('kode')->unique();

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['siswa_id', 'penilaian_id', 'nilai'])]
 class Nilai extends Model
@@ -24,6 +25,11 @@ class Nilai extends Model
     public function penilaian(): BelongsTo
     {
         return $this->belongsTo(Penilaian::class);
+    }
+
+    public function deskripsi(): HasOne
+    {
+        return $this->hasOne(Deskripsi::class);
     }
 
     /** @return array<string, string> */
