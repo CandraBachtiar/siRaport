@@ -10,9 +10,10 @@
                 <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#102d4b]">Data Guru</h1>
                 <p class="mt-2 text-sm leading-6 text-slate-500">Kelola identitas dan akun guru yang terhubung ke EduRaport.</p>
             </div>
-            <a href="{{ route('admin.guru.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20">
-                <span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Guru
-            </a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.guru.import.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100">Import Excel</a>
+                <a href="{{ route('admin.guru.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20"><span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Guru</a>
+            </div>
         </div>
 
         <div class="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]">
