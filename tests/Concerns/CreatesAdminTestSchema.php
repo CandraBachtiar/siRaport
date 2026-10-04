@@ -52,6 +52,7 @@ trait CreatesAdminTestSchema
             $table->foreignId('kelas_id')->nullable();
             $table->foreignId('mata_pelajaran_id')->nullable();
             $table->foreignId('tahun_ajaran_id')->nullable();
+            $table->timestamps();
         });
 
         Schema::create('siswa', function (Blueprint $table): void {
@@ -70,6 +71,7 @@ trait CreatesAdminTestSchema
         Schema::create('nilai', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('siswa_id');
+            $table->foreignId('pengampu_id')->nullable();
             $table->foreignId('tahun_ajaran_id')->nullable();
         });
 

@@ -26,4 +26,9 @@ class Guru extends Model
     {
         return $this->hasMany(Kelas::class, 'wali_kelas_id');
     }
+
+    public function pengampu(): HasMany
+    {
+        return $this->hasMany(Pengampu::class);
+    }
 }

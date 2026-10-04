@@ -26,4 +26,9 @@ class Kelas extends Model
     {
         return $this->hasMany(Siswa::class);
     }
+
+    public function pengampu(): HasMany
+    {
+        return $this->hasMany(Pengampu::class);
+    }
 }

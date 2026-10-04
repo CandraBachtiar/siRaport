@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\MataPelajaranController;
+use App\Http\Controllers\Admin\PengampuController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -40,4 +41,5 @@ Route::middleware(['auth', 'admin', 'cache.headers:no_store;no_cache;must_revali
         Route::resource('tahun-ajaran', TahunAjaranController::class)
             ->except('show')
             ->parameters(['tahun-ajaran' => 'tahun_ajaran']);
+        Route::resource('pengampu', PengampuController::class)->except('show');
     });

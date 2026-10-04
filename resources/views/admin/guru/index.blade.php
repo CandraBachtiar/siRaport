@@ -16,7 +16,7 @@
         </div>
 
         <div class="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto">   
                 <table class="min-w-full divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr>
