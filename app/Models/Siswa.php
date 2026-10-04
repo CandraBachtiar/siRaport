@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['kelas_id', 'nis', 'nisn', 'nama', 'jenis_kelamin', 'tanggal_lahir', 'tempat_lahir', 'alamat'])]
 class Siswa extends Model
@@ -19,6 +20,11 @@ class Siswa extends Model
     public function kelas(): BelongsTo
     {
         return $this->belongsTo(Kelas::class);
+    }
+
+    public function nilai(): HasMany
+    {
+        return $this->hasMany(Nilai::class);
     }
 
     /**

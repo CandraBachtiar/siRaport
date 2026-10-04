@@ -72,7 +72,13 @@ trait CreatesAdminTestSchema
             $table->id();
             $table->foreignId('siswa_id');
             $table->foreignId('pengampu_id')->nullable();
-            $table->foreignId('tahun_ajaran_id')->nullable();
+            $table->decimal('tugas', 5, 2)->nullable();
+            $table->decimal('ulangan_harian', 5, 2)->nullable();
+            $table->decimal('uts', 5, 2)->nullable();
+            $table->decimal('uas', 5, 2)->nullable();
+            $table->decimal('nilai_akhir', 5, 2)->nullable();
+            $table->unique(['siswa_id', 'pengampu_id'], 'nilai_siswa_id_pengampu_id_unique');
+            $table->timestamps();
         });
 
         Schema::create('mata_pelajaran', function (Blueprint $table): void {
