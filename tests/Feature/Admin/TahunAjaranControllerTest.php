@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\TahunAjaran;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -55,6 +56,31 @@ class TahunAjaranControllerTest extends TestCase
         $this->assertDatabaseHas('tahun_ajaran', ['tahun' => '2025/2026', 'semester' => 'Ganjil', 'aktif' => true]);
     }
 
+    public function test_creating_active_tahun_ajaran_deactivates_previous_one(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $previous = TahunAjaran::factory()->create(['tahun' => '2024/2025', 'semester' => 'Ganjil', 'aktif' => true]);
+
+        $this->actingAs($admin)->post(route('admin.tahun-ajaran.store'), [
+            'tahun' => '2025/2026', 'semester' => 'Genap', 'aktif' => '1',
+        ])->assertRedirectToRoute('admin.tahun-ajaran.index');
+
+        $this->assertDatabaseHas('tahun_ajaran', ['id' => $previous->id, 'aktif' => false]);
+        $this->assertDatabaseHas('tahun_ajaran', ['tahun' => '2025/2026', 'semester' => 'Genap', 'aktif' => true]);
+    }
+
+    public function test_creating_inactive_tahun_ajaran_preserves_active_one(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $active = TahunAjaran::factory()->create(['tahun' => '2024/2025', 'semester' => 'Ganjil', 'aktif' => true]);
+
+        $this->actingAs($admin)->post(route('admin.tahun-ajaran.store'), [
+            'tahun' => '2025/2026', 'semester' => 'Genap', 'aktif' => '0',
+        ])->assertRedirectToRoute('admin.tahun-ajaran.index');
+
+        $this->assertDatabaseHas('tahun_ajaran', ['id' => $active->id, 'aktif' => true]);
+    }
+
     public function test_create_tahun_ajaran_requires_database_fields(): void
     {
         $this->actingAs(User::factory()->admin()->create())
@@ -81,6 +107,32 @@ class TahunAjaranControllerTest extends TestCase
             ->post(route('admin.tahun-ajaran.store'), ['tahun' => '2025/2026', 'semester' => 'Ganjil'])
             ->assertRedirect(route('admin.tahun-ajaran.create'))
             ->assertSessionHasErrors(['tahun' => 'Tahun ajaran dan semester tersebut sudah digunakan.']);
+    }
+
+    public function test_same_tahun_with_different_semester_is_allowed(): void
+    {
+        $admin = User::factory()->admin()->create();
+        TahunAjaran::factory()->create(['tahun' => '2025/2026', 'semester' => 'Ganjil']);
+
+        $this->actingAs($admin)->post(route('admin.tahun-ajaran.store'), [
+            'tahun' => '2025/2026', 'semester' => 'Genap', 'aktif' => '0',
+        ])->assertRedirectToRoute('admin.tahun-ajaran.index');
+
+        $this->assertDatabaseHas('tahun_ajaran', ['tahun' => '2025/2026', 'semester' => 'Genap']);
+    }
+
+    public function test_database_unique_constraint_protects_tahun_and_semester(): void
+    {
+        TahunAjaran::factory()->create(['tahun' => '2025/2026', 'semester' => 'Ganjil']);
+
+        $this->expectException(QueryException::class);
+        DB::table('tahun_ajaran')->insert([
+            'tahun' => '2025/2026',
+            'semester' => 'Ganjil',
+            'aktif' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public function test_admin_can_update_tahun_ajaran_without_self_duplicate_error(): void

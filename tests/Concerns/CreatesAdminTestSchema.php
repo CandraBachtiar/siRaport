@@ -43,6 +43,7 @@ trait CreatesAdminTestSchema
             $table->string('tahun');
             $table->enum('semester', ['Ganjil', 'Genap']);
             $table->boolean('aktif')->default(false);
+            $table->unique(['tahun', 'semester'], 'tahun_ajaran_tahun_semester_unique');
             $table->timestamps();
         });
 

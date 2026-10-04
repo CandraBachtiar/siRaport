@@ -39,6 +39,7 @@ class TahunAjaranController extends Controller
 
         DB::transaction(function () use ($data): void {
             if ($data['aktif'] ?? false) {
+                $this->lockTahunAjaranRows();
                 TahunAjaran::query()->where('aktif', true)->update(['aktif' => false]);
             }
 
@@ -61,6 +62,8 @@ class TahunAjaranController extends Controller
         $data = [...$request->validated(), 'aktif' => $request->boolean('aktif')];
 
         DB::transaction(function () use ($data, $tahunAjaran): void {
+            $this->lockTahunAjaranRows();
+
             if ($data['aktif'] ?? false) {
                 TahunAjaran::query()
                     ->where('aktif', true)
@@ -72,6 +75,15 @@ class TahunAjaranController extends Controller
         });
 
         return redirect()->route('admin.tahun-ajaran.index')->with('success', 'Data tahun ajaran berhasil diperbarui.');
+    }
+
+    private function lockTahunAjaranRows(): void
+    {
+        TahunAjaran::query()
+            ->select('id')
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get();
     }
 
     public function destroy(TahunAjaran $tahunAjaran): RedirectResponse
