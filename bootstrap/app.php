@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureUserIsGuru;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,10 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(fn (Request $request) => route('login'));
-        $middleware->redirectUsersTo(fn (Request $request) => route('admin.dashboard'));
+        $middleware->redirectUsersTo(fn (Request $request) => match ($request->user()?->role) {
+            'admin' => route('admin.dashboard'),
+            'guru' => route('guru.dashboard'),
+            default => url('/'),
+        });
 
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
+            'guru' => EnsureUserIsGuru::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

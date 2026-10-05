@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Guru;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -22,7 +23,7 @@ class AuthenticationTest extends TestCase
         $response = $this->get(route('login'));
 
         $response->assertOk()
-            ->assertSee('Login Admin')
+            ->assertSee('Login Admin &amp; Guru', false)
             ->assertSee('Email')
             ->assertSee('Password')
             ->assertDontSee('Register');
@@ -66,23 +67,21 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_guru_credentials_cannot_authenticate_through_admin_login(): void
+    public function test_guru_can_authenticate_and_is_redirected_to_guru_dashboard(): void
     {
-        User::factory()->guru()->create([
+        $guruUser = User::factory()->guru()->create([
+            'email' => 'guru@example.test',
+            'password' => 'password',
+        ]);
+        Guru::factory()->for($guruUser)->create();
+
+        $response = $this->post(route('login.store'), [
             'email' => 'guru@example.test',
             'password' => 'password',
         ]);
 
-        $response = $this->from(route('login'))->post(route('login.store'), [
-            'email' => 'guru@example.test',
-            'password' => 'password',
-        ]);
-
-        $response->assertRedirect(route('login'))
-            ->assertSessionHasErrors([
-                'email' => 'Email atau password tidak sesuai.',
-            ]);
-        $this->assertGuest();
+        $response->assertRedirectToRoute('guru.dashboard');
+        $this->assertAuthenticatedAs($guruUser);
     }
 
     public function test_login_requires_a_valid_email_and_password(): void
@@ -109,11 +108,35 @@ class AuthenticationTest extends TestCase
         $response->assertRedirectToRoute('admin.dashboard');
     }
 
+    public function test_authenticated_guru_is_redirected_away_from_login_page(): void
+    {
+        $guruUser = User::factory()->guru()->create();
+        Guru::factory()->for($guruUser)->create();
+
+        $response = $this->actingAs($guruUser)->get(route('login'));
+
+        $response->assertRedirectToRoute('guru.dashboard');
+    }
+
     public function test_admin_can_logout_and_session_data_is_invalidated(): void
     {
         $admin = User::factory()->admin()->create();
 
         $response = $this->actingAs($admin)
+            ->withSession(['private_marker' => 'secret'])
+            ->post(route('logout'));
+
+        $response->assertRedirectToRoute('login')
+            ->assertSessionMissing('private_marker');
+        $this->assertGuest();
+    }
+
+    public function test_guru_can_logout_and_session_data_is_invalidated(): void
+    {
+        $guruUser = User::factory()->guru()->create();
+        Guru::factory()->for($guruUser)->create();
+
+        $response = $this->actingAs($guruUser)
             ->withSession(['private_marker' => 'secret'])
             ->post(route('logout'));
 

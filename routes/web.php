@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PengampuController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -47,4 +48,11 @@ Route::middleware(['auth', 'admin', 'cache.headers:no_store;no_cache;must_revali
             ->except('show')
             ->parameters(['tahun-ajaran' => 'tahun_ajaran']);
         Route::resource('pengampu', PengampuController::class)->except('show');
+    });
+
+Route::middleware(['auth', 'guru', 'cache.headers:no_store;no_cache;must_revalidate'])
+    ->prefix('guru')
+    ->name('guru.')
+    ->group(function (): void {
+        Route::get('/dashboard', GuruDashboardController::class)->name('dashboard');
     });

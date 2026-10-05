@@ -30,7 +30,7 @@ class AuthenticatedSessionController extends Controller
             ],
         );
 
-        if (! Auth::attempt([...$credentials, 'role' => 'admin'])) {
+        if (! Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
                 'email' => 'Email atau password tidak sesuai.',
             ]);
@@ -38,7 +38,24 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('admin.dashboard', absolute: false));
+        $dashboardRoute = match ($request->user()?->role) {
+            'admin' => 'admin.dashboard',
+            'guru' => 'guru.dashboard',
+            default => null,
+        };
+
+        if ($dashboardRoute === null) {
+            Auth::logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'email' => 'Akun tidak memiliki role yang valid.',
+            ]);
+        }
+
+        return redirect()->route($dashboardRoute);
     }
 
     public function destroy(Request $request): RedirectResponse

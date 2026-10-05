@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Masuk ke panel administrasi EduRaport.">
-    <title>Login Admin — EduRaport</title>
+    <meta name="description" content="Masuk ke EduRaport sebagai administrator atau guru.">
+    <title>Login — EduRaport</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -19,15 +19,15 @@
                     <span class="grid size-12 place-items-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-950/20">
                         <svg class="size-7" viewBox="0 0 40 40" aria-hidden="true"><path d="M10 12.5c4.1-1.3 7.4-.8 10 1.4v16c-2.6-2.2-5.9-2.7-10-1.4v-16Zm20 0c-4.1-1.3-7.4-.8-10 1.4v16c2.6-2.2 5.9-2.7 10-1.4v-16Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
                     </span>
-                    <span><strong class="block text-lg font-extrabold">EduRaport</strong><small class="text-xs text-slate-300">Panel Administrator</small></span>
+                    <span><strong class="block text-lg font-extrabold">EduRaport</strong><small class="text-xs text-slate-300">Portal Sekolah</small></span>
                 </a>
 
                 <div class="max-w-md py-16">
                     <span class="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold tracking-widest text-emerald-300">
-                        <span class="size-1.5 rounded-full bg-emerald-300"></span> AKSES ADMIN
+                        <span class="size-1.5 rounded-full bg-emerald-300"></span> AKSES ADMIN &amp; GURU
                     </span>
                     <h1 class="mt-6 text-4xl font-extrabold leading-tight tracking-tight !text-white">Kelola data sekolah dalam satu ruang kerja.</h1>
-                    <p class="mt-5 leading-7 text-slate-300">Masuk untuk mengakses dashboard administrasi EduRaport secara aman.</p>
+                    <p class="mt-5 leading-7 text-slate-300">Masuk untuk mengakses ruang kerja EduRaport sesuai peran akun Anda.</p>
                 </div>
 
                 <p class="text-sm text-slate-400">&copy; {{ date('Y') }} EduRaport. Sistem Rapor Digital.</p>
@@ -43,15 +43,15 @@
 
                 <div class="mx-auto max-w-md">
                     <p class="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">Selamat datang</p>
-                    <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-[#102d4b]">Login Admin</h2>
-                    <p class="mt-3 text-sm leading-6 text-slate-500">Gunakan akun administrator yang telah dibuat melalui seeder.</p>
+                    <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-[#102d4b]">Login Admin &amp; Guru</h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-500">Gunakan email dan password akun EduRaport Anda.</p>
 
                     <form method="POST" action="{{ route('login.store') }}" class="mt-9 grid gap-6">
                         @csrf
 
                         <div class="grid gap-2">
                             <label for="email" class="text-sm font-semibold text-slate-700">Email</label>
-                            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="admin@gmail.com" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('email') ? 'border-red-400' : 'border-slate-300' }}">
+                            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="nama@sekolah.sch.id" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('email') ? 'border-red-400' : 'border-slate-300' }}">
                             @error('email')
                                 <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
                             @enderror
