@@ -1,6 +1,3 @@
-<div>
-    <!-- The whole future lies in uncertainty: live immediately. - Seneca -->
-</div>
 @extends('layouts.guru-workspace')
 
 @section('title', 'Siswa Perlu Perhatian')
