@@ -1,4 +1,4 @@
-@extends('layouts.guru')
+@extends('layouts.guru-v2')
 
 @section('title', 'Dashboard Guru')
 
@@ -47,6 +47,7 @@
             @else
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                        <caption class="sr-only">Daftar tugas mengajar dan progres pengisian nilai</caption>
                         <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
                             <tr>
                                 <th scope="col" class="px-5 py-3 sm:px-6">Mata Pelajaran</th>

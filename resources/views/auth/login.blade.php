@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Masuk ke EduRaport sebagai administrator atau guru.">
-    <title>Login — EduRaport</title>
+    <meta name="description" content="Masuk ke RaporKu sebagai administrator atau guru.">
+    <title>Login — RaporKu</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -15,11 +15,11 @@
 
         <div class="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 lg:grid-cols-[1.05fr_0.95fr]">
             <section class="hidden bg-[#0b2945] p-12 text-white lg:flex lg:flex-col lg:justify-between">
-                <a href="{{ url('/') }}" class="inline-flex w-fit items-center gap-3" aria-label="EduRaport, kembali ke beranda">
+                <a href="{{ url('/') }}" class="inline-flex w-fit items-center gap-3" aria-label="RaporKu, kembali ke beranda">
                     <span class="grid size-12 place-items-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-950/20">
                         <svg class="size-7" viewBox="0 0 40 40" aria-hidden="true"><path d="M10 12.5c4.1-1.3 7.4-.8 10 1.4v16c-2.6-2.2-5.9-2.7-10-1.4v-16Zm20 0c-4.1-1.3-7.4-.8-10 1.4v16c2.6-2.2 5.9-2.7 10-1.4v-16Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
                     </span>
-                    <span><strong class="block text-lg font-extrabold">EduRaport</strong><small class="text-xs text-slate-300">Portal Sekolah</small></span>
+                    <span><strong class="block text-lg font-extrabold">RaporKu</strong><small class="text-xs text-slate-300">Portal Sekolah</small></span>
                 </a>
 
                 <div class="max-w-md py-16">
@@ -27,10 +27,10 @@
                         <span class="size-1.5 rounded-full bg-emerald-300"></span> AKSES ADMIN &amp; GURU
                     </span>
                     <h1 class="mt-6 text-4xl font-extrabold leading-tight tracking-tight !text-white">Kelola data sekolah dalam satu ruang kerja.</h1>
-                    <p class="mt-5 leading-7 text-slate-300">Masuk untuk mengakses ruang kerja EduRaport sesuai peran akun Anda.</p>
+                    <p class="mt-5 leading-7 text-slate-300">Masuk untuk mengakses ruang kerja RaporKu sesuai peran akun Anda.</p>
                 </div>
 
-                <p class="text-sm text-slate-400">&copy; {{ date('Y') }} EduRaport. Sistem Rapor Digital.</p>
+                <p class="text-sm text-slate-400">&copy; {{ date('Y') }} RaporKu. Sistem Rapor Digital.</p>
             </section>
 
             <section class="px-6 py-10 sm:px-12 sm:py-14">
@@ -38,13 +38,13 @@
                     <span class="grid size-11 place-items-center rounded-xl bg-emerald-600 text-white">
                         <svg class="size-6" viewBox="0 0 40 40" aria-hidden="true"><path d="M10 12.5c4.1-1.3 7.4-.8 10 1.4v16c-2.6-2.2-5.9-2.7-10-1.4v-16Zm20 0c-4.1-1.3-7.4-.8-10 1.4v16c2.6-2.2 5.9-2.7 10-1.4v-16Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
                     </span>
-                    <strong class="text-lg font-extrabold text-[#102d4b]">EduRaport</strong>
+                    <strong class="text-lg font-extrabold text-[#102d4b]">RaporKu</strong>
                 </a>
 
                 <div class="mx-auto max-w-md">
                     <p class="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">Selamat datang</p>
                     <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-[#102d4b]">Login Admin &amp; Guru</h2>
-                    <p class="mt-3 text-sm leading-6 text-slate-500">Gunakan email dan password akun EduRaport Anda.</p>
+                    <p class="mt-3 text-sm leading-6 text-slate-500">Gunakan email dan password akun RaporKu Anda.</p>
 
                     <form method="POST" action="{{ route('login.store') }}" class="mt-9 grid gap-6">
                         @csrf

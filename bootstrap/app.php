@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsureGuruHasMapelWorkspace;
+use App\Http\Middleware\EnsureGuruHasWaliKelasWorkspace;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsGuru;
 use Illuminate\Foundation\Application;
@@ -24,6 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'guru' => EnsureUserIsGuru::class,
+            'guru.mapel' => EnsureGuruHasMapelWorkspace::class,
+            'guru.wali' => EnsureGuruHasWaliKelasWorkspace::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

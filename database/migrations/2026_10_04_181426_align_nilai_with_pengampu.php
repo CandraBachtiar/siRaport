@@ -10,17 +10,20 @@ return new class extends Migration
     public function up(): void
     {
         $legacyColumns = ['guru_id', 'mata_pelajaran_id', 'tahun_ajaran_id'];
+        $legacyColumnCount = collect($legacyColumns)->filter(fn (string $column): bool => Schema::hasColumn('nilai', $column))->count();
+
+        if ($legacyColumnCount > 0 && $legacyColumnCount < count($legacyColumns)) {
+            throw new RuntimeException('Migrasi nilai dihentikan: hanya sebagian kolom relasi lama yang ditemukan. Struktur nilai harus diperiksa dan dipetakan secara manual.');
+        }
+
+        if (! Schema::hasColumn('nilai', 'pengampu_id') && $legacyColumnCount === 0 && DB::table('nilai')->exists()) {
+            throw new RuntimeException('Migrasi nilai dihentikan: nilai lama tidak memiliki konteks pengampu yang dapat dipetakan.');
+        }
 
         if (! Schema::hasColumn('nilai', 'pengampu_id')) {
             Schema::table('nilai', function (Blueprint $table): void {
                 $table->unsignedBigInteger('pengampu_id')->nullable()->after('siswa_id');
             });
-        }
-
-        $legacyColumnCount = collect($legacyColumns)->filter(fn (string $column): bool => Schema::hasColumn('nilai', $column))->count();
-
-        if ($legacyColumnCount > 0 && $legacyColumnCount < count($legacyColumns)) {
-            throw new RuntimeException('Migrasi nilai dihentikan: hanya sebagian kolom relasi lama yang ditemukan. Struktur nilai harus diperiksa dan dipetakan secara manual.');
         }
 
         if ($this->hasLegacyColumns($legacyColumns)) {
@@ -39,15 +42,23 @@ return new class extends Migration
             $this->dropLegacyColumns($legacyColumns);
         }
 
-        $this->addPengampuForeignKey();
+        $this->ensurePengampuForeignKey();
         $this->addUniqueConstraint();
     }
 
     public function down(): void
     {
-        if ($this->hasIndex(['siswa_id', 'pengampu_id'], 'nilai_siswa_id_pengampu_id_unique')) {
+        if ($this->hasIndexNamed('nilai_siswa_id_pengampu_id_unique')) {
             Schema::table('nilai', function (Blueprint $table): void {
                 $table->dropUnique('nilai_siswa_id_pengampu_id_unique');
+            });
+        }
+
+        $this->dropForeignKeysForColumn('pengampu_id');
+
+        if (Schema::hasColumn('nilai', 'pengampu_id')) {
+            Schema::table('nilai', function (Blueprint $table): void {
+                $table->dropColumn('pengampu_id');
             });
         }
     }
@@ -111,24 +122,29 @@ return new class extends Migration
         });
     }
 
-    private function addPengampuForeignKey(): void
+    private function ensurePengampuForeignKey(): void
     {
-        $hasForeignKey = collect(Schema::getForeignKeys('nilai'))
-            ->contains(fn (array $foreignKey): bool => $foreignKey['columns'] === ['pengampu_id'] && $foreignKey['foreign_table'] === 'pengampu');
+        foreach (Schema::getForeignKeys('nilai') as $foreignKey) {
+            if ($foreignKey['columns'] !== ['pengampu_id']) {
+                continue;
+            }
 
-        if (! $hasForeignKey) {
-            Schema::table('nilai', function (Blueprint $table): void {
-                $table->foreign('pengampu_id', 'nilai_pengampu_id_foreign')
-                    ->references('id')
-                    ->on('pengampu')
-                    ->cascadeOnDelete();
+            Schema::table('nilai', function (Blueprint $table) use ($foreignKey): void {
+                $table->dropForeign($foreignKey['name']);
             });
         }
+
+        Schema::table('nilai', function (Blueprint $table): void {
+            $table->foreign('pengampu_id', 'nilai_pengampu_id_foreign')
+                ->references('id')
+                ->on('pengampu')
+                ->cascadeOnDelete();
+        });
     }
 
     private function addUniqueConstraint(): void
     {
-        if ($this->hasIndex(['siswa_id', 'pengampu_id'], 'nilai_siswa_id_pengampu_id_unique')) {
+        if ($this->hasUniqueIndex(['siswa_id', 'pengampu_id'])) {
             return;
         }
 
@@ -146,9 +162,28 @@ return new class extends Migration
     }
 
     /** @param array<int, string> $columns */
-    private function hasIndex(array $columns, string $name): bool
+    private function hasUniqueIndex(array $columns): bool
     {
         return collect(Schema::getIndexes('nilai'))
-            ->contains(fn (array $index): bool => $index['name'] === $name && $index['columns'] === $columns);
+            ->contains(fn (array $index): bool => $index['unique'] && $index['columns'] === $columns);
+    }
+
+    private function hasIndexNamed(string $name): bool
+    {
+        return collect(Schema::getIndexes('nilai'))
+            ->contains(fn (array $index): bool => $index['name'] === $name);
+    }
+
+    private function dropForeignKeysForColumn(string $column): void
+    {
+        foreach (Schema::getForeignKeys('nilai') as $foreignKey) {
+            if ($foreignKey['columns'] !== [$column]) {
+                continue;
+            }
+
+            Schema::table('nilai', function (Blueprint $table) use ($foreignKey): void {
+                $table->dropForeign($foreignKey['name']);
+            });
+        }
     }
 };

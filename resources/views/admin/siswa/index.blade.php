@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.admin-v2')
 
 @section('title', 'Data Siswa')
 
@@ -8,7 +8,7 @@
             <div>
                 <p class="text-sm font-semibold text-emerald-600">Master Data</p>
                 <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#102d4b]">Data Siswa</h1>
-                <p class="mt-2 text-sm leading-6 text-slate-500">Kelola identitas siswa dan penempatan kelas di EduRaport.</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Kelola identitas siswa dan penempatan kelas di RaporKu.</p>
             </div>
             <a href="{{ route('admin.siswa.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20">
                 <span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Siswa
@@ -42,6 +42,7 @@
         <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200">
+                    <caption class="sr-only">Daftar siswa</caption>
                     <thead class="bg-slate-50">
                         <tr>
                             <th class="w-16 px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">No</th>

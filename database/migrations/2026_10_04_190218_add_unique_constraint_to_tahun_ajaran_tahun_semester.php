@@ -9,6 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('tahun_ajaran') || ! Schema::hasColumn('tahun_ajaran', 'tahun') || ! Schema::hasColumn('tahun_ajaran', 'semester')) {
+            throw new RuntimeException('Migrasi tahun ajaran dihentikan: tabel atau kolom tahun dan semester tidak lengkap.');
+        }
+
         $duplicate = DB::table('tahun_ajaran')
             ->select(['tahun', 'semester'])
             ->groupBy(['tahun', 'semester'])
@@ -19,6 +23,13 @@ return new class extends Migration
             throw new RuntimeException(
                 "Migrasi tahun ajaran dihentikan: kombinasi {$duplicate->tahun} dan {$duplicate->semester} sudah memiliki data duplikat. Rapikan data tersebut secara manual sebelum constraint unik ditambahkan."
             );
+        }
+
+        $existingIndex = collect(Schema::getIndexes('tahun_ajaran'))
+            ->first(fn (array $index): bool => $index['name'] === 'tahun_ajaran_tahun_semester_unique');
+
+        if ($existingIndex !== null && (! $existingIndex['unique'] || $existingIndex['columns'] !== ['tahun', 'semester'])) {
+            throw new RuntimeException('Migrasi tahun ajaran dihentikan: nama index tahun_ajaran_tahun_semester_unique sudah digunakan untuk struktur yang berbeda.');
         }
 
         if (! $this->hasUniqueCombinationIndex()) {

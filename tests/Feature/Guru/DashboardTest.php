@@ -5,7 +5,10 @@ namespace Tests\Feature\Guru;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\Nilai;
 use App\Models\Pengampu;
+use App\Models\Penilaian;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
@@ -63,6 +66,9 @@ class DashboardTest extends TestCase
             ->assertSee('198001012010012001')
             ->assertSee('Jumlah Pengampu')
             ->assertSee('1')
+            ->assertSee('href="#main-content"', false)
+            ->assertSee('id="main-content"', false)
+            ->assertSee('aria-controls="dashboard-sidebar"', false)
             ->assertHeader('Cache-Control');
     }
 
@@ -107,5 +113,39 @@ class DashboardTest extends TestCase
         $response->assertOk()
             ->assertSee('Belum ada data pengampu')
             ->assertSee('Tugas mengajar Anda belum ditambahkan oleh administrator.');
+    }
+
+    public function test_guru_dashboard_calculates_score_progress_from_own_assignments(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $subject = MataPelajaran::factory()->create(['kkm' => 75]);
+        $assignment = Pengampu::factory()->for($guru)->create([
+            'kelas_id' => $class->id,
+            'mata_pelajaran_id' => $subject->id,
+        ]);
+        $students = Siswa::factory()->count(3)->for($class)->create();
+        $assessment = Penilaian::factory()->for($assignment)->create(['nama' => 'Tugas Pecahan']);
+        Nilai::factory()->create([
+            'siswa_id' => $students[0]->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 80,
+        ]);
+        Nilai::factory()->create([
+            'siswa_id' => $students[1]->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 60,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('guru.dashboard'));
+
+        $response->assertOk()
+            ->assertSee('Tugas Pecahan')
+            ->assertViewHas('metrics', fn (array $metrics): bool => $metrics['studentCount'] === 3
+                && $metrics['assessmentCount'] === 1
+                && $metrics['missingScoreCount'] === 1
+                && $metrics['incompleteAssessmentCount'] === 1
+                && $metrics['belowKkmStudentCount'] === 1);
     }
 }

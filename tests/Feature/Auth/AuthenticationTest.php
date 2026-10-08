@@ -23,9 +23,15 @@ class AuthenticationTest extends TestCase
         $response = $this->get(route('login'));
 
         $response->assertOk()
-            ->assertSee('Login Admin &amp; Guru', false)
+            ->assertSee('Masuk ke RaporKu')
+            ->assertSee('Tampilkan password')
             ->assertSee('Email')
             ->assertSee('Password')
+            ->assertSee('max-w-[60rem]', false)
+            ->assertSee('rounded-[20px]', false)
+            ->assertSee('lg:grid-cols-2', false)
+            ->assertSee('href="#main-content"', false)
+            ->assertSee('id="main-content"', false)
             ->assertDontSee('Register');
     }
 

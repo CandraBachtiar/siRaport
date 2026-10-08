@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.admin-v2')
 
 @section('title', 'Data Tahun Ajaran')
 
@@ -18,6 +18,7 @@
         <div class="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200">
+                    <caption class="sr-only">Daftar tahun ajaran</caption>
                     <thead class="bg-slate-50">
                         <tr>
                             <th class="w-16 px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">No</th>

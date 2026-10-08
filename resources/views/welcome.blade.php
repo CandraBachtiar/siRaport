@@ -3,9 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="EduRaport membantu guru mengelola nilai, memantau perkembangan belajar, dan menyusun rapor digital dengan lebih mudah.">
+    <meta name="description" content="RaporKu membantu guru mengelola nilai, memantau perkembangan belajar, dan menyusun rapor digital dengan lebih mudah.">
     <meta name="theme-color" content="#ffffff">
-    <title>EduRaport — Rapor Digital untuk Masa Depan</title>
+    <title>RaporKu — Rapor Digital untuk Masa Depan</title>
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @else
@@ -18,9 +18,9 @@
 <body>
     <header class="site-header">
         <div class="nav-wrap">
-            <a class="brand" href="#beranda" aria-label="EduRaport, beranda">
+            <a class="brand" href="#beranda" aria-label="RaporKu, beranda">
                 <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><rect width="40" height="40" rx="13" fill="currentColor"/><path d="M10 12.5c4.1-1.3 7.4-.8 10 1.4v16c-2.6-2.2-5.9-2.7-10-1.4v-16Zm20 0c-4.1-1.3-7.4-.8-10 1.4v16c2.6-2.2 5.9-2.7 10-1.4v-16Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/><path d="m15 20 2.2 2.2 3.5-4" fill="none" stroke="#83e3b1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                <span class="brand-copy"><strong>EduRaport</strong><small>Rapor Digital untuk Masa Depan</small></span>
+                <span class="brand-copy"><strong>RaporKu</strong><small>Rapor Digital untuk Masa Depan</small></span>
             </a>
             <button class="menu-toggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="main-nav"><span></span><span></span><span></span></button>
             <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
@@ -35,16 +35,16 @@
             <div class="hero-copy">
                 <div class="eyebrow"><span class="eyebrow-dot"></span> SISTEM RAPOR DIGITAL</div>
                 <h1>Kelola nilai.<br><span>Pantau perkembangan.</span><br>Susun rapor <span class="title-last">lebih mudah.</span></h1>
-                <p class="hero-description">EduRaport membantu guru mengelola nilai siswa, menganalisis perkembangan hasil belajar, memberikan rekomendasi deskripsi yang dapat divalidasi oleh guru, dan menghasilkan rapor digital maupun cetak secara otomatis.</p>
+                <p class="hero-description">RaporKu membantu guru mengelola nilai siswa, menganalisis perkembangan hasil belajar, memberikan rekomendasi deskripsi yang dapat divalidasi oleh guru, dan menghasilkan rapor digital maupun cetak secara otomatis.</p>
                 <div class="hero-actions"><a class="button button-primary" href="#mulai">Mulai Mengelola Rapor <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a><a class="button button-secondary" href="#panduan"><span class="play-icon">▶</span> Lihat Panduan</a></div>
                 <div class="trust-points"><span><i class="check-icon">✓</i> Aman &amp; Terpercaya</span><span><i class="check-icon">✓</i> Mudah Digunakan</span><span><i class="check-icon">✓</i> Berbasis Web</span></div>
                 <div class="hero-note"><span class="note-line"></span><span>Waktu guru lebih berharga saat digunakan untuk mendampingi.</span></div>
             </div>
-            <div class="hero-visual" aria-label="Pratinjau dashboard EduRaport">
+            <div class="hero-visual" aria-label="Pratinjau dashboard RaporKu">
                 <div class="decor decor-orbit"></div><div class="decor decor-dot dot-one"></div><div class="decor decor-dot dot-two"></div><div class="decor decor-dash"></div>
                 <div class="dashboard-window">
                     <aside class="dashboard-sidebar">
-                        <div class="dash-brand"><span class="dash-brand-icon"><svg viewBox="0 0 40 40"><path d="M10 12.5c4.1-1.3 7.4-.8 10 1.4v16c-2.6-2.2-5.9-2.7-10-1.4v-16Zm20 0c-4.1-1.3-7.4-.8-10 1.4v16c2.6-2.2 5.9-2.7 10-1.4v-16Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span><span><b>EduRaport</b><small>PORTAL GURU</small></span></div>
+                        <div class="dash-brand"><span class="dash-brand-icon"><svg viewBox="0 0 40 40"><path d="M10 12.5c4.1-1.3 7.4-.8 10 1.4v16c-2.6-2.2-5.9-2.7-10-1.4v-16Zm20 0c-4.1-1.3-7.4-.8-10 1.4v16c2.6-2.2 5.9-2.7 10-1.4v-16Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span><span><b>RaporKu</b><small>PORTAL GURU</small></span></div>
                         <div class="side-label">MENU UTAMA</div>
                         <div class="side-menu">
                             <a class="selected" href="#beranda"><span class="side-icon">⌂</span>Dashboard</a><a href="#fitur"><span class="side-icon">▤</span>Data Siswa</a><a href="#fitur"><span class="side-icon">✎</span>Input Nilai</a><a href="#fitur"><span class="side-icon">◫</span>Analisis Nilai</a><a href="#fitur"><span class="side-icon">✧</span>Rekomendasi Deskripsi</a><a href="#fitur"><span class="side-icon">▣</span>Data Rapor</a><a href="#fitur"><span class="side-icon">⇩</span>Cetak PDF</a>
@@ -80,7 +80,7 @@
 
         <section class="trust-strip"><div class="section-shell trust-strip-inner"><span>DIRANCANG UNTUK MEMBANTU GURU</span><i></i><span>Lebih terstruktur</span><i></i><span>Lebih banyak waktu untuk siswa</span><i></i><span>Semua dalam satu tempat</span></div></section>
 
-        <section class="features section-shell" id="tentang"><div class="section-heading"><span class="section-kicker">SATU SISTEM, SEMUA TERKELOLA</span><h2>Semua kebutuhan rapor<br><span>dalam satu sistem.</span></h2><p>Dari nilai pertama hingga rapor siap dibagikan, EduRaport menemani setiap langkah kerja guru.</p></div>
+        <section class="features section-shell" id="tentang"><div class="section-heading"><span class="section-kicker">SATU SISTEM, SEMUA TERKELOLA</span><h2>Semua kebutuhan rapor<br><span>dalam satu sistem.</span></h2><p>Dari nilai pertama hingga rapor siap dibagikan, RaporKu menemani setiap langkah kerja guru.</p></div>
             <div class="feature-grid" id="fitur">
                 <article class="feature-card"><span class="feature-icon icon-green"><svg viewBox="0 0 24 24"><path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20m7-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7-6.5a4 4 0 0 1 0 7.7m5 8.8v-1.5a4 4 0 0 0-3-3.9"/></svg></span><span class="feature-index">01</span><h3>Data Siswa</h3><p>Kelola identitas dan data siswa secara rapi, aman, dan terstruktur.</p><a href="#panduan">Pelajari fitur <span>→</span></a></article>
                 <article class="feature-card"><span class="feature-icon icon-blue"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2ZM8 7h8m-8 4h8"/></svg></span><span class="feature-index">02</span><h3>Input Nilai</h3><p>Masukkan nilai tugas, ulangan harian, UTS, dan UAS dalam satu tempat.</p><a href="#panduan">Pelajari fitur <span>→</span></a></article>
@@ -91,7 +91,7 @@
             </div>
         </section>
 
-        <section class="workflow-section" id="panduan"><div class="section-shell workflow-inner"><div class="workflow-intro"><span class="section-kicker">ALUR YANG LEBIH SEDERHANA</span><h2>Bagaimana EduRaport<br><span>bekerja?</span></h2><p>Alur kerja yang jelas membantu guru melangkah dari input nilai sampai rapor selesai dengan percaya diri.</p><a href="#mulai" class="text-link">Mulai langkah pertama <span>→</span></a><div class="workflow-decoration"> <span>✳</span><i></i><b></b></div></div><div class="workflow-steps">
+        <section class="workflow-section" id="panduan"><div class="section-shell workflow-inner"><div class="workflow-intro"><span class="section-kicker">ALUR YANG LEBIH SEDERHANA</span><h2>Bagaimana RaporKu<br><span>bekerja?</span></h2><p>Alur kerja yang jelas membantu guru melangkah dari input nilai sampai rapor selesai dengan percaya diri.</p><a href="#mulai" class="text-link">Mulai langkah pertama <span>→</span></a><div class="workflow-decoration"> <span>✳</span><i></i><b></b></div></div><div class="workflow-steps">
                 <div class="workflow-step"><span class="step-number">01</span><span class="step-icon">✎</span><div><b>Input Nilai</b><small>Masukkan hasil belajar siswa</small></div><span class="step-check">✓</span></div>
                 <div class="workflow-step"><span class="step-number">02</span><span class="step-icon">∑</span><div><b>Perhitungan Nilai</b><small>Nilai akhir dihitung otomatis</small></div><span class="step-check">✓</span></div>
                 <div class="workflow-step"><span class="step-number">03</span><span class="step-icon">⌁</span><div><b>Analisis Perkembangan</b><small>Kenali kemajuan belajar siswa</small></div><span class="step-check">✓</span></div>
@@ -101,9 +101,9 @@
                 <div class="workflow-step"><span class="step-number">07</span><span class="step-icon">▤</span><div><b>Rapor Siap</b><small>Bagikan digital atau cetak PDF</small></div><span class="step-check">✓</span></div>
             </div></div></section>
 
-        <section class="cta-wrap section-shell" id="mulai"><div class="cta-card"><div class="cta-decor cta-circle"></div><div class="cta-decor cta-grid"></div><div class="cta-content"><span class="cta-kicker"><i></i> WAKTU UNTUK MENGAJAR</span><h2>Kelola rapor<br><span>dengan lebih mudah.</span></h2><p>Gunakan EduRaport untuk membantu proses pengelolaan nilai dan penyusunan rapor menjadi lebih terstruktur.</p><a href="{{ Route::has('login') ? route('login') : '#beranda' }}" class="button cta-button">Mulai Mengelola Rapor <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div><div class="cta-illustration" aria-hidden="true"><div class="illustration-back"></div><div class="illustration-sheet"><div class="sheet-mark">✓</div><i></i><i></i><i></i><span class="sheet-chart"><b></b><b></b><b></b><b></b><b></b></span><small>RAPOR SISWA</small></div><div class="illustration-pencil"></div><span class="illustration-star star-a">✳</span><span class="illustration-star star-b">✦</span></div></div></section>
+        <section class="cta-wrap section-shell" id="mulai"><div class="cta-card"><div class="cta-decor cta-circle"></div><div class="cta-decor cta-grid"></div><div class="cta-content"><span class="cta-kicker"><i></i> WAKTU UNTUK MENGAJAR</span><h2>Kelola rapor<br><span>dengan lebih mudah.</span></h2><p>Gunakan RaporKu untuk membantu proses pengelolaan nilai dan penyusunan rapor menjadi lebih terstruktur.</p><a href="{{ Route::has('login') ? route('login') : '#beranda' }}" class="button cta-button">Mulai Mengelola Rapor <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div><div class="cta-illustration" aria-hidden="true"><div class="illustration-back"></div><div class="illustration-sheet"><div class="sheet-mark">✓</div><i></i><i></i><i></i><span class="sheet-chart"><b></b><b></b><b></b><b></b><b></b></span><small>RAPOR SISWA</small></div><div class="illustration-pencil"></div><span class="illustration-star star-a">✳</span><span class="illustration-star star-b">✦</span></div></div></section>
     </main>
 
-    <footer class="site-footer" id="bantuan"><div class="section-shell footer-main"><div class="footer-brand"><a class="brand" href="#beranda"><span class="brand-mark"><svg viewBox="0 0 40 40"><rect width="40" height="40" rx="13" fill="currentColor"/><path d="M10 12.5c4.1-1.3 7.4-.8 10 1.4v16c-2.6-2.2-5.9-2.7-10-1.4v-16Zm20 0c-4.1-1.3-7.4-.8-10 1.4v16c2.6-2.2 5.9-2.7 10-1.4v-16Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg></span><span class="brand-copy"><strong>EduRaport</strong><small>Rapor Digital untuk Masa Depan</small></span></a><p>Membantu guru memberi perhatian<br>lebih pada setiap perkembangan.</p></div><div class="footer-links"><div><b>Jelajahi</b><a href="#beranda">Beranda</a><a href="#tentang">Tentang</a></div><div><b>Butuh bantuan?</b><a href="#panduan">Panduan</a><a href="mailto:bantuan@eduraport.id">Bantuan</a></div><div class="footer-contact"><b>Tetap terhubung</b><span>Untuk pendidikan yang lebih berarti.</span><a href="mailto:bantuan@eduraport.id"><span class="mail-icon">✉</span> bantuan@eduraport.id</a></div></div></div><div class="section-shell footer-bottom"><span>© {{ date('Y') }} EduRaport. Dibuat untuk mendukung guru Indonesia.</span><span class="footer-made">Dengan perhatian untuk pendidikan <i>✦</i></span></div></footer>
+    <footer class="site-footer" id="bantuan"><div class="section-shell footer-main"><div class="footer-brand"><a class="brand" href="#beranda"><span class="brand-mark"><svg viewBox="0 0 40 40"><rect width="40" height="40" rx="13" fill="currentColor"/><path d="M10 12.5c4.1-1.3 7.4-.8 10 1.4v16c-2.6-2.2-5.9-2.7-10-1.4v-16Zm20 0c-4.1-1.3-7.4-.8-10 1.4v16c2.6-2.2 5.9-2.7 10-1.4v-16Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg></span><span class="brand-copy"><strong>RaporKu</strong><small>Rapor Digital untuk Masa Depan</small></span></a><p>Membantu guru memberi perhatian<br>lebih pada setiap perkembangan.</p></div><div class="footer-links"><div><b>Jelajahi</b><a href="#beranda">Beranda</a><a href="#tentang">Tentang</a></div><div><b>Butuh bantuan?</b><a href="#panduan">Panduan</a><a href="mailto:bantuan@raporku.id">Bantuan</a></div><div class="footer-contact"><b>Tetap terhubung</b><span>Untuk pendidikan yang lebih berarti.</span><a href="mailto:bantuan@raporku.id"><span class="mail-icon">✉</span> bantuan@raporku.id</a></div></div></div><div class="section-shell footer-bottom"><span>© {{ date('Y') }} RaporKu. Dibuat untuk mendukung guru Indonesia.</span><span class="footer-made">Dengan perhatian untuk pendidikan <i>✦</i></span></div></footer>
 </body>
 </html>

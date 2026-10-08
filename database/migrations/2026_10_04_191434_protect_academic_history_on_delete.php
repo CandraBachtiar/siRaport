@@ -31,13 +31,13 @@ return new class extends Migration
 
     private function replaceAcademicForeignKeys(string $deleteAction): void
     {
-        foreach ($this->academicRelations as $relation) {
-            $existing = collect(Schema::getForeignKeys($relation['table']))->first(
-                fn (array $foreignKey): bool => $foreignKey['columns'] === [$relation['column']]
-                    && $foreignKey['foreign_table'] === $relation['referencedTable']
-            );
+        $this->validateAcademicRelations();
 
-            if ($existing !== null) {
+        foreach ($this->academicRelations as $relation) {
+            $existingForeignKeys = collect(Schema::getForeignKeys($relation['table']))
+                ->filter(fn (array $foreignKey): bool => $foreignKey['columns'] === [$relation['column']]);
+
+            foreach ($existingForeignKeys as $existing) {
                 Schema::table($relation['table'], function (Blueprint $table) use ($existing): void {
                     $table->dropForeign($existing['name']);
                 });
@@ -55,6 +55,34 @@ return new class extends Migration
                     $foreign->cascadeOnDelete();
                 }
             });
+        }
+    }
+
+    private function validateAcademicRelations(): void
+    {
+        foreach ($this->academicRelations as $relation) {
+            if (! Schema::hasTable($relation['table']) || ! Schema::hasColumn($relation['table'], $relation['column'])) {
+                throw new RuntimeException(
+                    "Migrasi proteksi riwayat dihentikan: {$relation['table']}.{$relation['column']} tidak ditemukan."
+                );
+            }
+
+            if (! Schema::hasTable($relation['referencedTable']) || ! Schema::hasColumn($relation['referencedTable'], 'id')) {
+                throw new RuntimeException(
+                    "Migrasi proteksi riwayat dihentikan: tabel referensi {$relation['referencedTable']} tidak lengkap."
+                );
+            }
+
+            $nameCollision = collect(Schema::getForeignKeys($relation['table']))
+                ->first(fn (array $foreignKey): bool => $foreignKey['name'] === $relation['name']
+                    && ($foreignKey['columns'] !== [$relation['column']]
+                        || $foreignKey['foreign_table'] !== $relation['referencedTable']));
+
+            if ($nameCollision !== null) {
+                throw new RuntimeException(
+                    "Migrasi proteksi riwayat dihentikan: nama foreign key {$relation['name']} digunakan oleh relasi lain."
+                );
+            }
         }
     }
 };

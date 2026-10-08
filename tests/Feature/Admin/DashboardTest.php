@@ -51,6 +51,11 @@ class DashboardTest extends TestCase
             ->assertSee('Jumlah Siswa')
             ->assertSee('Jumlah Kelas')
             ->assertSee('Mata Pelajaran')
+            ->assertSee('Persiapan Data Akademik')
+            ->assertSee('Tahun ajaran aktif sudah tersedia')
+            ->assertSee('href="#main-content"', false)
+            ->assertSee('id="main-content"', false)
+            ->assertSee('aria-controls="dashboard-sidebar"', false)
             ->assertHeader('Cache-Control');
     }
 

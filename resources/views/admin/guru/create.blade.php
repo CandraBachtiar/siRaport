@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.admin-v2')
 
 @section('title', 'Tambah Guru')
 

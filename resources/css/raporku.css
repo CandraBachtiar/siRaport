@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+
+@theme {
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --color-raporku-navy: #0f2f4f;
+    --color-raporku-navy-deep: #0a243d;
+    --color-raporku-green: #059669;
+    --color-raporku-ink: #0f2942;
+    --color-raporku-muted: #64748b;
+    --color-raporku-border: #dce3ea;
+    --color-raporku-canvas: #f1f5f9;
+}
+
+@layer base {
+    * {
+        box-sizing: border-box;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        margin: 0;
+        background: #f8fafc;
+        color: #0f2942;
+        font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+        font: inherit;
+    }
+
+    :focus-visible {
+        outline: 3px solid rgba(5, 150, 105, 0.3);
+        outline-offset: 3px;
+    }
+
+    ::selection {
+        background: #a7f3d0;
+        color: #0f2942;
+    }
+}
+
+@layer components {
+    .rk-shell {
+        width: min(100% - 2rem, 76rem);
+        margin-inline: auto;
+    }
+
+    .rk-card {
+        border: 1px solid #dce3ea;
+        border-radius: 1rem;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 47, 79, 0.04);
+    }
+
+    .rk-button {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        gap: 0.625rem;
+        border-radius: 0.75rem;
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        line-height: 1.25rem;
+        transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    }
+
+    .rk-button:hover {
+        transform: translateY(-1px);
+    }
+
+    .rk-button-primary {
+        background: #059669;
+        color: #ffffff;
+        box-shadow: 0 8px 20px rgba(5, 150, 105, 0.16);
+    }
+
+    .rk-button-primary:hover {
+        background: #047857;
+    }
+
+    .rk-button-secondary {
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        color: #0f2942;
+    }
+
+    .rk-button-secondary:hover {
+        border-color: #94a3b8;
+        background: #f8fafc;
+    }
+
+    .rk-field {
+        min-height: 3rem;
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.75rem;
+        background: #ffffff;
+        padding: 0.75rem 1rem;
+        color: #0f2942;
+        font-size: 0.875rem;
+        outline: none;
+        transition: border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .rk-field:focus {
+        border-color: #059669;
+        box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.12);
+    }
+
+    .rk-field[aria-invalid="true"] {
+        border-color: #ef4444;
+    }
+
+    .rk-eyebrow {
+        color: #047857;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

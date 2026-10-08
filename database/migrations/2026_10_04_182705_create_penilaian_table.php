@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('penilaian')) {
+            throw new RuntimeException('Migrasi penilaian dihentikan: tabel penilaian sudah ada meskipun migration masih pending. Periksa struktur tabel sebelum melanjutkan.');
+        }
+
         Schema::create('penilaian', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('pengampu_id')->constrained('pengampu')->cascadeOnDelete();

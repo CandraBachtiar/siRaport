@@ -55,6 +55,9 @@ class GuruControllerTest extends TestCase
             ->assertSee('198501012010011001')
             ->assertSee('Budi Santoso')
             ->assertSee('budi@example.test')
+            ->assertSee('Import Excel')
+            ->assertSee('Tambah Guru')
+            ->assertDontSee('Import Guru')
             ->assertDontSee('rahasia-guru');
     }
 

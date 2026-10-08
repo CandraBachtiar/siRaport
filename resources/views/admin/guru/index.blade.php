@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.admin-v2')
 
 @section('title', 'Data Guru')
 
@@ -8,17 +8,18 @@
             <div>
                 <p class="text-sm font-semibold text-emerald-600">Master Data</p>
                 <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#102d4b]">Data Guru</h1>
-                <p class="mt-2 text-sm leading-6 text-slate-500">Kelola identitas dan akun guru yang terhubung ke EduRaport.</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Kelola identitas dan akun guru yang terhubung ke RaporKu.</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('admin.guru.import.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100">Import Excel</a>
-                <a href="{{ route('admin.guru.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20"><span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Guru</a>
+                <a href="{{ route('admin.guru.import.create') }}" class="rk-button rk-button-secondary"><x-nav-icon name="upload" class="size-4 text-emerald-700" /> Import Excel</a>
+                <a href="{{ route('admin.guru.create') }}" class="rk-button rk-button-primary"><span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Guru</a>
             </div>
         </div>
 
         <div class="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]">
             <div class="overflow-x-auto">   
                 <table class="min-w-full divide-y divide-slate-200">
+                    <caption class="sr-only">Daftar guru</caption>
                     <thead class="bg-slate-50">
                         <tr>
                             <th class="w-16 px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">No</th>

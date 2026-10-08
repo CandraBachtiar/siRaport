@@ -9,6 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasColumn('deskripsi', 'nilai_id')) {
+            throw new RuntimeException('Migrasi deskripsi dihentikan: kolom nilai_id tidak ditemukan. Struktur deskripsi harus diperiksa secara manual.');
+        }
+
         $hasSiswaColumn = Schema::hasColumn('deskripsi', 'siswa_id');
         $hasMataPelajaranColumn = Schema::hasColumn('deskripsi', 'mata_pelajaran_id');
 
@@ -20,13 +24,16 @@ return new class extends Migration
 
         if ($hasSiswaColumn) {
             $this->validateRedundantContext();
-            $this->dropForeignKeysForColumns(['siswa_id', 'mata_pelajaran_id']);
         }
 
         if ($this->hasDuplicateNilaiRelations()) {
             throw new RuntimeException(
                 'Migrasi deskripsi dihentikan: satu nilai memiliki lebih dari satu deskripsi. Data perlu digabungkan secara manual sebelum constraint satu-deskripsi-per-nilai ditambahkan.'
             );
+        }
+
+        if ($hasSiswaColumn) {
+            $this->dropForeignKeysForColumns(['siswa_id', 'mata_pelajaran_id']);
         }
 
         $columnsToDrop = collect(['siswa_id', 'mata_pelajaran_id'])
@@ -40,7 +47,9 @@ return new class extends Migration
             });
         }
 
-        if (! $this->hasIndex('deskripsi_nilai_id_unique')) {
+        $this->ensureNilaiForeignKey();
+
+        if (! $this->hasUniqueIndex(['nilai_id'])) {
             Schema::table('deskripsi', function (Blueprint $table): void {
                 $table->unique('nilai_id', 'deskripsi_nilai_id_unique');
             });
@@ -51,7 +60,7 @@ return new class extends Migration
     {
         $this->dropForeignKeysForColumns(['nilai_id']);
 
-        if ($this->hasIndex('deskripsi_nilai_id_unique')) {
+        if ($this->hasIndexNamed('deskripsi_nilai_id_unique')) {
             Schema::table('deskripsi', function (Blueprint $table): void {
                 $table->dropUnique('deskripsi_nilai_id_unique');
             });
@@ -112,14 +121,7 @@ return new class extends Migration
             });
         }
 
-        if (! $this->hasForeignKey('nilai_id', 'nilai')) {
-            Schema::table('deskripsi', function (Blueprint $table): void {
-                $table->foreign('nilai_id', 'deskripsi_nilai_id_foreign')
-                    ->references('id')
-                    ->on('nilai')
-                    ->cascadeOnDelete();
-            });
-        }
+        $this->ensureNilaiForeignKey();
     }
 
     private function validateRedundantContext(): void
@@ -167,15 +169,34 @@ return new class extends Migration
         }
     }
 
-    private function hasForeignKey(string $column, string $table): bool
+    private function ensureNilaiForeignKey(): void
     {
-        return collect(Schema::getForeignKeys('deskripsi'))->contains(
-            fn (array $foreignKey): bool => $foreignKey['columns'] === [$column]
-                && $foreignKey['foreign_table'] === $table
-        );
+        foreach (Schema::getForeignKeys('deskripsi') as $foreignKey) {
+            if ($foreignKey['columns'] !== ['nilai_id']) {
+                continue;
+            }
+
+            Schema::table('deskripsi', function (Blueprint $table) use ($foreignKey): void {
+                $table->dropForeign($foreignKey['name']);
+            });
+        }
+
+        Schema::table('deskripsi', function (Blueprint $table): void {
+            $table->foreign('nilai_id', 'deskripsi_nilai_id_foreign')
+                ->references('id')
+                ->on('nilai')
+                ->cascadeOnDelete();
+        });
     }
 
-    private function hasIndex(string $name): bool
+    /** @param list<string> $columns */
+    private function hasUniqueIndex(array $columns): bool
+    {
+        return collect(Schema::getIndexes('deskripsi'))
+            ->contains(fn (array $index): bool => $index['unique'] && $index['columns'] === $columns);
+    }
+
+    private function hasIndexNamed(string $name): bool
     {
         return collect(Schema::getIndexes('deskripsi'))
             ->contains(fn (array $index): bool => $index['name'] === $name);
