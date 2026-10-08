@@ -59,17 +59,17 @@ class InputNilaiControllerTest extends TestCase
         $response = $this->actingAs($user)->put(route('guru.nilai.update', $assessment), [
             'nilai' => [
                 $students[0]->id => 0,
-                $students[1]->id => 87.5,
+                $students[1]->id => 100,
             ],
         ]);
 
         $response->assertRedirect()
             ->assertSessionHas('success', 'Nilai berhasil disimpan.');
         $this->assertDatabaseHas('nilai', ['siswa_id' => $students[0]->id, 'penilaian_id' => $assessment->id, 'nilai' => 0]);
-        $this->assertDatabaseHas('nilai', ['siswa_id' => $students[1]->id, 'penilaian_id' => $assessment->id, 'nilai' => 87.5]);
+        $this->assertDatabaseHas('nilai', ['siswa_id' => $students[1]->id, 'penilaian_id' => $assessment->id, 'nilai' => 100]);
     }
 
-    public function test_unexpected_student_key_is_ignored_when_saving_scores(): void
+    public function test_unexpected_student_key_is_rejected_when_saving_scores(): void
     {
         $user = User::factory()->guru()->create();
         $guru = Guru::factory()->for($user)->create();
@@ -80,15 +80,20 @@ class InputNilaiControllerTest extends TestCase
         $ownStudent = Siswa::factory()->for($class)->create();
         $otherStudent = Siswa::factory()->for($otherClass)->create();
 
-        $response = $this->actingAs($user)->put(route('guru.nilai.update', $assessment), [
-            'nilai' => [
-                $ownStudent->id => 90,
-                $otherStudent->id => 100,
-            ],
-        ]);
+        $response = $this->actingAs($user)
+            ->from(route('guru.nilai.index'))
+            ->put(route('guru.nilai.update', $assessment), [
+                'nilai' => [
+                    $ownStudent->id => 90,
+                    $otherStudent->id => 100,
+                ],
+            ]);
 
-        $response->assertRedirect();
-        $this->assertDatabaseHas('nilai', ['siswa_id' => $ownStudent->id, 'penilaian_id' => $assessment->id, 'nilai' => 90]);
+        $response->assertRedirect(route('guru.nilai.index'))
+            ->assertSessionHasErrors([
+                'nilai.'.$otherStudent->id => 'Siswa tidak termasuk dalam kelas pengampu penilaian ini.',
+            ]);
+        $this->assertDatabaseMissing('nilai', ['siswa_id' => $ownStudent->id, 'penilaian_id' => $assessment->id]);
         $this->assertDatabaseMissing('nilai', ['siswa_id' => $otherStudent->id, 'penilaian_id' => $assessment->id]);
     }
 

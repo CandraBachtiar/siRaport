@@ -36,6 +36,18 @@ class PenilaianControllerTest extends TestCase
             ->assertDontSee('Penilaian Guru Lain');
     }
 
+    public function test_index_rejects_another_gurus_assignment_filter(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        Pengampu::factory()->for($guru)->create();
+        $otherAssignment = Pengampu::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('guru.penilaian.index', ['pengampu_id' => $otherAssignment->id]));
+
+        $response->assertNotFound();
+    }
+
     public function test_guru_can_create_an_assessment_for_own_assignment(): void
     {
         $user = User::factory()->guru()->create();
@@ -104,6 +116,33 @@ class PenilaianControllerTest extends TestCase
                 'bobot' => 'Bobot maksimal 100.',
                 'urutan' => 'Urutan penilaian minimal 1.',
             ]);
+    }
+
+    public function test_duplicate_assessment_payload_is_rejected(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+        $assessment = Penilaian::factory()->for($assignment)->create([
+            'nama' => 'Penilaian Sama',
+            'jenis' => 'tugas',
+            'tanggal' => '2026-10-08',
+            'urutan' => 1,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from(route('guru.penilaian.create'))
+            ->post(route('guru.penilaian.store'), [
+                'pengampu_id' => $assignment->id,
+                'nama' => $assessment->nama,
+                'jenis' => $assessment->jenis,
+                'tanggal' => $assessment->tanggal->toDateString(),
+                'urutan' => $assessment->urutan,
+            ]);
+
+        $response->assertRedirect(route('guru.penilaian.create'))
+            ->assertSessionHasErrors(['nama' => 'Penilaian dengan data yang sama sudah tersedia.']);
+        $this->assertSame(1, Penilaian::query()->where('pengampu_id', $assignment->id)->count());
     }
 
     public function test_guru_can_update_own_assessment_without_changing_assignment(): void

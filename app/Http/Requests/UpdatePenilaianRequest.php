@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Penilaian;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,6 +34,34 @@ class UpdatePenilaianRequest extends FormRequest
             'bobot' => ['nullable', 'numeric', 'min:0.01', 'max:100'],
             'urutan' => ['required', 'integer', 'min:1', 'max:999'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $assessment = $this->route('penilaian');
+
+            if (! $assessment instanceof Penilaian) {
+                return;
+            }
+
+            $duplicateExists = Penilaian::query()
+                ->where('pengampu_id', $assessment->pengampu_id)
+                ->whereKeyNot($assessment->id)
+                ->where('nama', $this->string('nama')->trim()->toString())
+                ->where('jenis', $this->string('jenis')->toString())
+                ->whereDate('tanggal', $this->date('tanggal'))
+                ->where('urutan', $this->integer('urutan'))
+                ->exists();
+
+            if ($duplicateExists) {
+                $validator->errors()->add('nama', 'Penilaian dengan data yang sama sudah tersedia.');
+            }
+        });
     }
 
     /** @return array<string, string> */

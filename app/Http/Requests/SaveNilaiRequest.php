@@ -3,7 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Models\Penilaian;
+use App\Models\Siswa;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SaveNilaiRequest extends FormRequest
@@ -29,6 +31,36 @@ class SaveNilaiRequest extends FormRequest
             'nilai' => ['required', 'array'],
             'nilai.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $assessment = $this->route('penilaian');
+            $submittedScores = $this->input('nilai');
+
+            if (! $assessment instanceof Penilaian || ! is_array($submittedScores)) {
+                return;
+            }
+
+            $assessment->loadMissing('pengampu:id,kelas_id');
+            $allowedStudentIds = Siswa::query()
+                ->where('kelas_id', $assessment->pengampu->kelas_id)
+                ->whereIn('id', array_map('intval', array_keys($submittedScores)))
+                ->pluck('id')
+                ->all();
+
+            foreach (array_keys($submittedScores) as $studentId) {
+                if (in_array((int) $studentId, $allowedStudentIds, true)) {
+                    continue;
+                }
+
+                $validator->errors()->add(
+                    'nilai.'.$studentId,
+                    'Siswa tidak termasuk dalam kelas pengampu penilaian ini.',
+                );
+            }
+        });
     }
 
     /** @return array<string, string> */

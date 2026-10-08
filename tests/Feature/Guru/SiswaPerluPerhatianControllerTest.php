@@ -9,6 +9,7 @@ use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -107,5 +108,27 @@ class SiswaPerluPerhatianControllerTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Tidak ada siswa yang perlu perhatian');
+    }
+
+    public function test_default_attention_view_uses_the_active_school_year(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $activeYear = TahunAjaran::factory()->create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'aktif' => true]);
+        $inactiveYear = TahunAjaran::factory()->create(['tahun' => '2025/2026', 'semester' => 'Genap', 'aktif' => false]);
+        $activeAssignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id, 'tahun_ajaran_id' => $activeYear->id]);
+        $inactiveAssignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id, 'tahun_ajaran_id' => $inactiveYear->id]);
+        $student = Siswa::factory()->for($class)->create(['nama' => 'Siswa Periode Aktif']);
+        $activeAssessment = Penilaian::factory()->for($activeAssignment)->create();
+        $inactiveAssessment = Penilaian::factory()->for($inactiveAssignment)->create();
+        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $activeAssessment->id, 'nilai' => 50]);
+        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $inactiveAssessment->id, 'nilai' => 50]);
+
+        $response = $this->actingAs($user)->get(route('guru.perhatian.index'));
+
+        $response->assertOk()
+            ->assertSee('2026/2027')
+            ->assertDontSee('2025/2026');
     }
 }

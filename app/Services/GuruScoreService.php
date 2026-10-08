@@ -7,6 +7,7 @@ use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class GuruScoreService
 {
@@ -42,11 +43,13 @@ class GuruScoreService
             return 0;
         }
 
-        Nilai::query()->upsert(
-            $rows->all(),
-            ['siswa_id', 'penilaian_id'],
-            ['nilai', 'updated_at'],
-        );
+        DB::transaction(function () use ($rows): void {
+            Nilai::query()->upsert(
+                $rows->all(),
+                ['siswa_id', 'penilaian_id'],
+                ['nilai', 'updated_at'],
+            );
+        });
 
         return $rows->count();
     }

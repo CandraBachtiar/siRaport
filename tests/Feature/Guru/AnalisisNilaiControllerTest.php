@@ -94,6 +94,69 @@ class AnalisisNilaiControllerTest extends TestCase
                 && $analysis['trend']['difference'] === 20.0);
     }
 
+    public function test_student_analysis_reports_no_data_without_inventing_a_trend(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $student = Siswa::factory()->for($class)->create();
+        Penilaian::factory()->for($assignment)->create(['tanggal' => '2026-10-01', 'urutan' => 1]);
+
+        $response = $this->actingAs($user)->get(route('guru.analisis.index', [
+            'pengampu_id' => $assignment->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $response->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['average'] === null
+            && $analysis['trend']['label'] === 'Belum ada data');
+    }
+
+    public function test_student_analysis_reports_insufficient_data_for_one_score(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $student = Siswa::factory()->for($class)->create();
+        $assessment = Penilaian::factory()->for($assignment)->create(['tanggal' => '2026-10-01', 'urutan' => 1]);
+        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => 80]);
+
+        $response = $this->actingAs($user)->get(route('guru.analisis.index', [
+            'pengampu_id' => $assignment->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $response->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['trend']['label'] === 'Belum cukup data');
+    }
+
+    public function test_student_analysis_orders_equal_and_different_dates_before_calculating_a_trend(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $student = Siswa::factory()->for($class)->create();
+        $laterAssessment = Penilaian::factory()->for($assignment)->create([
+            'tanggal' => '2026-10-02',
+            'urutan' => 1,
+        ]);
+        $earlierAssessment = Penilaian::factory()->for($assignment)->create([
+            'tanggal' => '2026-10-01',
+            'urutan' => 2,
+        ]);
+        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $laterAssessment->id, 'nilai' => 80]);
+        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $earlierAssessment->id, 'nilai' => 60]);
+
+        $response = $this->actingAs($user)->get(route('guru.analisis.index', [
+            'pengampu_id' => $assignment->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $response->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['series']->pluck('value')->all() === [60.0, 80.0]
+            && $analysis['trend']['label'] === 'Meningkat');
+    }
+
     public function test_guru_cannot_analyze_another_gurus_assignment(): void
     {
         $user = User::factory()->guru()->create();

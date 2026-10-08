@@ -113,8 +113,8 @@ class WaliKelasService
                 ->with(['nilai' => fn ($scoreQuery) => $scoreQuery
                     ->where('siswa_id', $student->id)
                     ->with('deskripsi')])
-                ->orderBy('urutan')
                 ->orderBy('tanggal')
+                ->orderBy('urutan')
                 ->orderBy('id'),
         ]);
 
@@ -158,8 +158,8 @@ class WaliKelasService
                     ->with(['nilai' => fn ($scoreQuery) => $scoreQuery
                         ->whereIn('siswa_id', $studentIds)
                         ->with('deskripsi')])
-                    ->orderBy('urutan')
                     ->orderBy('tanggal')
+                    ->orderBy('urutan')
                     ->orderBy('id'),
             ])
             ->orderBy('mata_pelajaran_id')
@@ -268,10 +268,12 @@ class WaliKelasService
                     'label' => $subject['assignment']->mataPelajaran->nama.' · '.$entry['assessment']->nama,
                     'shortLabel' => $subject['assignment']->mataPelajaran->kode.' P'.$entry['assessment']->urutan,
                     'date' => $entry['assessment']->tanggal,
+                    'order' => $entry['assessment']->urutan,
+                    'assessmentId' => $entry['assessment']->id,
                     'value' => $entry['value'],
                 ];
             }))
-            ->sortBy([['date', 'asc'], ['label', 'asc']])
+            ->sortBy([['date', 'asc'], ['order', 'asc'], ['assessmentId', 'asc']])
             ->values();
     }
 

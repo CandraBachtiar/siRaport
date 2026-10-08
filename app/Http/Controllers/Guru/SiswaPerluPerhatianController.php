@@ -34,8 +34,25 @@ class SiswaPerluPerhatianController extends Controller
             abort(404);
         }
 
+        $selectedAssignment = $assignments->firstWhere('id', $assignmentId);
+        $schoolYearId = $selectedAssignment?->tahun_ajaran_id ?: $request->integer('tahun_ajaran_id');
+
+        if ($schoolYearId === 0) {
+            $schoolYearId = (int) ($assignments
+                ->first(fn (Pengampu $assignment): bool => (bool) $assignment->tahunAjaran?->aktif)
+                ?->tahun_ajaran_id ?? 0);
+        }
+
+        $visibleAssignments = $assignments
+            ->when($schoolYearId > 0, fn ($items) => $items->where('tahun_ajaran_id', $schoolYearId))
+            ->values();
+
         $search = $request->string('search')->trim()->toString();
-        $attention = $this->analysisService->attention($guru, $assignmentId > 0 ? $assignmentId : null);
+        $attention = $this->analysisService->attention(
+            $guru,
+            $assignmentId > 0 ? $assignmentId : null,
+            $schoolYearId > 0 ? $schoolYearId : null,
+        );
         $rows = $attention['rows']->when($search !== '', function ($rows) use ($search) {
             $needle = Str::lower($search);
 
@@ -49,8 +66,9 @@ class SiswaPerluPerhatianController extends Controller
             'user' => $user,
             'guru' => $guru,
             'workspace' => 'mapel',
-            'assignments' => $assignments,
+            'assignments' => $visibleAssignments,
             'assignmentId' => $assignmentId,
+            'schoolYearId' => $schoolYearId,
             'search' => $search,
             'rows' => $rows,
             'summary' => $attention['summary'],

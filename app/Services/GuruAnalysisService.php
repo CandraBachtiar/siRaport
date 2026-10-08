@@ -38,8 +38,8 @@ class GuruAnalysisService
             ->with(['nilai' => fn ($query) => $query
                 ->whereIn('siswa_id', $students->pluck('id'))
                 ->select(['id', 'siswa_id', 'penilaian_id', 'nilai'])])
-            ->orderBy('urutan')
             ->orderBy('tanggal')
+            ->orderBy('urutan')
             ->orderBy('id')
             ->get();
         $allScores = $assessments
@@ -105,11 +105,12 @@ class GuruAnalysisService
      *     summary: array{studentCount: int, belowKkmCount: int, decliningCount: int, incompleteCount: int}
      * }
      */
-    public function attention(Guru $guru, ?int $assignmentId = null): array
+    public function attention(Guru $guru, ?int $assignmentId = null, ?int $schoolYearId = null): array
     {
         $assignments = Pengampu::query()
             ->where('guru_id', $guru->id)
             ->when($assignmentId !== null, fn ($query) => $query->whereKey($assignmentId))
+            ->when($schoolYearId !== null, fn ($query) => $query->where('tahun_ajaran_id', $schoolYearId))
             ->with([
                 'kelas:id,nama,tingkat',
                 'kelas.siswa' => fn ($query) => $query
@@ -120,8 +121,8 @@ class GuruAnalysisService
                 'tahunAjaran:id,tahun,semester,aktif',
                 'penilaian' => fn ($query) => $query
                     ->with('nilai:id,siswa_id,penilaian_id,nilai')
-                    ->orderBy('urutan')
                     ->orderBy('tanggal')
+                    ->orderBy('urutan')
                     ->orderBy('id'),
             ])
             ->orderByDesc('tahun_ajaran_id')
@@ -255,8 +256,8 @@ class GuruAnalysisService
         }
 
         $windowSize = min(3, intdiv($scores->count(), 2));
-        $previousAverage = (float) $scores->slice(-($windowSize * 2), $windowSize)->average();
-        $latestAverage = (float) $scores->take(-$windowSize)->average();
+        $previousAverage = (float) $scores->slice(0, $windowSize)->average();
+        $latestAverage = (float) $scores->slice(-$windowSize)->average();
         $difference = round($latestAverage - $previousAverage, 2);
         $label = $difference > 2 ? 'Meningkat' : ($difference < -2 ? 'Menurun' : 'Stabil');
 

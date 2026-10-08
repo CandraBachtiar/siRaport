@@ -27,6 +27,11 @@ class PenilaianController extends Controller
         $guru = $user->guru()->firstOrFail();
         $assignmentId = $request->integer('pengampu_id');
         $assignments = $this->assignments($guru->id);
+
+        if ($assignmentId > 0 && $assignments->doesntContain('id', $assignmentId)) {
+            abort(404);
+        }
+
         $assessments = Penilaian::query()
             ->whereHas('pengampu', fn (Builder $query): Builder => $query->where('guru_id', $guru->id))
             ->when($assignmentId > 0, fn (Builder $query): Builder => $query->where('pengampu_id', $assignmentId))
