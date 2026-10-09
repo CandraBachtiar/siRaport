@@ -19,9 +19,7 @@
                     ['wali', 'Wali Kelas'],
                 ] as [$key, $label])
                     <button id="guide-tab-{{ $key }}" type="button" role="tab" data-guide-tab="{{ $key }}" aria-selected="{{ $loop->first ? 'true' : 'false' }}" aria-controls="guide-{{ $key }}" tabindex="{{ $loop->first ? '0' : '-1' }}" @class([
-                        'min-h-11 flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition',
-                        'bg-raporku-navy text-white shadow-sm' => $loop->first,
-                        'bg-white text-slate-600 hover:text-raporku-navy' => ! $loop->first,
+                        'min-h-11 flex-1 rounded-xl border border-transparent bg-white px-4 py-2.5 text-sm font-bold text-raporku-navy transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 aria-selected:border-raporku-navy aria-selected:bg-raporku-navy aria-selected:text-white aria-selected:shadow-sm aria-selected:hover:bg-raporku-navy-deep aria-selected:hover:text-white',
                     ])>{{ $label }}</button>
                 @endforeach
             </div>
@@ -55,7 +53,10 @@
                         </div>
                         <ol class="grid gap-px bg-slate-200 sm:grid-cols-2">
                             @foreach ($guide['steps'] as $step)
-                                <li class="flex min-h-28 items-start gap-4 bg-white p-6">
+                                <li @class([
+                                    'flex min-h-28 items-start gap-4 bg-white p-6',
+                                    'sm:col-span-2 sm:mx-auto sm:w-[calc(50%-0.5px)]' => count($guide['steps']) % 2 === 1 && $loop->last,
+                                ])>
                                     <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-xs font-extrabold text-emerald-700">{{ $loop->iteration }}</span>
                                     <div><p class="text-sm font-bold text-raporku-navy">{{ $step }}</p><p class="mt-1 text-xs leading-5 text-slate-500">Selesaikan langkah ini sebelum melanjutkan jika data berikutnya bergantung padanya.</p></div>
                                 </li>

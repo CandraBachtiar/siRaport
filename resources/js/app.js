@@ -145,10 +145,6 @@ const selectGuideTab = (selectedTab, moveFocus = false) => {
         const isSelected = item === selectedTab;
         item.setAttribute('aria-selected', String(isSelected));
         item.setAttribute('tabindex', isSelected ? '0' : '-1');
-        item.classList.toggle('bg-raporku-navy', isSelected);
-        item.classList.toggle('text-white', isSelected);
-        item.classList.toggle('bg-white', !isSelected);
-        item.classList.toggle('text-slate-600', !isSelected);
     });
 
     guidePanels.forEach((panel) => {

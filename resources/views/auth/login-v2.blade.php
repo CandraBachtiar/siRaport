@@ -12,23 +12,23 @@
 </head>
 <body class="min-h-screen bg-[linear-gradient(135deg,#f8fafc_0%,#f1f5f9_58%,#e9eef3_100%)] text-raporku-ink antialiased">
     <x-skip-link />
-    <main id="main-content" tabindex="-1" class="grid min-h-screen place-items-center px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
-        <div class="grid w-full max-w-[60rem] overflow-hidden rounded-[20px] border border-slate-200/90 bg-white shadow-[0_24px_70px_rgba(15,47,79,0.14)] lg:grid-cols-2">
-        <section class="relative flex flex-col justify-between overflow-hidden bg-raporku-navy-deep px-6 py-8 text-white sm:px-10 sm:py-10 lg:px-12">
+    <main id="main-content" tabindex="-1" class="grid min-h-dvh place-items-center overflow-y-auto px-3 py-3 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
+        <div class="grid w-full max-w-[58rem] overflow-hidden rounded-[20px] border border-slate-200/90 bg-white shadow-[0_24px_70px_rgba(15,47,79,0.14)] lg:grid-cols-2">
+        <section class="relative hidden flex-col justify-between overflow-hidden bg-raporku-navy-deep px-6 py-6 text-white lg:flex lg:px-10 lg:py-8">
 
             <x-brand :href="route('home')" subtitle="Portal Sekolah" :on-dark="true" class="relative z-10 w-fit" aria-label="RaporKu, kembali ke beranda" />
 
-            <div class="relative z-10 max-w-xl py-8 sm:py-12">
+            <div class="relative z-10 max-w-xl py-6">
                 <span class="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.14em] text-emerald-200">
                     <span class="size-2 rounded-full bg-emerald-300"></span> Sistem Rapor Digital
                 </span>
-                <h1 class="mt-6 text-4xl font-extrabold leading-tight tracking-[-0.035em] text-white xl:text-5xl">Kelola nilai. Pantau perkembangan. Susun rapor lebih mudah.</h1>
-                <p class="mt-5 max-w-lg text-base leading-7 text-slate-200">Satu ruang kerja untuk administrator, guru mata pelajaran, dan wali kelas.</p>
+                <h1 class="mt-4 text-3xl font-extrabold leading-tight tracking-[-0.035em] text-white xl:text-4xl">Kelola nilai. Pantau perkembangan. Susun rapor lebih mudah.</h1>
+                <p class="mt-3 max-w-lg text-sm leading-6 text-slate-200">Satu ruang kerja untuk administrator, guru mata pelajaran, dan wali kelas.</p>
 
-                <div class="mt-10 max-w-lg rounded-2xl border border-white/10 bg-white/[0.06] p-5">
+                <div class="mt-6 max-w-lg rounded-2xl border border-white/10 bg-white/[0.06] p-4">
                     <div class="flex items-center gap-4">
-                        <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-emerald-400/15 text-emerald-200">
-                            <svg class="size-6" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 3h10l4 4v14H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M14 3v5h5M7 13h8M7 17h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-400/15 text-emerald-200">
+                            <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 3h10l4 4v14H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M14 3v5h5M7 13h8M7 17h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                         </span>
                         <div><h2 class="text-sm font-bold text-white">Data akademik dalam satu alur</h2><p class="mt-1 text-xs leading-5 text-slate-300">Akses menu dan data sesuai tanggung jawab akun sekolah Anda.</p></div>
                     </div>
@@ -38,15 +38,15 @@
             <p class="relative z-10 text-xs text-slate-400">&copy; {{ date('Y') }} RaporKu. Sistem rapor digital sekolah.</p>
         </section>
 
-        <section class="flex items-center justify-center bg-white px-6 py-8 sm:px-10 sm:py-12 lg:px-12">
+        <section class="flex items-center justify-center bg-white px-6 py-7 sm:px-8 sm:py-8 lg:px-10">
             <div class="w-full max-w-md">
-                <x-brand :href="route('home')" subtitle="Sistem Rapor Digital" class="mb-10 w-fit lg:hidden" aria-label="RaporKu, kembali ke beranda" />
+                <x-brand :href="route('home')" subtitle="Sistem Rapor Digital" class="mb-7 w-fit lg:hidden" aria-label="RaporKu, kembali ke beranda" />
 
                 <p class="rk-eyebrow">Selamat datang</p>
-                <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-raporku-navy sm:text-4xl">Masuk ke RaporKu</h2>
-                <p class="mt-3 text-sm leading-6 text-slate-600">Gunakan akun sekolah Anda untuk melanjutkan.</p>
+                <h2 class="mt-2 text-2xl font-extrabold tracking-tight text-raporku-navy sm:text-3xl">Masuk ke RaporKu</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-600">Gunakan akun sekolah Anda untuk melanjutkan.</p>
 
-                <form method="POST" action="{{ route('login.store') }}" class="mt-9 grid gap-6" data-loading-form>
+                <form method="POST" action="{{ route('login.store') }}" class="mt-6 grid gap-4" data-loading-form>
                     @csrf
 
                     <div class="grid gap-2">
@@ -68,17 +68,17 @@
                         @enderror
                     </div>
 
-                    <button type="submit" class="rk-button rk-button-primary min-h-12 w-full disabled:cursor-not-allowed disabled:opacity-70">
+                    <button type="submit" class="rk-button rk-button-primary min-h-11 w-full disabled:cursor-not-allowed disabled:opacity-70">
                         <span data-submit-label>Masuk</span>
                         <svg class="size-4" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
                 </form>
 
-                <a href="{{ route('home') }}" class="mt-8 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-bold text-slate-600 transition hover:text-emerald-700">
+                <a href="{{ route('home') }}" class="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-bold text-slate-600 transition hover:text-emerald-700">
                     <span aria-hidden="true">←</span> Kembali ke Beranda
                 </a>
 
-                <div class="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-4 text-xs leading-5 text-blue-900">
+                <div class="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-3.5 text-xs leading-5 text-blue-900">
                     <strong>Kesulitan masuk?</strong> Hubungi administrator sekolah untuk memeriksa email dan status akun Anda.
                 </div>
             </div>

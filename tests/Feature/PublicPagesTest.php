@@ -43,6 +43,14 @@ class PublicPagesTest extends TestCase
         ])->assertSee('Bagaimana RaporKu bekerja?');
     }
 
+    public function test_public_navigation_keeps_primary_pages_without_feature_menu(): void
+    {
+        $response = $this->get(route('home'));
+
+        $response->assertSeeInOrder(['>Beranda</a>', '>Tentang</a>', '>Panduan</a>', '>Bantuan</a>'], false)
+            ->assertDontSee('>Fitur</a>', false);
+    }
+
     public function test_help_page_exposes_search_and_specific_problem_guidance(): void
     {
         $response = $this->get(route('bantuan'));
@@ -59,6 +67,8 @@ class PublicPagesTest extends TestCase
         $response->assertOk()
             ->assertSee('role="tablist"', false)
             ->assertSee('tabindex="0"', false)
+            ->assertSee('aria-selected:bg-raporku-navy', false)
+            ->assertSee('sm:col-span-2 sm:mx-auto', false)
             ->assertSee('aria-labelledby="guide-tab-admin"', false)
             ->assertSee('aria-labelledby="guide-tab-guru"', false)
             ->assertSee('aria-labelledby="guide-tab-wali"', false);

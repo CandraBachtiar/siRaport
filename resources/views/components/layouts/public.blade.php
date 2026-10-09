@@ -3,6 +3,15 @@
     'description' => 'RaporKu membantu sekolah mengelola nilai, memantau perkembangan siswa, dan menyusun rapor dalam satu ruang kerja.',
 ])
 
+@php
+    $navigationItems = [
+        ['label' => 'Beranda', 'route' => 'home'],
+        ['label' => 'Tentang', 'route' => 'tentang'],
+        ['label' => 'Panduan', 'route' => 'panduan'],
+        ['label' => 'Bantuan', 'route' => 'bantuan'],
+    ];
+@endphp
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -17,23 +26,17 @@
 </head>
 <body class="min-h-screen bg-gradient-to-b from-slate-50 via-slate-100/70 to-slate-50 text-raporku-ink antialiased">
     <x-skip-link />
-    <header class="sticky top-0 z-40 border-b border-slate-200/90 bg-white/95 shadow-sm shadow-slate-900/[0.03] backdrop-blur-md">
-        <div class="rk-shell flex min-h-20 items-center justify-between gap-4">
+    <header class="sticky top-0 z-40 border-b border-slate-300/80 bg-white shadow-[0_4px_20px_rgba(15,47,79,0.07)]">
+        <div class="rk-shell flex min-h-16 items-center justify-between gap-4 py-2">
             <x-brand aria-label="RaporKu, kembali ke beranda" />
 
-            <nav class="hidden items-center gap-1 md:flex" aria-label="Navigasi utama">
-                @foreach ([
-                    ['label' => 'Beranda', 'route' => 'home'],
-                    ['label' => 'Fitur', 'route' => 'home', 'fragment' => 'fitur'],
-                    ['label' => 'Tentang', 'route' => 'tentang'],
-                    ['label' => 'Panduan', 'route' => 'panduan'],
-                    ['label' => 'Bantuan', 'route' => 'bantuan'],
-                ] as $item)
+            <nav class="hidden items-center gap-1.5 md:flex" aria-label="Navigasi utama">
+                @foreach ($navigationItems as $item)
                     <a href="{{ route($item['route']).(isset($item['fragment']) ? '#'.$item['fragment'] : '') }}" @class([
-                        'relative rounded-lg px-3 py-2 text-sm font-semibold transition duration-200 hover:bg-slate-100 hover:text-raporku-navy',
-                        'bg-emerald-50 text-emerald-700 after:absolute after:inset-x-3 after:-bottom-px after:h-0.5 after:rounded-full after:bg-emerald-600' => request()->routeIs($item['route']) && ! isset($item['fragment']),
-                        'text-slate-600' => ! (request()->routeIs($item['route']) && ! isset($item['fragment'])),
-                    ])>{{ $item['label'] }}</a>
+                        'relative rounded-lg px-3 py-2 text-sm font-semibold transition duration-200 hover:bg-slate-100 hover:text-raporku-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30',
+                        'bg-emerald-50 text-emerald-700 after:absolute after:inset-x-3 after:-bottom-px after:h-0.5 after:rounded-full after:bg-emerald-600' => request()->routeIs($item['route']),
+                        'text-slate-600' => ! request()->routeIs($item['route']),
+                    ]) @if (request()->routeIs($item['route'])) aria-current="page" @endif>{{ $item['label'] }}</a>
                 @endforeach
             </nav>
 
@@ -49,11 +52,13 @@
 
         <nav id="mobile-navigation" class="hidden border-t border-slate-200 bg-white px-4 py-3 md:hidden" aria-label="Navigasi utama seluler" data-public-menu>
             <div class="mx-auto grid max-w-xl gap-1">
-                <a href="{{ route('home') }}" class="rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100">Beranda</a>
-                <a href="{{ route('home') }}#fitur" class="rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100">Fitur</a>
-                <a href="{{ route('tentang') }}" class="rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100">Tentang</a>
-                <a href="{{ route('panduan') }}" class="rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100">Panduan</a>
-                <a href="{{ route('bantuan') }}" class="rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100">Bantuan</a>
+                @foreach ($navigationItems as $item)
+                    <a href="{{ route($item['route']).(isset($item['fragment']) ? '#'.$item['fragment'] : '') }}" @class([
+                        'rounded-lg px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30',
+                        'bg-emerald-50 text-emerald-700' => request()->routeIs($item['route']),
+                        'text-slate-700 hover:bg-slate-100 hover:text-raporku-navy' => ! request()->routeIs($item['route']),
+                    ]) @if (request()->routeIs($item['route'])) aria-current="page" @endif>{{ $item['label'] }}</a>
+                @endforeach
                 <a href="{{ route('login') }}" class="rk-button rk-button-primary mt-2 sm:hidden">Masuk</a>
             </div>
         </nav>
