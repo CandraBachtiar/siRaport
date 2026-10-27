@@ -171,6 +171,114 @@ class WaliKelasControllerTest extends TestCase
             ->assertSee('1 mata pelajaran belum cukup data untuk menentukan tren');
     }
 
+    public function test_wali_attention_explains_when_the_selected_class_has_no_assignment(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+
+        $response = $this->actingAs($user)->get(route('guru.wali.perhatian.index', ['kelas_id' => $class->id]));
+
+        $response->assertOk()
+            ->assertSee('Belum ada penugasan mata pelajaran');
+    }
+
+    public function test_wali_attention_explains_when_the_selected_assignment_has_no_assessments(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+        $year = TahunAjaran::factory()->create(['aktif' => true]);
+        Pengampu::factory()->create(['kelas_id' => $class->id, 'tahun_ajaran_id' => $year->id]);
+
+        $response = $this->actingAs($user)->get(route('guru.wali.perhatian.index', [
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Belum ada data penilaian');
+    }
+
+    public function test_wali_attention_explains_when_the_selected_class_has_no_students(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+        $year = TahunAjaran::factory()->create(['aktif' => true]);
+        $assignment = Pengampu::factory()->create(['kelas_id' => $class->id, 'tahun_ajaran_id' => $year->id]);
+        Penilaian::factory()->for($assignment)->create();
+
+        $response = $this->actingAs($user)->get(route('guru.wali.perhatian.index', [
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Belum ada siswa pada kelas ini');
+    }
+
+    public function test_wali_attention_does_not_claim_no_indicators_when_trend_data_is_insufficient(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+        $year = TahunAjaran::factory()->create(['aktif' => true]);
+        $student = Siswa::factory()->for($class)->create();
+        $assignment = Pengampu::factory()->create(['kelas_id' => $class->id, 'tahun_ajaran_id' => $year->id]);
+        $assessment = Penilaian::factory()->for($assignment)->create();
+        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => 90]);
+
+        $response = $this->actingAs($user)->get(route('guru.wali.perhatian.index', [
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Data belum cukup untuk dianalisis')
+            ->assertDontSee('Semua siswa dalam kondisi akademik yang baik.');
+    }
+
+    public function test_wali_attention_reports_no_indicators_when_trends_are_analyzable(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+        $year = TahunAjaran::factory()->create(['aktif' => true]);
+        $student = Siswa::factory()->for($class)->create();
+        $assignment = Pengampu::factory()->create(['kelas_id' => $class->id, 'tahun_ajaran_id' => $year->id]);
+
+        foreach ([90, 90, 90, 90] as $index => $score) {
+            $assessment = Penilaian::factory()->for($assignment)->create(['urutan' => $index + 1]);
+            Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => $score]);
+        }
+
+        $response = $this->actingAs($user)->get(route('guru.wali.perhatian.index', [
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Tidak ditemukan indikator perhatian dari nilai yang tersedia')
+            ->assertDontSee('Semua siswa dalam kondisi akademik yang baik.');
+    }
+
+    public function test_report_navigation_labels_and_anchor_match_their_destinations(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+
+        $response = $this->actingAs($user)->get(route('guru.wali.rapor.index', ['kelas_id' => $class->id]));
+
+        $response->assertOk()
+            ->assertSee('Data Rapor', false)
+            ->assertSee('Rapor Siap Dicetak', false)
+            ->assertSee('data-report-data-nav', false)
+            ->assertSee('data-report-ready-nav', false)
+            ->assertSee(route('guru.wali.rapor.index').'#siap-cetak', false);
+    }
+
     public function test_teacher_and_wali_show_the_same_trend_for_the_same_assessment_scores(): void
     {
         $user = User::factory()->guru()->create();
@@ -275,7 +383,7 @@ class WaliKelasControllerTest extends TestCase
             });
     }
 
-    public function test_print_is_blocked_until_scores_and_descriptions_are_complete(): void
+    public function test_print_is_blocked_with_an_accurate_reason_when_description_is_not_validated(): void
     {
         $user = User::factory()->guru()->create();
         $guru = Guru::factory()->for($user)->create();
@@ -294,7 +402,7 @@ class WaliKelasControllerTest extends TestCase
         $response->assertRedirectToRoute('guru.wali.rapor.show', [
             'siswa' => $student,
             'tahun_ajaran_id' => $year->id,
-        ])->assertSessionHas('error', 'Lengkapi nilai dan validasi seluruh deskripsi sebelum mencetak rapor.');
+        ])->assertSessionHas('error', 'Rapor belum dapat dicetak: deskripsi belum divalidasi.');
     }
 
     public function test_ready_report_can_be_opened_in_the_print_view(): void
@@ -353,7 +461,9 @@ class WaliKelasControllerTest extends TestCase
             ->assertSee('Dina Preview')
             ->assertSee('VIII C')
             ->assertSee('Bahasa Indonesia')
-            ->assertSee('Rapor belum siap dicetak.');
+            ->assertSee('Rapor belum siap dicetak.')
+            ->assertSee('Deskripsi rapor belum divalidasi untuk seluruh mata pelajaran.')
+            ->assertDontSee('0 nilai belum lengkap.');
     }
 
     public function test_profile_displays_the_authenticated_wali_identity(): void

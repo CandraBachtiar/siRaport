@@ -7,9 +7,9 @@
     <div class="grid gap-6 sm:grid-cols-2">
         <div class="grid gap-2">
             <label for="nis" class="text-sm font-semibold text-slate-700">NIS</label>
-            <input id="nis" name="nis" type="text" value="{{ old('nis', $siswa?->nis) }}" required autofocus autocomplete="off" placeholder="Masukkan NIS" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('nis') ? 'border-red-400' : 'border-slate-300' }}">
+            <input id="nis" name="nis" type="text" value="{{ old('nis', $siswa?->nis) }}" required autofocus autocomplete="off" placeholder="Masukkan NIS" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('nis') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('nis')) aria-invalid="true" aria-describedby="nis-error" @endif>
             @error('nis')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="nis-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
@@ -18,35 +18,35 @@
                 <label for="nisn" class="text-sm font-semibold text-slate-700">NISN</label>
                 <span class="text-xs text-slate-400">Opsional</span>
             </div>
-            <input id="nisn" name="nisn" type="text" value="{{ old('nisn', $siswa?->nisn) }}" autocomplete="off" placeholder="Masukkan NISN" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('nisn') ? 'border-red-400' : 'border-slate-300' }}">
+            <input id="nisn" name="nisn" type="text" value="{{ old('nisn', $siswa?->nisn) }}" autocomplete="off" placeholder="Masukkan NISN" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('nisn') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('nisn')) aria-invalid="true" aria-describedby="nisn-error" @endif>
             @error('nisn')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="nisn-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
         <div class="grid gap-2 sm:col-span-2">
             <label for="nama" class="text-sm font-semibold text-slate-700">Nama Siswa</label>
-            <input id="nama" name="nama" type="text" value="{{ old('nama', $siswa?->nama) }}" required autocomplete="name" placeholder="Masukkan nama lengkap siswa" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('nama') ? 'border-red-400' : 'border-slate-300' }}">
+            <input id="nama" name="nama" type="text" value="{{ old('nama', $siswa?->nama) }}" required autocomplete="name" placeholder="Masukkan nama lengkap siswa" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('nama') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('nama')) aria-invalid="true" aria-describedby="nama-error" @endif>
             @error('nama')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="nama-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
         <div class="grid gap-2">
             <label for="jenis_kelamin" class="text-sm font-semibold text-slate-700">Jenis Kelamin</label>
-            <select id="jenis_kelamin" name="jenis_kelamin" required class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('jenis_kelamin') ? 'border-red-400' : 'border-slate-300' }}">
+            <select id="jenis_kelamin" name="jenis_kelamin" required class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('jenis_kelamin') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('jenis_kelamin')) aria-invalid="true" aria-describedby="jenis_kelamin-error" @endif>
                 <option value="">Pilih Jenis Kelamin</option>
                 <option value="L" @selected(old('jenis_kelamin', $siswa?->jenis_kelamin) === 'L')>Laki-laki</option>
                 <option value="P" @selected(old('jenis_kelamin', $siswa?->jenis_kelamin) === 'P')>Perempuan</option>
             </select>
             @error('jenis_kelamin')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="jenis_kelamin-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
         <div class="grid gap-2">
             <label for="kelas_id" class="text-sm font-semibold text-slate-700">Kelas</label>
-            <select id="kelas_id" name="kelas_id" required class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('kelas_id') ? 'border-red-400' : 'border-slate-300' }}">
+            <select id="kelas_id" name="kelas_id" required class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('kelas_id') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('kelas_id')) aria-invalid="true" aria-describedby="kelas_id-error" @endif>
                 <option value="">Pilih Kelas</option>
                 @foreach ($kelasList as $kelas)
                     <option value="{{ $kelas->id }}" @selected((int) old('kelas_id', $siswa?->kelas_id) === $kelas->id)>{{ $kelas->tingkat }} {{ $kelas->nama }}</option>
@@ -56,31 +56,31 @@
                 <p class="text-sm text-amber-700">Belum ada data kelas. Tambahkan kelas sebelum menyimpan siswa.</p>
             @endif
             @error('kelas_id')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="kelas_id-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
         <div class="grid gap-2">
             <label for="tempat_lahir" class="text-sm font-semibold text-slate-700">Tempat Lahir</label>
-            <input id="tempat_lahir" name="tempat_lahir" type="text" value="{{ old('tempat_lahir', $siswa?->tempat_lahir) }}" placeholder="Masukkan tempat lahir" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('tempat_lahir') ? 'border-red-400' : 'border-slate-300' }}">
+            <input id="tempat_lahir" name="tempat_lahir" type="text" value="{{ old('tempat_lahir', $siswa?->tempat_lahir) }}" placeholder="Masukkan tempat lahir" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('tempat_lahir') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('tempat_lahir')) aria-invalid="true" aria-describedby="tempat_lahir-error" @endif>
             @error('tempat_lahir')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="tempat_lahir-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
         <div class="grid gap-2">
             <label for="tanggal_lahir" class="text-sm font-semibold text-slate-700">Tanggal Lahir</label>
-            <input id="tanggal_lahir" name="tanggal_lahir" type="date" value="{{ old('tanggal_lahir', $siswa?->tanggal_lahir?->format('Y-m-d')) }}" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('tanggal_lahir') ? 'border-red-400' : 'border-slate-300' }}">
+            <input id="tanggal_lahir" name="tanggal_lahir" type="date" value="{{ old('tanggal_lahir', $siswa?->tanggal_lahir?->format('Y-m-d')) }}" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('tanggal_lahir') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('tanggal_lahir')) aria-invalid="true" aria-describedby="tanggal_lahir-error" @endif>
             @error('tanggal_lahir')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="tanggal_lahir-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
         <div class="grid gap-2 sm:col-span-2">
             <label for="alamat" class="text-sm font-semibold text-slate-700">Alamat</label>
-            <textarea id="alamat" name="alamat" rows="4" placeholder="Masukkan alamat siswa" class="rounded-xl border bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('alamat') ? 'border-red-400' : 'border-slate-300' }}">{{ old('alamat', $siswa?->alamat) }}</textarea>
+            <textarea id="alamat" name="alamat" rows="4" placeholder="Masukkan alamat siswa" class="rounded-xl border bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('alamat') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('alamat')) aria-invalid="true" aria-describedby="alamat-error" @endif>{{ old('alamat', $siswa?->alamat) }}</textarea>
             @error('alamat')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="alamat-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
     </div>

@@ -52,6 +52,7 @@ class AnalisisNilaiControllerTest extends TestCase
             ->assertSee('Matematika Analisis')
             ->assertSee('Penilaian Satu')
             ->assertSee('Penilaian Dua')
+            ->assertSee('aria-label="Grafik distribusi rata-rata siswa: 0–59: 0; 60–69: 0; 70–79: 1; 80–89: 0; 90–100: 1"', false)
             ->assertViewHas('classStats', fn (array $stats): bool => $stats['average'] === 80.0
                 && $stats['highest'] === 100.0
                 && $stats['lowest'] === 60.0

@@ -105,7 +105,17 @@ class GuruAnalysisService
      * @return array{
      *     assignments: EloquentCollection<int, Pengampu>,
      *     rows: Collection<int, array<string, mixed>>,
-     *     summary: array{studentCount: int, belowKkmCount: int, decliningCount: int, incompleteCount: int}
+     *     summary: array{
+     *         studentCount: int,
+     *         belowKkmCount: int,
+     *         decliningCount: int,
+     *         incompleteCount: int,
+     *         assignmentCount: int,
+     *         assessmentCount: int,
+     *         rosterCount: int,
+     *         insufficientTrendCount: int,
+     *         trendCount: int
+     *     }
      * }
      */
     public function attention(Guru $guru, ?int $assignmentId = null, ?int $schoolYearId = null): array
@@ -189,6 +199,20 @@ class GuruAnalysisService
             ['average', 'asc'],
         ])->values();
 
+        $studentTrendAnalyses = $assignments->flatMap(function (Pengampu $assignment): Collection {
+            $classStudentIds = $assignment->kelas->siswa->pluck('id');
+
+            return $assignment->kelas->siswa->map(function (Siswa $student) use ($assignment, $classStudentIds): array {
+                $scores = $assignment->penilaian
+                    ->flatMap(fn (Penilaian $assessment): Collection => $assessment->nilai
+                        ->whereIn('siswa_id', $classStudentIds)
+                        ->where('siswa_id', $student->id)
+                        ->pluck('nilai'));
+
+                return $this->trendService->summarize($scores);
+            });
+        });
+
         return [
             'assignments' => $assignments,
             'rows' => $rows,
@@ -197,6 +221,15 @@ class GuruAnalysisService
                 'belowKkmCount' => $rows->filter(fn (array $row): bool => $row['average'] !== null && $row['average'] < (float) $row['assignment']->mataPelajaran->kkm)->count(),
                 'decliningCount' => $rows->where('trend.label', 'Menurun')->count(),
                 'incompleteCount' => $rows->filter(fn (array $row): bool => $row['missingCount'] > 0)->count(),
+                'assignmentCount' => $assignments->count(),
+                'assessmentCount' => $assignments->sum(fn (Pengampu $assignment): int => $assignment->penilaian->count()),
+                'rosterCount' => $assignments->flatMap(fn (Pengampu $assignment): Collection => $assignment->kelas->siswa->pluck('id'))
+                    ->unique()
+                    ->count(),
+                'insufficientTrendCount' => $studentTrendAnalyses
+                    ->filter(fn (array $trend): bool => in_array($trend['label'], ['Belum ada data', 'Belum cukup data'], true))
+                    ->count(),
+                'trendCount' => $studentTrendAnalyses->count(),
             ],
         ];
     }

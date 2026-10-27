@@ -94,7 +94,7 @@ class SiswaPerluPerhatianControllerTest extends TestCase
         $response->assertNotFound();
     }
 
-    public function test_empty_state_is_shown_when_all_students_are_academically_healthy(): void
+    public function test_empty_state_explains_when_trend_data_is_insufficient(): void
     {
         $user = User::factory()->guru()->create();
         $guru = Guru::factory()->for($user)->create();
@@ -107,7 +107,68 @@ class SiswaPerluPerhatianControllerTest extends TestCase
         $response = $this->actingAs($user)->get(route('guru.perhatian.index', ['pengampu_id' => $assignment->id]));
 
         $response->assertOk()
-            ->assertSee('Tidak ada siswa yang perlu perhatian');
+            ->assertSee('Data belum cukup untuk dianalisis')
+            ->assertDontSee('Semua siswa pada filter ini tidak memenuhi indikator perhatian yang digunakan.');
+    }
+
+    public function test_empty_state_explains_when_no_assignment_matches_the_period(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        Pengampu::factory()->for($guru)->create(['tahun_ajaran_id' => TahunAjaran::factory()->create(['aktif' => false])->id]);
+        $schoolYearWithoutAssignment = TahunAjaran::factory()->create(['aktif' => true]);
+
+        $response = $this->actingAs($user)->get(route('guru.perhatian.index', [
+            'tahun_ajaran_id' => $schoolYearWithoutAssignment->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Belum ada penugasan pada periode ini');
+    }
+
+    public function test_empty_state_explains_when_assignments_have_no_assessments(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+
+        $response = $this->actingAs($user)->get(route('guru.perhatian.index', ['pengampu_id' => $assignment->id]));
+
+        $response->assertOk()
+            ->assertSee('Belum ada data penilaian');
+    }
+
+    public function test_empty_state_explains_when_assignment_class_has_no_students(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+        Penilaian::factory()->for($assignment)->create();
+
+        $response = $this->actingAs($user)->get(route('guru.perhatian.index', ['pengampu_id' => $assignment->id]));
+
+        $response->assertOk()
+            ->assertSee('Belum ada siswa pada kelas ini');
+    }
+
+    public function test_empty_state_reports_no_indicators_when_all_students_have_analyzable_trends(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $student = Siswa::factory()->for($class)->create();
+
+        foreach ([85, 85, 85, 85] as $index => $score) {
+            $assessment = Penilaian::factory()->for($assignment)->create(['urutan' => $index + 1]);
+            Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => $score]);
+        }
+
+        $response = $this->actingAs($user)->get(route('guru.perhatian.index', ['pengampu_id' => $assignment->id]));
+
+        $response->assertOk()
+            ->assertSee('Tidak ditemukan indikator perhatian dari nilai yang tersedia')
+            ->assertDontSee('Semua siswa pada filter ini tidak memenuhi indikator perhatian yang digunakan.');
     }
 
     public function test_attention_reasons_keep_zero_valid_and_explain_insufficient_trend_data_once(): void

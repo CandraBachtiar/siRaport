@@ -7,25 +7,25 @@
     <div class="grid gap-6 sm:grid-cols-2">
         <div class="grid gap-2">
             <label for="kode" class="text-sm font-semibold text-slate-700">Kode Mata Pelajaran</label>
-            <input id="kode" name="kode" type="text" value="{{ old('kode', $mataPelajaran?->kode) }}" required autofocus autocomplete="off" placeholder="Contoh: MTK" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('kode') ? 'border-red-400' : 'border-slate-300' }}">
+            <input id="kode" name="kode" type="text" value="{{ old('kode', $mataPelajaran?->kode) }}" required autofocus autocomplete="off" placeholder="Contoh: MTK" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('kode') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('kode')) aria-invalid="true" aria-describedby="kode-error" @endif>
             @error('kode')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="kode-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
         <div class="grid gap-2">
             <label for="kkm" class="text-sm font-semibold text-slate-700">KKM</label>
-            <input id="kkm" name="kkm" type="number" min="0" max="100" step="0.01" value="{{ old('kkm', $mataPelajaran?->kkm ?? '75.00') }}" required placeholder="75.00" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('kkm') ? 'border-red-400' : 'border-slate-300' }}">
+            <input id="kkm" name="kkm" type="number" min="0" max="100" step="0.01" value="{{ old('kkm', $mataPelajaran?->kkm ?? '75.00') }}" required placeholder="75.00" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('kkm') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('kkm')) aria-invalid="true" aria-describedby="kkm-error" @endif>
             @error('kkm')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="kkm-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
         <div class="grid gap-2 sm:col-span-2">
             <label for="nama" class="text-sm font-semibold text-slate-700">Nama Mata Pelajaran</label>
-            <input id="nama" name="nama" type="text" value="{{ old('nama', $mataPelajaran?->nama) }}" required autocomplete="off" placeholder="Masukkan nama mata pelajaran" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('nama') ? 'border-red-400' : 'border-slate-300' }}">
+            <input id="nama" name="nama" type="text" value="{{ old('nama', $mataPelajaran?->nama) }}" required autocomplete="off" placeholder="Masukkan nama mata pelajaran" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('nama') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('nama')) aria-invalid="true" aria-describedby="nama-error" @endif>
             @error('nama')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="nama-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
     </div>

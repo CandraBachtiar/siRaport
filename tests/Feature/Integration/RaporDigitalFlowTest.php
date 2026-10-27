@@ -151,6 +151,7 @@ class RaporDigitalFlowTest extends TestCase
         $report->assertOk()
             ->assertSee('Rapor belum siap dicetak.')
             ->assertSee('1 nilai belum lengkap')
+            ->assertSee('Deskripsi rapor belum divalidasi untuk seluruh mata pelajaran.')
             ->assertSee('Cetak Belum Tersedia');
 
         $this->actingAs($context['teacherUser'])->get(route('guru.wali.rapor.print', [
@@ -159,7 +160,7 @@ class RaporDigitalFlowTest extends TestCase
         ]))->assertRedirect(route('guru.wali.rapor.show', [
             'siswa' => $student,
             'tahun_ajaran_id' => $context['schoolYear']->id,
-        ]));
+        ]))->assertSessionHas('error', 'Rapor belum dapat dicetak: nilai belum lengkap dan deskripsi belum divalidasi.');
 
         $this->assertDatabaseMissing('deskripsi', ['deskripsi_akhir' => 'Deskripsi tidak boleh tervalidasi sebelum semua nilai terisi.']);
         $this->assertDatabaseMissing('nilai', ['siswa_id' => $otherStudent->id, 'penilaian_id' => $firstAssessment->id]);

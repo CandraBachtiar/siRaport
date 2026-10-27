@@ -9,9 +9,12 @@
     $chartItems = collect($items)->values();
     $hasChartData = $hasData ?? $chartItems->contains(fn (array $item): bool => $item['value'] !== null);
     $maximum = max((float) $chartItems->max('value'), 1);
+    $chartSummary = $chartItems
+        ->map(fn (array $item): string => $item['label'].': '.($item['value'] === null ? 'Belum ada nilai' : (string) $item['value']))
+        ->implode('; ');
 @endphp
 
-<div {{ $attributes }} role="img" aria-label="{{ $title }}">
+<div {{ $attributes }} role="img" aria-label="{{ $title }}{{ $hasChartData ? ': '.$chartSummary : '. '.$emptyMessage }}">
     @if (! $hasChartData)
         <div class="grid min-h-64 place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm text-slate-500">{{ $emptyMessage }}</div>
     @else

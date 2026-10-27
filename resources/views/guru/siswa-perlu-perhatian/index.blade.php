@@ -44,7 +44,26 @@
                             @endphp
                             <tr class="align-top transition hover:bg-slate-50/70"><td class="px-5 py-4"><strong class="block text-slate-800">{{ $row['student']->nama }}</strong><span class="mt-1 block text-xs text-slate-400">NIS {{ $row['student']->nis }}{{ $row['student']->nisn ? ' · NISN '.$row['student']->nisn : '' }}</span></td><td class="px-5 py-4 text-slate-600"><strong class="block text-slate-700">{{ $row['assignment']->mataPelajaran->nama }}</strong><span class="text-xs text-slate-400">{{ $row['assignment']->kelas->tingkat }} {{ $row['assignment']->kelas->nama }} · {{ $row['assignment']->tahunAjaran->tahun }} {{ $row['assignment']->tahunAjaran->semester }}</span></td><td class="px-5 py-4 font-extrabold {{ $row['average'] !== null && $row['average'] < (float) $row['assignment']->mataPelajaran->kkm ? 'text-rose-700' : 'text-slate-700' }}">{{ $row['average'] === null ? '—' : number_format($row['average'], 2, ',', '.') }}</td><td class="px-5 py-4"><strong class="{{ $trendTone }}">{{ $row['trend']['label'] }}</strong><span class="mt-1 block text-xs text-slate-400">{{ $row['trend']['difference'] === null ? 'Data belum cukup' : (($row['trend']['difference'] > 0 ? '+' : '').number_format($row['trend']['difference'], 2, ',', '.')) }}</span></td><td class="px-5 py-4"><div class="flex min-w-44 flex-wrap gap-1.5">@foreach ($row['reasons'] as $reason)<span class="rounded-full bg-slate-100 px-2.5 py-1 text-[0.65rem] font-bold text-slate-600">{{ $reason }}</span>@endforeach</div></td><td class="px-5 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold {{ $statusTone }}">{{ $row['status'] }}</span></td><td class="px-5 py-4 text-right"><a href="{{ route('guru.analisis.index', ['pengampu_id' => $row['assignment']->id, 'siswa_id' => $row['student']->id]) }}" class="inline-flex min-h-10 items-center rounded-lg border border-emerald-200 px-3 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50">Lihat Detail</a></td></tr>
                         @empty
-                            <tr><td colspan="7" class="px-5 py-16 text-center"><span class="mx-auto grid size-12 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><x-nav-icon name="attention" /></span><h2 class="mt-4 font-bold text-slate-700">{{ $search !== '' ? 'Siswa tidak ditemukan' : 'Tidak ada siswa yang perlu perhatian' }}</h2><p class="mt-2 text-sm text-slate-500">{{ $search !== '' ? 'Coba gunakan nama atau nomor identitas yang berbeda.' : 'Semua siswa pada filter ini tidak memenuhi indikator perhatian yang digunakan.' }}</p></td></tr>
+                            <tr><td colspan="7" class="px-5 py-16 text-center"><span class="mx-auto grid size-12 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><x-nav-icon name="attention" /></span>
+                                @if ($search !== '')
+                                    <h2 class="mt-4 font-bold text-slate-700">Siswa tidak ditemukan</h2><p class="mt-2 text-sm text-slate-500">Coba gunakan nama atau nomor identitas yang berbeda.</p>
+                                @elseif ($summary['assignmentCount'] === 0)
+                                    <h2 class="mt-4 font-bold text-slate-700">Belum ada penugasan pada periode ini</h2><p class="mt-2 text-sm text-slate-500">Periksa tahun ajaran yang dipilih atau hubungi administrator.</p>
+                                @elseif ($summary['assessmentCount'] === 0)
+                                    <h2 class="mt-4 font-bold text-slate-700">Belum ada data penilaian</h2><p class="mt-2 text-sm text-slate-500">Belum ada penilaian pada tugas mengajar yang dipilih.</p>
+                                @elseif ($summary['rosterCount'] === 0)
+                                    <h2 class="mt-4 font-bold text-slate-700">Belum ada siswa pada kelas ini</h2><p class="mt-2 text-sm text-slate-500">Data perhatian tersedia setelah siswa ditempatkan di kelas.</p>
+                                @elseif ($summary['insufficientTrendCount'] > 0 && $summary['insufficientTrendCount'] === $summary['trendCount'])
+                                    <h2 class="mt-4 font-bold text-slate-700">Data belum cukup untuk dianalisis</h2><p class="mt-2 text-sm text-slate-500">Tren memerlukan sedikitnya empat nilai. Lengkapi penilaian untuk mendapatkan analisis perkembangan.</p>
+                                @else
+                                    <h2 class="mt-4 font-bold text-slate-700">Tidak ditemukan indikator perhatian dari nilai yang tersedia</h2>
+                                    @if ($summary['insufficientTrendCount'] > 0)
+                                        <p class="mt-2 text-sm text-slate-500">{{ $summary['insufficientTrendCount'] }} data siswa dan mata pelajaran belum cukup untuk dianalisis trennya.</p>
+                                    @else
+                                        <p class="mt-2 text-sm text-slate-500">Tidak ada indikator nilai di bawah KKM atau tren menurun pada filter ini.</p>
+                                    @endif
+                                @endif
+                            </td></tr>
                         @endforelse
                     </tbody>
                 </table>

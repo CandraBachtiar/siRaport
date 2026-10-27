@@ -27,7 +27,42 @@ const dashboardSidebar = document.querySelector('[data-dashboard-sidebar]');
 const dashboardBackdrop = document.querySelector('[data-dashboard-backdrop]');
 const sidebarOpenButton = document.querySelector('[data-sidebar-open]');
 const sidebarCloseButton = document.querySelector('[data-sidebar-close]');
+const reportDataNav = document.querySelector('[data-report-data-nav]');
+const reportReadyNav = document.querySelector('[data-report-ready-nav]');
 let sidebarPreviousFocus = null;
+
+const setReportNavActive = (link, isActive) => {
+    if (!(link instanceof HTMLAnchorElement)) {
+        return;
+    }
+
+    const activeClasses = link.dataset.navActive?.split(/\s+/).filter(Boolean) ?? [];
+    const inactiveClasses = link.dataset.navInactive?.split(/\s+/).filter(Boolean) ?? [];
+    link.classList.remove(...activeClasses, ...inactiveClasses);
+    link.classList.add(...(isActive ? activeClasses : inactiveClasses));
+
+    if (isActive) {
+        link.setAttribute('aria-current', 'page');
+    } else {
+        link.removeAttribute('aria-current');
+    }
+};
+
+const syncReportNav = () => {
+    if (!(reportReadyNav instanceof HTMLAnchorElement) || !(reportDataNav instanceof HTMLAnchorElement)) {
+        return;
+    }
+
+    const readyUrl = new URL(reportReadyNav.href);
+    const isReadySection = window.location.pathname === readyUrl.pathname
+        && window.location.hash === readyUrl.hash;
+
+    setReportNavActive(reportReadyNav, isReadySection || reportReadyNav.dataset.navDefaultActive === 'true');
+    setReportNavActive(reportDataNav, !isReadySection && reportDataNav.dataset.navDefaultActive === 'true');
+};
+
+syncReportNav();
+window.addEventListener('hashchange', syncReportNav);
 
 const setSidebarOpen = (isOpen, restoreFocus = false) => {
     if (isOpen && document.activeElement instanceof HTMLElement) {

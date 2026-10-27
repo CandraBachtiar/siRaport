@@ -7,17 +7,17 @@
     <div class="grid gap-6 sm:grid-cols-2">
         <div class="grid gap-2">
             <label for="tingkat" class="text-sm font-semibold text-slate-700">Tingkat</label>
-            <input id="tingkat" name="tingkat" type="text" value="{{ old('tingkat', $kelas?->tingkat) }}" required autofocus autocomplete="off" placeholder="Contoh: VII" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('tingkat') ? 'border-red-400' : 'border-slate-300' }}">
+            <input id="tingkat" name="tingkat" type="text" value="{{ old('tingkat', $kelas?->tingkat) }}" required autofocus autocomplete="off" placeholder="Contoh: VII" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('tingkat') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('tingkat')) aria-invalid="true" aria-describedby="tingkat-error" @endif>
             @error('tingkat')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="tingkat-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
         <div class="grid gap-2">
             <label for="nama" class="text-sm font-semibold text-slate-700">Nama/Rombel</label>
-            <input id="nama" name="nama" type="text" value="{{ old('nama', $kelas?->nama) }}" required autocomplete="off" placeholder="Contoh: A" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('nama') ? 'border-red-400' : 'border-slate-300' }}">
+            <input id="nama" name="nama" type="text" value="{{ old('nama', $kelas?->nama) }}" required autocomplete="off" placeholder="Contoh: A" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('nama') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('nama')) aria-invalid="true" aria-describedby="nama-error" @endif>
             @error('nama')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="nama-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
 
@@ -26,7 +26,7 @@
                 <label for="wali_kelas_id" class="text-sm font-semibold text-slate-700">Wali Kelas</label>
                 <span class="text-xs text-slate-400">Opsional</span>
             </div>
-            <select id="wali_kelas_id" name="wali_kelas_id" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('wali_kelas_id') ? 'border-red-400' : 'border-slate-300' }}">
+            <select id="wali_kelas_id" name="wali_kelas_id" class="h-12 rounded-xl border bg-white px-4 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 {{ $errors->has('wali_kelas_id') ? 'border-red-400' : 'border-slate-300' }}" @if ($errors->has('wali_kelas_id')) aria-invalid="true" aria-describedby="wali_kelas_id-error" @endif>
                 <option value="">Belum Ditentukan</option>
                 @foreach ($guruList as $guru)
                     <option value="{{ $guru->id }}" @selected((int) old('wali_kelas_id', $kelas?->wali_kelas_id) === $guru->id)>{{ $guru->user->name }}{{ $guru->nip ? ' — '.$guru->nip : '' }}</option>
@@ -36,7 +36,7 @@
                 <p class="text-sm text-amber-700">Belum ada data guru yang dapat dipilih sebagai wali kelas.</p>
             @endif
             @error('wali_kelas_id')
-                <p class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
+                <p id="wali_kelas_id-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
             @enderror
         </div>
     </div>

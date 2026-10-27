@@ -65,6 +65,10 @@ class WaliKelasService
                 ['overallAverage', 'asc'],
             ])
             ->values();
+        $insufficientTrendCount = $studentRows->sum(fn (array $row): int => $row['subjects']
+            ->filter(fn (array $subject): bool => in_array($subject['trend']['label'], ['Belum ada data', 'Belum cukup data'], true))
+            ->count());
+        $trendCount = $studentRows->sum(fn (array $row): int => $row['subjects']->count());
         $studentAverages = $studentRows->pluck('overallAverage')->filter(fn (?float $average): bool => $average !== null);
         $subjectSeries = $assignments->map(function (Pengampu $assignment) use ($studentRows): array {
             $averages = $studentRows
@@ -87,6 +91,13 @@ class WaliKelasService
             'assignments' => $assignments,
             'studentRows' => $studentRows,
             'attentionRows' => $attentionRows,
+            'attentionData' => [
+                'assignmentCount' => $assignments->count(),
+                'assessmentCount' => $assignments->sum(fn (Pengampu $assignment): int => $assignment->penilaian->count()),
+                'studentCount' => $students->count(),
+                'insufficientTrendCount' => $insufficientTrendCount,
+                'trendCount' => $trendCount,
+            ],
             'subjectSeries' => $subjectSeries,
             'metrics' => [
                 'classCount' => $classes->count(),

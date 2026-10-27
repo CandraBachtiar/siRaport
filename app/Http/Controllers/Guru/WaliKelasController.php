@@ -96,10 +96,15 @@ class WaliKelasController extends Controller
         }
 
         if (! $studentRow['readyToPrint']) {
+            $incompleteRequirements = collect([
+                ! $studentRow['allScoresComplete'] ? 'nilai belum lengkap' : null,
+                ! $studentRow['allDescriptionsValidated'] ? 'deskripsi belum divalidasi' : null,
+            ])->filter();
+
             return redirect()->route('guru.wali.rapor.show', [
                 'siswa' => $siswa,
                 'tahun_ajaran_id' => $data['selectedSchoolYear']?->id,
-            ])->with('error', 'Lengkapi nilai dan validasi seluruh deskripsi sebelum mencetak rapor.');
+            ])->with('error', 'Rapor belum dapat dicetak: '.$incompleteRequirements->implode(' dan ').'.');
         }
 
         return view('guru.wali.rapor.print', [...$data, 'studentRow' => $studentRow]);
