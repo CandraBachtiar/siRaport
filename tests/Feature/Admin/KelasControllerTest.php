@@ -4,6 +4,9 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Guru;
 use App\Models\Kelas;
+use App\Models\Nilai;
+use App\Models\Pengampu;
+use App\Models\Penilaian;
 use App\Models\Siswa;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -176,6 +179,37 @@ class KelasControllerTest extends TestCase
             'nama' => 'B',
             'wali_kelas_id' => $guruBaru->id,
         ]);
+    }
+
+    public function test_changing_homeroom_teacher_preserves_existing_score_and_class_assignment(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $oldTeacher = Guru::factory()->create();
+        $newTeacher = Guru::factory()->create();
+        $class = Kelas::factory()->for($oldTeacher, 'waliKelas')->create();
+        $student = Siswa::factory()->for($class)->create();
+        $assignment = Pengampu::factory()->create(['kelas_id' => $class->id]);
+        $assessment = Penilaian::factory()->for($assignment)->create();
+        $score = Nilai::factory()->create([
+            'siswa_id' => $student->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 78,
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.kelas.update', $class), [
+            'tingkat' => $class->tingkat,
+            'nama' => $class->nama,
+            'wali_kelas_id' => $newTeacher->id,
+        ])->assertRedirectToRoute('admin.kelas.index');
+
+        $this->assertDatabaseHas('kelas', ['id' => $class->id, 'wali_kelas_id' => $newTeacher->id]);
+        $this->assertDatabaseHas('nilai', [
+            'id' => $score->id,
+            'siswa_id' => $student->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 78,
+        ]);
+        $this->assertSame($class->id, $assessment->fresh()->pengampu->kelas_id);
     }
 
     public function test_update_class_rejects_an_unknown_homeroom_teacher(): void

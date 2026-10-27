@@ -54,6 +54,62 @@ class WaliKelasControllerTest extends TestCase
         $response->assertNotFound();
     }
 
+    public function test_moved_student_keeps_old_score_but_disappears_from_old_period_views(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $waliUser = User::factory()->guru()->create();
+        $wali = Guru::factory()->for($waliUser)->create();
+        $subjectTeacher = Guru::factory()->create();
+        $oldClass = Kelas::factory()->create(['wali_kelas_id' => $wali->id]);
+        $newClass = Kelas::factory()->create();
+        $schoolYear = TahunAjaran::factory()->create(['tahun' => '2025/2026', 'semester' => 'Ganjil']);
+        $student = Siswa::factory()->for($oldClass)->create(['nama' => 'Siswa Pindah Histori']);
+        $subject = MataPelajaran::factory()->create(['nama' => 'Matematika Riwayat']);
+        $assignment = Pengampu::factory()->create([
+            'guru_id' => $subjectTeacher->id,
+            'mata_pelajaran_id' => $subject->id,
+            'kelas_id' => $oldClass->id,
+            'tahun_ajaran_id' => $schoolYear->id,
+        ]);
+        $assessment = Penilaian::factory()->for($assignment)->create(['nama' => 'Penilaian Riwayat']);
+        $score = Nilai::factory()->create([
+            'siswa_id' => $student->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 88,
+        ]);
+        $payload = [
+            'kelas_id' => $newClass->id,
+            'nis' => $student->nis,
+            'nisn' => $student->nisn,
+            'nama' => $student->nama,
+            'jenis_kelamin' => $student->jenis_kelamin,
+            'tanggal_lahir' => $student->tanggal_lahir?->toDateString(),
+            'tempat_lahir' => $student->tempat_lahir,
+            'alamat' => $student->alamat,
+        ];
+
+        $this->actingAs($admin)->put(route('admin.siswa.update', $student), $payload)
+            ->assertRedirectToRoute('admin.siswa.index');
+
+        $this->assertDatabaseHas('nilai', [
+            'id' => $score->id,
+            'siswa_id' => $student->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 88,
+        ]);
+
+        $this->actingAs($subjectTeacher->user)->get(route('guru.rekap-nilai.index', ['pengampu_id' => $assignment->id]))
+            ->assertOk()
+            ->assertDontSee('Siswa Pindah Histori');
+        $this->actingAs($subjectTeacher->user)->get(route('guru.analisis.index', ['pengampu_id' => $assignment->id]))
+            ->assertOk()
+            ->assertDontSee('Siswa Pindah Histori');
+        $this->actingAs($waliUser)->get(route('guru.wali.rapor.show', [
+            'siswa' => $student,
+            'tahun_ajaran_id' => $schoolYear->id,
+        ]))->assertNotFound();
+    }
+
     public function test_progress_combines_real_scores_from_all_subjects(): void
     {
         $user = User::factory()->guru()->create();

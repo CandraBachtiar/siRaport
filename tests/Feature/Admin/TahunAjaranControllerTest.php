@@ -2,6 +2,13 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Guru;
+use App\Models\Kelas;
+use App\Models\MataPelajaran;
+use App\Models\Nilai;
+use App\Models\Pengampu;
+use App\Models\Penilaian;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -145,6 +152,44 @@ class TahunAjaranControllerTest extends TestCase
         ])->assertRedirectToRoute('admin.tahun-ajaran.index');
 
         $this->assertDatabaseHas('tahun_ajaran', ['id' => $tahunAjaran->id, 'aktif' => true]);
+    }
+
+    public function test_changing_tahun_ajaran_identity_preserves_existing_score_and_changes_its_period_context(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $schoolYear = TahunAjaran::factory()->create(['tahun' => '2025/2026', 'semester' => 'Ganjil']);
+        $assignment = Pengampu::factory()->create([
+            'guru_id' => Guru::factory(),
+            'kelas_id' => Kelas::factory(),
+            'mata_pelajaran_id' => MataPelajaran::factory(),
+            'tahun_ajaran_id' => $schoolYear->id,
+        ]);
+        $assessment = Penilaian::factory()->for($assignment)->create();
+        $score = Nilai::factory()->create([
+            'siswa_id' => Siswa::factory(),
+            'penilaian_id' => $assessment->id,
+            'nilai' => 86,
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.tahun-ajaran.update', $schoolYear), [
+            'tahun' => '2026/2027',
+            'semester' => 'Genap',
+            'aktif' => '0',
+        ])->assertRedirectToRoute('admin.tahun-ajaran.index');
+
+        $this->assertDatabaseHas('tahun_ajaran', [
+            'id' => $schoolYear->id,
+            'tahun' => '2026/2027',
+            'semester' => 'Genap',
+        ]);
+        $this->assertDatabaseHas('nilai', [
+            'id' => $score->id,
+            'siswa_id' => $score->siswa_id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 86,
+        ]);
+        $this->assertSame('2026/2027', $assignment->fresh()->tahunAjaran->tahun);
+        $this->assertSame('Genap', $assignment->fresh()->tahunAjaran->semester);
     }
 
     public function test_activating_new_tahun_ajaran_deactivates_previous_one(): void

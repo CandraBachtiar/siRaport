@@ -4,9 +4,11 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Kelas;
 use App\Models\Nilai;
+use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
 
@@ -181,6 +183,55 @@ class SiswaControllerTest extends TestCase
         ]);
     }
 
+    public function test_changing_student_class_preserves_existing_score_and_its_original_assignment(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $oldClass = Kelas::factory()->create();
+        $newClass = Kelas::factory()->create(['nama' => 'B']);
+        $student = Siswa::factory()->for($oldClass)->create();
+        $assignment = Pengampu::factory()->create(['kelas_id' => $oldClass->id]);
+        $assessment = Penilaian::factory()->for($assignment)->create();
+        $score = Nilai::factory()->create([
+            'siswa_id' => $student->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 84,
+        ]);
+        $payload = $this->validPayload($newClass);
+        $payload['nis'] = $student->nis;
+        $payload['nisn'] = $student->nisn;
+        $payload['nama'] = $student->nama;
+
+        $this->actingAs($admin)->put(route('admin.siswa.update', $student), $payload)
+            ->assertRedirectToRoute('admin.siswa.index');
+
+        $this->assertDatabaseHas('siswa', ['id' => $student->id, 'kelas_id' => $newClass->id]);
+        $this->assertDatabaseHas('nilai', [
+            'id' => $score->id,
+            'siswa_id' => $student->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 84,
+        ]);
+        $this->assertSame($assessment->pengampu_id, $score->fresh()->penilaian->pengampu_id);
+        $this->assertSame($oldClass->id, $score->fresh()->penilaian->pengampu->kelas_id);
+    }
+
+    public function test_guru_cannot_change_a_students_class(): void
+    {
+        $guru = User::factory()->guru()->create();
+        $oldClass = Kelas::factory()->create();
+        $newClass = Kelas::factory()->create();
+        $student = Siswa::factory()->for($oldClass)->create();
+        $payload = $this->validPayload($newClass);
+        $payload['nis'] = $student->nis;
+        $payload['nisn'] = $student->nisn;
+        $payload['nama'] = $student->nama;
+
+        $this->actingAs($guru)->put(route('admin.siswa.update', $student), $payload)
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('siswa', ['id' => $student->id, 'kelas_id' => $oldClass->id]);
+    }
+
     public function test_admin_can_delete_siswa_without_nilai(): void
     {
         $admin = User::factory()->admin()->create();
@@ -207,6 +258,20 @@ class SiswaControllerTest extends TestCase
         $response->assertRedirectToRoute('admin.siswa.index')
             ->assertSessionHas('error', 'Siswa tidak dapat dihapus karena masih memiliki data nilai.');
         $this->assertModelExists($siswa);
+    }
+
+    public function test_database_restricts_deleting_a_student_referenced_by_a_score(): void
+    {
+        $student = Siswa::factory()->create();
+        $assessment = Penilaian::factory()->create();
+        Nilai::factory()->create([
+            'siswa_id' => $student->id,
+            'penilaian_id' => $assessment->id,
+        ]);
+
+        $this->expectException(QueryException::class);
+
+        $student->delete();
     }
 
     public function test_siswa_list_escapes_user_data(): void

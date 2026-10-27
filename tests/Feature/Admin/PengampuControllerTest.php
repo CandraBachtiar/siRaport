@@ -112,6 +112,44 @@ class PengampuControllerTest extends TestCase
         $this->assertDatabaseHas('pengampu', ['id' => $pengampu->id, 'kelas_id' => $newClass->id]);
     }
 
+    public function test_updating_pengampu_context_preserves_existing_assessment_and_score(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $pengampu = Pengampu::factory()->create();
+        $assessment = Penilaian::factory()->for($pengampu)->create();
+        $score = Nilai::factory()->create([
+            'siswa_id' => Siswa::factory(),
+            'penilaian_id' => $assessment->id,
+            'nilai' => 91,
+        ]);
+        $newGuru = Guru::factory()->create();
+        $newSubject = MataPelajaran::factory()->create();
+        $newClass = Kelas::factory()->create();
+        $newSchoolYear = TahunAjaran::factory()->create();
+
+        $this->actingAs($admin)->put(route('admin.pengampu.update', $pengampu), [
+            'guru_id' => $newGuru->id,
+            'mata_pelajaran_id' => $newSubject->id,
+            'kelas_id' => $newClass->id,
+            'tahun_ajaran_id' => $newSchoolYear->id,
+        ])->assertRedirectToRoute('admin.pengampu.index');
+
+        $this->assertDatabaseHas('pengampu', [
+            'id' => $pengampu->id,
+            'guru_id' => $newGuru->id,
+            'mata_pelajaran_id' => $newSubject->id,
+            'kelas_id' => $newClass->id,
+            'tahun_ajaran_id' => $newSchoolYear->id,
+        ]);
+        $this->assertDatabaseHas('penilaian', ['id' => $assessment->id, 'pengampu_id' => $pengampu->id]);
+        $this->assertDatabaseHas('nilai', [
+            'id' => $score->id,
+            'siswa_id' => $score->siswa_id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 91,
+        ]);
+    }
+
     public function test_admin_can_delete_pengampu_without_nilai(): void
     {
         $admin = User::factory()->admin()->create();
