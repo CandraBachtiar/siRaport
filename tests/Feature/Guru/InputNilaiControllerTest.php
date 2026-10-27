@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Guru;
 
+use App\Models\Deskripsi;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\Nilai;
@@ -69,6 +70,60 @@ class InputNilaiControllerTest extends TestCase
         $this->assertDatabaseHas('nilai', ['siswa_id' => $students[1]->id, 'penilaian_id' => $assessment->id, 'nilai' => 100]);
     }
 
+    public function test_guru_can_update_a_score_without_changing_an_unsubmitted_students_score(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $assessment = Penilaian::factory()->for($assignment)->create();
+        $students = Siswa::factory()->count(2)->for($class)->create();
+        Nilai::factory()->create(['siswa_id' => $students[0]->id, 'penilaian_id' => $assessment->id, 'nilai' => 85]);
+        Nilai::factory()->create(['siswa_id' => $students[1]->id, 'penilaian_id' => $assessment->id, 'nilai' => 70]);
+
+        $response = $this->actingAs($user)->put(route('guru.nilai.update', $assessment), [
+            'nilai' => [$students[0]->id => 90],
+        ]);
+
+        $response->assertRedirect()
+            ->assertSessionHas('success', 'Nilai berhasil disimpan.');
+        $this->assertDatabaseHas('nilai', ['siswa_id' => $students[0]->id, 'penilaian_id' => $assessment->id, 'nilai' => 90]);
+        $this->assertDatabaseHas('nilai', ['siswa_id' => $students[1]->id, 'penilaian_id' => $assessment->id, 'nilai' => 70]);
+    }
+
+    public function test_clearing_a_score_removes_it_from_recap_and_keeps_other_scores(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $assessment = Penilaian::factory()->for($assignment)->create(['urutan' => 1]);
+        $laterAssessment = Penilaian::factory()->for($assignment)->create(['urutan' => 2]);
+        $students = Siswa::factory()->count(2)->for($class)->create();
+        $clearedScore = Nilai::factory()->create(['siswa_id' => $students[0]->id, 'penilaian_id' => $assessment->id, 'nilai' => 85]);
+        Deskripsi::factory()->for($clearedScore)->create();
+        Nilai::factory()->create(['siswa_id' => $students[0]->id, 'penilaian_id' => $laterAssessment->id, 'nilai' => 70]);
+        Nilai::factory()->create(['siswa_id' => $students[1]->id, 'penilaian_id' => $assessment->id, 'nilai' => 65]);
+
+        $response = $this->actingAs($user)->put(route('guru.nilai.update', $assessment), [
+            'nilai' => [$students[0]->id => ''],
+        ]);
+
+        $response->assertRedirect()
+            ->assertSessionHas('success', 'Nilai berhasil disimpan.');
+        $this->assertDatabaseMissing('nilai', ['siswa_id' => $students[0]->id, 'penilaian_id' => $assessment->id]);
+        $this->assertDatabaseMissing('deskripsi', ['nilai_id' => $clearedScore->id]);
+        $this->assertDatabaseHas('nilai', ['siswa_id' => $students[0]->id, 'penilaian_id' => $laterAssessment->id, 'nilai' => 70]);
+        $this->assertDatabaseHas('nilai', ['siswa_id' => $students[1]->id, 'penilaian_id' => $assessment->id, 'nilai' => 65]);
+
+        $recap = $this->actingAs($user)->get(route('guru.rekap-nilai.index', ['pengampu_id' => $assignment->id]));
+
+        $recap->assertOk()
+            ->assertSee('70,00')
+            ->assertSee('Belum Lengkap')
+            ->assertDontSee('85,00');
+    }
+
     public function test_unexpected_student_key_is_rejected_when_saving_scores(): void
     {
         $user = User::factory()->guru()->create();
@@ -111,6 +166,23 @@ class InputNilaiControllerTest extends TestCase
 
         $response->assertRedirect(route('guru.nilai.index'))
             ->assertSessionHasErrors(['nilai.'.$student->id => 'Nilai siswa maksimal 100.']);
+        $this->assertDatabaseMissing('nilai', ['siswa_id' => $student->id, 'penilaian_id' => $assessment->id]);
+    }
+
+    public function test_score_below_zero_is_rejected(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assessment = Penilaian::factory()->for(Pengampu::factory()->for($guru)->state(['kelas_id' => $class->id]))->create();
+        $student = Siswa::factory()->for($class)->create();
+
+        $response = $this->actingAs($user)
+            ->from(route('guru.nilai.index'))
+            ->put(route('guru.nilai.update', $assessment), ['nilai' => [$student->id => -1]]);
+
+        $response->assertRedirect(route('guru.nilai.index'))
+            ->assertSessionHasErrors(['nilai.'.$student->id => 'Nilai siswa minimal 0.']);
         $this->assertDatabaseMissing('nilai', ['siswa_id' => $student->id, 'penilaian_id' => $assessment->id]);
     }
 

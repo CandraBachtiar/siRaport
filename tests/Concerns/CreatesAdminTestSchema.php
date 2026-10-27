@@ -91,7 +91,7 @@ trait CreatesAdminTestSchema
 
         Schema::create('deskripsi', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('nilai_id')->constrained('nilai')->restrictOnDelete();
+            $table->foreignId('nilai_id')->constrained('nilai')->cascadeOnDelete();
             $table->text('rekomendasi')->nullable();
             $table->text('deskripsi_akhir')->nullable();
             $table->enum('status', ['draft', 'tervalidasi'])->default('draft');

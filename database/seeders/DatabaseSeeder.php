@@ -16,11 +16,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => 'admin@localhost.test'],
+        $admin = config('auth.bootstrap_admin');
+
+        if (blank($admin['email']) || blank($admin['password'])) {
+            throw new \RuntimeException(
+                'Konfigurasi admin awal belum lengkap. Atur ADMIN_EMAIL dan ADMIN_PASSWORD sebelum menjalankan seeder.',
+            );
+        }
+
+        User::query()->firstOrCreate(
+            ['email' => $admin['email']],
             [
-                'name' => 'Administrator',
-                'password' => Hash::make('password'),
+                'name' => $admin['name'],
+                'password' => Hash::make($admin['password']),
                 'role' => 'admin',
             ],
         );

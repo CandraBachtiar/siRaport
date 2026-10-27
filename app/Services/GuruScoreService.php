@@ -19,39 +19,57 @@ class GuruScoreService
             ->where('kelas_id', $assessment->pengampu->kelas_id)
             ->pluck('id');
         $now = now();
-        $rows = $studentIds
-            ->filter(fn (int $studentId): bool => array_key_exists($studentId, $scores) || array_key_exists((string) $studentId, $scores))
-            ->map(function (int $studentId) use ($assessment, $now, $scores): ?array {
-                $score = $scores[$studentId] ?? $scores[(string) $studentId] ?? null;
+        $rows = [];
+        $clearedStudentIds = [];
 
-                if ($score === null || $score === '') {
-                    return null;
-                }
+        foreach ($studentIds as $studentId) {
+            $scoreKey = array_key_exists($studentId, $scores)
+                ? $studentId
+                : (string) $studentId;
 
-                return [
-                    'siswa_id' => $studentId,
-                    'penilaian_id' => $assessment->id,
-                    'nilai' => (float) $score,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
-            })
-            ->filter()
-            ->values();
+            if (! array_key_exists($scoreKey, $scores)) {
+                continue;
+            }
 
-        if ($rows->isEmpty()) {
+            $score = $scores[$scoreKey];
+
+            if ($score === null || $score === '') {
+                $clearedStudentIds[] = $studentId;
+
+                continue;
+            }
+
+            $rows[] = [
+                'siswa_id' => $studentId,
+                'penilaian_id' => $assessment->id,
+                'nilai' => (float) $score,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        if ($rows === [] && $clearedStudentIds === []) {
             return 0;
         }
 
-        DB::transaction(function () use ($rows): void {
-            Nilai::query()->upsert(
-                $rows->all(),
-                ['siswa_id', 'penilaian_id'],
-                ['nilai', 'updated_at'],
-            );
-        });
+        return DB::transaction(function () use ($assessment, $clearedStudentIds, $rows): int {
+            if ($rows !== []) {
+                Nilai::query()->upsert(
+                    $rows,
+                    ['siswa_id', 'penilaian_id'],
+                    ['nilai', 'updated_at'],
+                );
+            }
 
-        return $rows->count();
+            $deletedCount = $clearedStudentIds === []
+                ? 0
+                : Nilai::query()
+                    ->where('penilaian_id', $assessment->id)
+                    ->whereIn('siswa_id', $clearedStudentIds)
+                    ->delete();
+
+            return count($rows) + $deletedCount;
+        });
     }
 
     /**

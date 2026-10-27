@@ -29,6 +29,10 @@ In addition, [Laracasts](https://laracasts.com) contains thousands of video tuto
 
 You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
 
+## Bootstrap admin
+
+In local development, `DatabaseSeeder` creates `admin@localhost.test` with the development-only password `password` when that account does not exist. Set `ADMIN_EMAIL` and a strong `ADMIN_PASSWORD` in the production environment before seeding. The seeder creates the configured account only when the email is not already present, so rerunning it does not replace an existing account's password or profile.
+
 ## Agentic Development
 
 Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:

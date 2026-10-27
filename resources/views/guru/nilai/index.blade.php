@@ -50,7 +50,7 @@
                         </table>
                     </div>
                     @if ($students->isNotEmpty())
-                        <div class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><p class="text-xs text-slate-500">Kolom kosong tetap berstatus belum diisi. Nilai lama tidak dihapus otomatis.</p><div class="flex gap-3"><a href="{{ route('guru.nilai.index', ['tahun_ajaran_id' => $schoolYearId, 'mata_pelajaran_id' => $subjectId, 'kelas_id' => $classId]) }}" class="rk-button rk-button-secondary">Batal</a><button type="submit" class="rk-button rk-button-primary"><span data-submit-label>Simpan Nilai</span></button></div></div>
+                        <div class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><p class="text-xs text-slate-500">Kosongkan kolom nilai lalu simpan untuk menghapus nilai yang sudah tersimpan.</p><div class="flex gap-3"><a href="{{ route('guru.nilai.index', ['tahun_ajaran_id' => $schoolYearId, 'mata_pelajaran_id' => $subjectId, 'kelas_id' => $classId]) }}" class="rk-button rk-button-secondary">Batal</a><button type="submit" class="rk-button rk-button-primary"><span data-submit-label>Simpan Nilai</span></button></div></div>
                     @endif
                 </div>
             </form>

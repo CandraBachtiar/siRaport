@@ -20,6 +20,12 @@ return [
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 
+    'bootstrap_admin' => [
+        'name' => env('ADMIN_NAME', 'Administrator'),
+        'email' => env('ADMIN_EMAIL', env('APP_ENV') === 'production' ? null : 'admin@localhost.test'),
+        'password' => env('ADMIN_PASSWORD') ?: (env('APP_ENV') === 'production' ? null : 'password'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Authentication Guards
