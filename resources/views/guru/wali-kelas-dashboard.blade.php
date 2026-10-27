@@ -41,7 +41,7 @@
                     <div><h2 class="font-bold text-[#102d4b]">Perkembangan Kelas</h2><p class="mt-1 text-sm text-slate-500">Rata-rata siswa pada setiap mata pelajaran.</p></div>
                     <a href="{{ route('guru.wali.perkembangan.index', ['kelas_id' => $selectedClass?->id, 'tahun_ajaran_id' => $selectedSchoolYear?->id]) }}" class="text-sm font-bold text-emerald-700">Lihat detail</a>
                 </div>
-                <x-charts.bar-chart :items="$subjectSeries" title="Rata-rata kelas per mata pelajaran" class="mt-6" empty-message="Belum ada nilai lintas mata pelajaran pada periode ini." />
+                <x-charts.bar-chart :items="$subjectSeries" :has-data="$metrics['classAverage'] !== null" title="Rata-rata kelas per mata pelajaran" class="mt-6" empty-message="Belum ada nilai lintas mata pelajaran pada periode ini." />
             </article>
 
             <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

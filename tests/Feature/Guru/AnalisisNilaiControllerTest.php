@@ -94,6 +94,31 @@ class AnalisisNilaiControllerTest extends TestCase
                 && $analysis['trend']['difference'] === 20.0);
     }
 
+    public function test_student_analysis_reports_a_stable_trend_within_the_existing_threshold(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $student = Siswa::factory()->for($class)->create();
+
+        foreach ([70, 71, 72, 70] as $index => $score) {
+            $assessment = Penilaian::factory()->for($assignment)->create([
+                'urutan' => $index + 1,
+                'tanggal' => '2026-10-'.str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT),
+            ]);
+            Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => $score]);
+        }
+
+        $response = $this->actingAs($user)->get(route('guru.analisis.index', [
+            'pengampu_id' => $assignment->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $response->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['trend']['label'] === 'Stabil'
+            && $analysis['trend']['difference'] === 0.5);
+    }
+
     public function test_student_analysis_reports_no_data_without_inventing_a_trend(): void
     {
         $user = User::factory()->guru()->create();
@@ -101,15 +126,53 @@ class AnalisisNilaiControllerTest extends TestCase
         $class = Kelas::factory()->create();
         $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
         $student = Siswa::factory()->for($class)->create();
-        Penilaian::factory()->for($assignment)->create(['tanggal' => '2026-10-01', 'urutan' => 1]);
+        $assessment = Penilaian::factory()->for($assignment)->create(['tanggal' => '2026-10-01', 'urutan' => 1]);
+        $deletedScore = Nilai::factory()->create([
+            'siswa_id' => $student->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 80,
+        ]);
+        $deletedScore->delete();
 
         $response = $this->actingAs($user)->get(route('guru.analisis.index', [
             'pengampu_id' => $assignment->id,
             'siswa_id' => $student->id,
         ]));
 
-        $response->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['average'] === null
+        $response->assertSee('Belum ada data yang dapat digambarkan.')
+            ->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['average'] === null
             && $analysis['trend']['label'] === 'Belum ada data');
+    }
+
+    public function test_zero_is_valid_and_deleted_or_missing_scores_do_not_enter_the_trend(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $student = Siswa::factory()->for($class)->create();
+        $assessments = collect([
+            Penilaian::factory()->for($assignment)->create(['tanggal' => '2026-10-01', 'urutan' => 1]),
+            Penilaian::factory()->for($assignment)->create(['tanggal' => '2026-10-02', 'urutan' => 2]),
+            Penilaian::factory()->for($assignment)->create(['tanggal' => '2026-10-03', 'urutan' => 3]),
+        ]);
+        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessments[0]->id, 'nilai' => 0]);
+        $deletedScore = Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessments[1]->id, 'nilai' => 90]);
+        $deletedScore->delete();
+
+        $response = $this->actingAs($user)->get(route('guru.analisis.index', [
+            'pengampu_id' => $assignment->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $response->assertSee('0,0')
+            ->assertSee('—')
+            ->assertDontSee('90,0')
+            ->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['average'] === 0.0
+            && $analysis['latest'] === 0.0
+            && $analysis['missingCount'] === 2
+            && $analysis['series']->pluck('value')->all() === [0.0, null, null]
+            && $analysis['trend']['label'] === 'Belum cukup data');
     }
 
     public function test_student_analysis_reports_insufficient_data_for_one_score(): void
@@ -130,30 +193,61 @@ class AnalisisNilaiControllerTest extends TestCase
         $response->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['trend']['label'] === 'Belum cukup data');
     }
 
-    public function test_student_analysis_orders_equal_and_different_dates_before_calculating_a_trend(): void
+    public function test_student_analysis_does_not_classify_a_trend_from_three_scores(): void
     {
         $user = User::factory()->guru()->create();
         $guru = Guru::factory()->for($user)->create();
         $class = Kelas::factory()->create();
         $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
         $student = Siswa::factory()->for($class)->create();
-        $laterAssessment = Penilaian::factory()->for($assignment)->create([
-            'tanggal' => '2026-10-02',
-            'urutan' => 1,
-        ]);
-        $earlierAssessment = Penilaian::factory()->for($assignment)->create([
-            'tanggal' => '2026-10-01',
-            'urutan' => 2,
-        ]);
-        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $laterAssessment->id, 'nilai' => 80]);
-        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $earlierAssessment->id, 'nilai' => 60]);
+
+        foreach ([90, 20, 70] as $index => $score) {
+            $assessment = Penilaian::factory()->for($assignment)->create([
+                'urutan' => $index + 1,
+                'tanggal' => '2026-10-'.str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT),
+            ]);
+            Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => $score]);
+        }
 
         $response = $this->actingAs($user)->get(route('guru.analisis.index', [
             'pengampu_id' => $assignment->id,
             'siswa_id' => $student->id,
         ]));
 
-        $response->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['series']->pluck('value')->all() === [60.0, 80.0]
+        $response->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['trend']['label'] === 'Belum cukup data'
+            && $analysis['trend']['difference'] === null);
+    }
+
+    public function test_student_analysis_orders_assessments_by_date_before_calculating_a_trend(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $student = Siswa::factory()->for($class)->create();
+        foreach ([
+            ['tanggal' => '2026-10-04', 'urutan' => 1, 'nilai' => 85],
+            ['tanggal' => '2026-10-03', 'urutan' => 2, 'nilai' => 80],
+            ['tanggal' => '2026-10-02', 'urutan' => 3, 'nilai' => 65],
+            ['tanggal' => '2026-10-01', 'urutan' => 4, 'nilai' => 60],
+        ] as $scoreData) {
+            $assessment = Penilaian::factory()->for($assignment)->create([
+                'tanggal' => $scoreData['tanggal'],
+                'urutan' => $scoreData['urutan'],
+            ]);
+            Nilai::factory()->create([
+                'siswa_id' => $student->id,
+                'penilaian_id' => $assessment->id,
+                'nilai' => $scoreData['nilai'],
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get(route('guru.analisis.index', [
+            'pengampu_id' => $assignment->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $response->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['series']->pluck('value')->all() === [60.0, 65.0, 80.0, 85.0]
             && $analysis['trend']['label'] === 'Meningkat');
     }
 

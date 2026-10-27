@@ -11,6 +11,8 @@ use Illuminate\Support\Collection;
 
 class GuruAnalysisService
 {
+    public function __construct(private ScoreTrendService $trendService) {}
+
     /**
      * @return array{
      *     classSeries: Collection<int, array<string, mixed>>,
@@ -59,6 +61,7 @@ class GuruAnalysisService
             return [
                 'label' => $assessment->nama,
                 'shortLabel' => 'P'.$assessment->urutan,
+                'dateLabel' => $assessment->tanggal->format('d/m'),
                 'value' => $scores->isEmpty() ? null : round((float) $scores->average(), 2),
                 'filledCount' => $scores->count(),
             ];
@@ -144,7 +147,7 @@ class GuruAnalysisService
                         ->map(fn ($score): float => (float) $score));
                 $average = $scores->isEmpty() ? null : round((float) $scores->average(), 2);
                 $missingCount = max($assessmentCount - $scores->count(), 0);
-                $trend = $this->trend($scores);
+                $trend = $this->trendService->summarize($scores);
                 $reasons = collect();
 
                 if ($average !== null && $average < $kkm) {
@@ -157,6 +160,10 @@ class GuruAnalysisService
 
                 if ($missingCount > 0) {
                     $reasons->push($missingCount.' nilai belum diisi');
+                }
+
+                if ($reasons->isNotEmpty() && in_array($trend['label'], ['Belum ada data', 'Belum cukup data'], true)) {
+                    $reasons->push('Data belum cukup untuk menentukan tren');
                 }
 
                 if ($reasons->isEmpty()) {
@@ -206,12 +213,13 @@ class GuruAnalysisService
             return [
                 'label' => $assessment->nama,
                 'shortLabel' => 'P'.$assessment->urutan,
+                'dateLabel' => $assessment->tanggal->format('d/m'),
                 'value' => $score === null ? null : (float) $score->nilai,
             ];
         });
         $scores = $series->pluck('value')->filter(fn (?float $score): bool => $score !== null)->values();
         $average = $scores->isEmpty() ? null : round((float) $scores->average(), 2);
-        $trend = $this->trend($scores);
+        $trend = $this->trendService->summarize($series->pluck('value'));
 
         return [
             'student' => $student,
@@ -234,38 +242,5 @@ class GuruAnalysisService
             ->filter(fn ($score): bool => $score !== null)
             ->map(fn ($score): float => (float) $score)
             ->values();
-    }
-
-    /** @return array{label: string, difference: float|null, explanation: string} */
-    private function trend(Collection $scores): array
-    {
-        if ($scores->isEmpty()) {
-            return [
-                'label' => 'Belum ada data',
-                'difference' => null,
-                'explanation' => 'Belum ada nilai yang dapat digunakan untuk membaca tren.',
-            ];
-        }
-
-        if ($scores->count() === 1) {
-            return [
-                'label' => 'Belum cukup data',
-                'difference' => null,
-                'explanation' => 'Diperlukan sedikitnya dua nilai untuk membandingkan perkembangan.',
-            ];
-        }
-
-        $windowSize = min(3, intdiv($scores->count(), 2));
-        $previousAverage = (float) $scores->slice(0, $windowSize)->average();
-        $latestAverage = (float) $scores->slice(-$windowSize)->average();
-        $difference = round($latestAverage - $previousAverage, 2);
-        $label = $difference > 2 ? 'Meningkat' : ($difference < -2 ? 'Menurun' : 'Stabil');
-
-        return [
-            'label' => $label,
-            'difference' => $difference,
-            'explanation' => 'Rata-rata '.$windowSize.' nilai terbaru '.number_format($latestAverage, 2, ',', '.')
-                .', dibanding '.$windowSize.' nilai sebelumnya '.number_format($previousAverage, 2, ',', '.').'.',
-        ];
     }
 }

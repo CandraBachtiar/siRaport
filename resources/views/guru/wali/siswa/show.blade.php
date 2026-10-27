@@ -11,7 +11,7 @@
     </div>
 
     <div class="mt-7 grid gap-6 xl:grid-cols-2">
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"><h2 class="font-bold text-[#102d4b]">Rata-rata Mata Pelajaran</h2><x-charts.bar-chart :items="$studentRow['subjectSeries']" title="Rata-rata siswa per mata pelajaran" class="mt-5" /></article>
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"><h2 class="font-bold text-[#102d4b]">Rata-rata Mata Pelajaran</h2><x-charts.bar-chart :items="$studentRow['subjectSeries']" :has-data="$studentRow['overallAverage'] !== null" title="Rata-rata siswa per mata pelajaran" class="mt-5" /></article>
         <article class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"><h2 class="font-bold text-[#102d4b]">Perkembangan Penilaian</h2><x-charts.line-chart :points="$studentRow['progressSeries']" title="Perkembangan nilai lintas mata pelajaran" class="mt-5" /></article>
     </div>
 

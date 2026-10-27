@@ -15,6 +15,8 @@ use Illuminate\Support\Collection;
 
 class WaliKelasService
 {
+    public function __construct(private ScoreTrendService $trendService) {}
+
     /** @return array<string, mixed> */
     public function workspace(Guru $guru, ?int $classId = null, ?int $schoolYearId = null): array
     {
@@ -71,7 +73,7 @@ class WaliKelasService
 
             return [
                 'label' => $assignment->mataPelajaran->nama,
-                'value' => $averages->isEmpty() ? 0 : round((float) $averages->average(), 2),
+                'value' => $averages->isEmpty() ? null : round((float) $averages->average(), 2),
             ];
         })->values();
         $readyReportCount = $studentRows->where('readyToPrint', true)->count();
@@ -190,6 +192,14 @@ class WaliKelasService
             $attentionReasons->push($missingScoreCount.' nilai belum lengkap');
         }
 
+        $insufficientTrendSubjectCount = $subjects
+            ->filter(fn (array $subject): bool => in_array($subject['trend']['label'], ['Belum ada data', 'Belum cukup data'], true))
+            ->count();
+
+        if ($attentionReasons->isNotEmpty() && $insufficientTrendSubjectCount > 0) {
+            $attentionReasons->push($insufficientTrendSubjectCount.' mata pelajaran belum cukup data untuk menentukan tren');
+        }
+
         $allScoresComplete = $subjects->isNotEmpty() && $subjects->every(fn (array $subject): bool => $subject['isComplete']);
         $allDescriptionsValidated = $subjects->isNotEmpty()
             && $subjects->every(fn (array $subject): bool => $subject['description']?->status === 'tervalidasi');
@@ -200,7 +210,7 @@ class WaliKelasService
             'subjects' => $subjects,
             'subjectSeries' => $subjects->map(fn (array $subject): array => [
                 'label' => $subject['assignment']->mataPelajaran->nama,
-                'value' => $subject['average'] ?? 0,
+                'value' => $subject['average'],
             ]),
             'progressSeries' => $this->progressSeries($subjects),
             'overallAverage' => $averages->isEmpty() ? null : round((float) $averages->average(), 2),
@@ -238,7 +248,7 @@ class WaliKelasService
             ->sortByDesc('updated_at');
         $description = $descriptions->first();
         $referenceScore = $filledScores->last()['score'] ?? null;
-        $trend = $this->trend($values);
+        $trend = $this->trendService->summarize($values);
         $missingCount = max($assignment->penilaian->count() - $filledScores->count(), 0);
         $summary = [
             'assignment' => $assignment,
@@ -268,6 +278,7 @@ class WaliKelasService
                     'label' => $subject['assignment']->mataPelajaran->nama.' · '.$entry['assessment']->nama,
                     'shortLabel' => $subject['assignment']->mataPelajaran->kode.' P'.$entry['assessment']->urutan,
                     'date' => $entry['assessment']->tanggal,
+                    'dateLabel' => $entry['assessment']->tanggal->format('d/m'),
                     'order' => $entry['assessment']->urutan,
                     'assessmentId' => $entry['assessment']->id,
                     'value' => $entry['value'],
@@ -292,29 +303,6 @@ class WaliKelasService
         $weightTotal = $filledScores->sum(fn (array $entry): float => (float) $entry['assessment']->bobot);
 
         return $weightTotal > 0 ? round($weightedTotal / $weightTotal, 2) : null;
-    }
-
-    /** @return array{label: string, difference: float|null, explanation: string} */
-    private function trend(Collection $scores): array
-    {
-        if ($scores->isEmpty()) {
-            return ['label' => 'Belum ada data', 'difference' => null, 'explanation' => 'Belum ada nilai untuk membaca perkembangan.'];
-        }
-
-        if ($scores->count() === 1) {
-            return ['label' => 'Belum cukup data', 'difference' => null, 'explanation' => 'Diperlukan sedikitnya dua nilai untuk membaca perkembangan.'];
-        }
-
-        $windowSize = min(3, intdiv($scores->count(), 2));
-        $previousAverage = (float) $scores->slice(-($windowSize * 2), $windowSize)->average();
-        $latestAverage = (float) $scores->take(-$windowSize)->average();
-        $difference = round($latestAverage - $previousAverage, 2);
-
-        return [
-            'label' => $difference > 2 ? 'Meningkat' : ($difference < -2 ? 'Menurun' : 'Stabil'),
-            'difference' => $difference,
-            'explanation' => 'Rata-rata '.$windowSize.' nilai terbaru '.number_format($latestAverage, 2, ',', '.').' dibanding nilai sebelumnya '.number_format($previousAverage, 2, ',', '.').'.',
-        ];
     }
 
     /** @param array<string, mixed> $summary */

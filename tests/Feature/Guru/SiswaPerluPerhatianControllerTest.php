@@ -110,6 +110,42 @@ class SiswaPerluPerhatianControllerTest extends TestCase
             ->assertSee('Tidak ada siswa yang perlu perhatian');
     }
 
+    public function test_attention_reasons_keep_zero_valid_and_explain_insufficient_trend_data_once(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $subject = MataPelajaran::factory()->create(['kkm' => 75]);
+        $assignment = Pengampu::factory()->for($guru)->create([
+            'kelas_id' => $class->id,
+            'mata_pelajaran_id' => $subject->id,
+        ]);
+        $student = Siswa::factory()->for($class)->create(['nama' => 'Dina Data Terbatas']);
+        $firstAssessment = Penilaian::factory()->for($assignment)->create(['urutan' => 1]);
+        Penilaian::factory()->for($assignment)->create(['urutan' => 2]);
+        Nilai::factory()->create([
+            'siswa_id' => $student->id,
+            'penilaian_id' => $firstAssessment->id,
+            'nilai' => 0,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('guru.perhatian.index', ['pengampu_id' => $assignment->id]));
+
+        $response->assertOk()
+            ->assertSee('Dina Data Terbatas')
+            ->assertSee('Rata-rata di bawah KKM')
+            ->assertSee('1 nilai belum diisi')
+            ->assertSee('Data belum cukup untuk menentukan tren')
+            ->assertViewHas('rows', function ($rows) use ($student): bool {
+                $studentRows = $rows->where('student.id', $student->id);
+
+                return $studentRows->count() === 1
+                    && $studentRows->first()['average'] === 0.0
+                    && $studentRows->first()['trend']['label'] === 'Belum cukup data'
+                    && $studentRows->first()['reasons']->count() === 3;
+            });
+    }
+
     public function test_default_attention_view_uses_the_active_school_year(): void
     {
         $user = User::factory()->guru()->create();

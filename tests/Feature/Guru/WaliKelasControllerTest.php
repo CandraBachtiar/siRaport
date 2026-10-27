@@ -111,7 +111,112 @@ class WaliKelasControllerTest extends TestCase
         $response->assertOk()
             ->assertSee('Bima Perlu Dukungan')
             ->assertSee('1 mata pelajaran di bawah KKM')
-            ->assertSee('1 nilai belum lengkap');
+            ->assertSee('1 nilai belum lengkap')
+            ->assertSee('1 mata pelajaran belum cukup data untuk menentukan tren');
+    }
+
+    public function test_teacher_and_wali_show_the_same_trend_for_the_same_assessment_scores(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+        $year = TahunAjaran::factory()->create(['aktif' => true]);
+        $subject = MataPelajaran::factory()->create(['nama' => 'Matematika Konsistensi']);
+        $assignment = Pengampu::factory()->for($guru)->create([
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+            'mata_pelajaran_id' => $subject->id,
+        ]);
+        $student = Siswa::factory()->for($class)->create();
+        $createdOutOfOrder = [
+            ['tanggal' => '2026-10-05', 'urutan' => 1, 'nilai' => 90],
+            ['tanggal' => '2026-10-04', 'urutan' => 2, 'nilai' => 70],
+            ['tanggal' => '2026-10-03', 'urutan' => 3, 'nilai' => 100],
+            ['tanggal' => '2026-10-02', 'urutan' => 4, 'nilai' => 100],
+            ['tanggal' => '2026-10-01', 'urutan' => 5, 'nilai' => 0],
+        ];
+
+        foreach ($createdOutOfOrder as $scoreData) {
+            $assessment = Penilaian::factory()->for($assignment)->create([
+                'tanggal' => $scoreData['tanggal'],
+                'urutan' => $scoreData['urutan'],
+                'nama' => 'Penilaian '.$scoreData['urutan'],
+            ]);
+            Nilai::factory()->create([
+                'siswa_id' => $student->id,
+                'penilaian_id' => $assessment->id,
+                'nilai' => $scoreData['nilai'],
+            ]);
+        }
+
+        $teacherResponse = $this->actingAs($user)->get(route('guru.analisis.index', [
+            'pengampu_id' => $assignment->id,
+            'siswa_id' => $student->id,
+        ]));
+        $waliResponse = $this->actingAs($user)->get(route('guru.wali.perkembangan.index', [
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $teacherResponse->assertOk()
+            ->assertSee('Penilaian 5')
+            ->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['series']->pluck('value')->all() === [0.0, 100.0, 100.0, 70.0, 90.0]
+                && $analysis['trend']['label'] === 'Meningkat'
+                && $analysis['trend']['difference'] === 30.0);
+        $waliResponse->assertOk()
+            ->assertSee('Periode analisis: '.$year->tahun)
+            ->assertViewHas('studentRow', function (array $row): bool {
+                $this->assertSame([0.0, 100.0, 100.0, 70.0, 90.0], $row['progressSeries']->pluck('value')->all());
+                $this->assertSame('Meningkat', $row['subjects']->first()['trend']['label']);
+                $this->assertSame(30.0, $row['subjects']->first()['trend']['difference']);
+
+                return true;
+            });
+    }
+
+    public function test_subject_average_chart_keeps_valid_zero_and_missing_data_distinct(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+        $year = TahunAjaran::factory()->create(['aktif' => true]);
+        $student = Siswa::factory()->for($class)->create();
+        $mathAssignment = Pengampu::factory()->create([
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+            'mata_pelajaran_id' => MataPelajaran::factory()->create(['nama' => 'Matematika Nol'])->id,
+        ]);
+        $scienceAssignment = Pengampu::factory()->create([
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+            'mata_pelajaran_id' => MataPelajaran::factory()->create(['nama' => 'IPA Kosong'])->id,
+        ]);
+        $mathAssessment = Penilaian::factory()->for($mathAssignment)->create();
+        Penilaian::factory()->for($scienceAssignment)->create();
+        Nilai::factory()->create([
+            'siswa_id' => $student->id,
+            'penilaian_id' => $mathAssessment->id,
+            'nilai' => 0,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('guru.wali.perkembangan.index', [
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Matematika Nol')
+            ->assertSee('IPA Kosong')
+            ->assertViewHas('studentRow', function (array $row): bool {
+                $valuesBySubject = $row['subjectSeries']->keyBy('label')->map(fn (array $item): ?float => $item['value']);
+
+                $this->assertSame(0.0, $valuesBySubject->get('Matematika Nol'));
+                $this->assertNull($valuesBySubject->get('IPA Kosong'));
+
+                return true;
+            });
     }
 
     public function test_print_is_blocked_until_scores_and_descriptions_are_complete(): void

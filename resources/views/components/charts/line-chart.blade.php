@@ -18,8 +18,31 @@
             'x' => round(8 + (($index / $lastIndex) * 88), 2),
             'y' => round(47 - (((float) $point['value'] / 100) * 40), 2),
         ];
-    })->filter()->values();
-    $polylinePoints = $coordinates->map(fn (array $point): string => $point['x'].','.$point['y'])->implode(' ');
+    });
+    $segments = collect();
+    $currentSegment = [];
+
+    foreach ($coordinates as $coordinate) {
+        if ($coordinate === null) {
+            if ($currentSegment !== []) {
+                $segments->push($currentSegment);
+                $currentSegment = [];
+            }
+
+            continue;
+        }
+
+        $currentSegment[] = $coordinate;
+    }
+
+    if ($currentSegment !== []) {
+        $segments->push($currentSegment);
+    }
+
+    $lineSegments = $segments
+        ->filter(fn (array $segment): bool => count($segment) > 1)
+        ->map(fn (array $segment): string => collect($segment)->map(fn (array $point): string => $point['x'].','.$point['y'])->implode(' '));
+    $visibleCoordinates = $coordinates->filter()->values();
 @endphp
 
 <div {{ $attributes }}>
@@ -32,16 +55,16 @@
                 <line x1="8" y1="{{ $y }}" x2="96" y2="{{ $y }}" stroke="#e2e8f0" stroke-width="0.45" stroke-dasharray="2 2" />
                 <text x="1" y="{{ $y + 1 }}" fill="#94a3b8" font-size="3">{{ $label }}</text>
             @endforeach
-            @if ($coordinates->count() > 1)
-                <polyline points="{{ $polylinePoints }}" fill="none" stroke="#059669" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
-            @endif
-            @foreach ($coordinates as $point)
-                <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="2" fill="#ffffff" stroke="#059669" stroke-width="1.2"><title>{{ $point['label'] }}: {{ number_format((float) $point['value'], 2, ',', '.') }}</title></circle>
+            @foreach ($lineSegments as $lineSegment)
+                <polyline points="{{ $lineSegment }}" fill="none" stroke="#059669" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+            @endforeach
+            @foreach ($visibleCoordinates as $point)
+                <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="2" fill="#ffffff" stroke="#059669" stroke-width="1.2"><title>{{ $point['label'] }}{{ isset($point['dateLabel']) ? ' · '.$point['dateLabel'] : '' }}: {{ number_format((float) $point['value'], 2, ',', '.') }}</title></circle>
             @endforeach
         </svg>
-        <div class="flex gap-1 border-t border-slate-100 pt-3" aria-hidden="true">
+        <div class="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-100 pt-3 sm:grid-cols-3">
             @foreach ($chartPoints as $point)
-                <div class="min-w-0 flex-1 text-center"><strong class="block truncate text-[0.65rem] text-slate-500">{{ $point['shortLabel'] }}</strong><span class="mt-1 block text-[0.65rem] font-bold text-slate-700">{{ $point['value'] === null ? '—' : number_format((float) $point['value'], 1, ',', '.') }}</span></div>
+                <div class="min-w-0"><strong class="block truncate text-xs text-slate-600" title="{{ $point['label'] }}">{{ $point['label'] }}</strong><span class="mt-1 block text-xs font-bold text-slate-700">{{ $point['dateLabel'] ?? $point['shortLabel'] }} · {{ $point['value'] === null ? '—' : number_format((float) $point['value'], 1, ',', '.') }}</span></div>
             @endforeach
         </div>
     @endif
