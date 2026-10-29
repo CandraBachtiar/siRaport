@@ -90,6 +90,13 @@ class GuruImportControllerTest extends TestCase
         $file = $this->excelFile([['001', 'Budi Santoso', 'budi@example.test']]);
 
         $this->actingAs($admin)->post(route('admin.guru.import.preview'), ['file' => $file]);
+        $preview = $this->actingAs($admin)->get(route('admin.guru.import.create'));
+        $preview->assertOk()
+            ->assertSee('Total: 1')
+            ->assertSee('Valid: 1')
+            ->assertSee('Budi Santoso')
+            ->assertSessionHas('guru_import_preview.0.valid', true);
+
         $this->actingAs($admin)->post(route('admin.guru.import.store'))
             ->assertRedirectToRoute('admin.guru.index')
             ->assertSessionHas('success', '1 data guru berhasil diimport.');
@@ -99,6 +106,11 @@ class GuruImportControllerTest extends TestCase
         $this->assertNotSame('password', $user->password);
         $this->assertDatabaseHas('guru', ['user_id' => $user->id, 'nip' => '001', 'nama' => 'Budi Santoso']);
         $this->assertFalse(Hash::check('password', $user->password));
+
+        $this->actingAs($admin)->post(route('admin.guru.import.store'))
+            ->assertRedirectToRoute('admin.guru.import.create')
+            ->assertSessionHas('error', 'Belum ada data valid untuk diimport.');
+        $this->assertDatabaseCount('guru', 1);
     }
 
     public function test_import_confirmation_is_blocked_when_preview_has_errors(): void
@@ -111,6 +123,38 @@ class GuruImportControllerTest extends TestCase
             ->assertRedirectToRoute('admin.guru.import.create')
             ->assertSessionHas('error', 'Perbaiki semua data yang error sebelum melakukan import.');
 
+        $this->assertDatabaseCount('guru', 0);
+    }
+
+    public function test_import_confirmation_is_blocked_without_a_preview(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->post(route('admin.guru.import.store'))
+            ->assertRedirectToRoute('admin.guru.import.create')
+            ->assertSessionHas('error', 'Belum ada data valid untuk diimport.');
+
+        $this->assertDatabaseCount('guru', 0);
+    }
+
+    public function test_invalid_new_upload_clears_an_old_preview_before_validation(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $validFile = $this->excelFile([['001', 'Budi Santoso', 'budi@example.test']]);
+
+        $this->actingAs($admin)->post(route('admin.guru.import.preview'), ['file' => $validFile]);
+        $this->actingAs($admin)->get(route('admin.guru.import.create'))
+            ->assertSee('Budi Santoso');
+
+        $this->actingAs($admin)
+            ->from(route('admin.guru.import.create'))
+            ->post(route('admin.guru.import.preview'), [])
+            ->assertRedirect(route('admin.guru.import.create'))
+            ->assertSessionHasErrors('file');
+
+        $this->actingAs($admin)->post(route('admin.guru.import.store'))
+            ->assertRedirectToRoute('admin.guru.import.create')
+            ->assertSessionHas('error', 'Belum ada data valid untuk diimport.');
         $this->assertDatabaseCount('guru', 0);
     }
 

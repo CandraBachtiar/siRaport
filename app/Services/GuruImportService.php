@@ -110,7 +110,8 @@ class GuruImportService
     public function import(array $rows): int
     {
         return DB::transaction(function () use ($rows): int {
-            $count = 0;
+            $guruRows = [];
+            $timestamp = now();
 
             foreach ($rows as $row) {
                 $user = User::create([
@@ -120,14 +121,20 @@ class GuruImportService
                     'role' => 'guru',
                 ]);
 
-                $user->guru()->create([
+                $guruRows[] = [
+                    'user_id' => $user->id,
                     'nip' => $row['nip'],
                     'nama' => $row['name'],
-                ]);
-                $count++;
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
             }
 
-            return $count;
+            if ($guruRows !== []) {
+                Guru::query()->insert($guruRows);
+            }
+
+            return count($guruRows);
         });
     }
 }

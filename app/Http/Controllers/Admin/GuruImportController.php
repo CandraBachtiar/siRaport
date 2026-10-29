@@ -31,6 +31,8 @@ class GuruImportController extends Controller
 
     public function preview(Request $request): RedirectResponse
     {
+        $request->session()->forget(['guru_import_preview', 'guru_import_header_error']);
+
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'],
         ], [
@@ -47,8 +49,9 @@ class GuruImportController extends Controller
                 ->with('guru_import_header_error', $result['headerError']);
         }
 
-        return redirect()->route('admin.guru.import.create')
-            ->with('guru_import_preview', $result['rows']);
+        $request->session()->put('guru_import_preview', $result['rows']);
+
+        return redirect()->route('admin.guru.import.create');
     }
 
     public function import(Request $request): RedirectResponse
