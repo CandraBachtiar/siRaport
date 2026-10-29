@@ -77,6 +77,20 @@ class AnalisisNilaiController extends Controller
             ]
             : $this->analysisService->analyze($selectedAssignment, $student);
 
+        if ($selectedAssignment !== null) {
+            $analysis['classSeries'] = $analysis['classSeries']->map(fn (array $point): array => [
+                ...$point,
+                'valueLabel' => 'Rata-rata Kelas',
+                'studentCount' => $analysis['classStats']['studentCount'],
+                'url' => route('guru.nilai.index', [
+                    'tahun_ajaran_id' => $selectedAssignment->tahun_ajaran_id,
+                    'mata_pelajaran_id' => $selectedAssignment->mata_pelajaran_id,
+                    'kelas_id' => $selectedAssignment->kelas_id,
+                    'penilaian_id' => $point['assessmentId'],
+                ]),
+            ]);
+        }
+
         return view('guru.analisis-nilai.index', [
             'user' => $user,
             'guru' => $guru,

@@ -7,6 +7,8 @@
 @php
     $chartPoints = collect($points)->values();
     $validPoints = $chartPoints->filter(fn (array $point): bool => $point['value'] !== null);
+    $hasDetailedPoints = $validPoints->contains(fn (array $point): bool => isset($point['subjectName'], $point['assessmentName']));
+    $tooltipId = 'line-chart-tooltip-'.\Illuminate\Support\Str::uuid();
     $lastIndex = max($chartPoints->count() - 1, 1);
     $coordinates = $chartPoints->map(function (array $point, int $index) use ($lastIndex): ?array {
         if ($point['value'] === null) {
@@ -45,12 +47,11 @@
     $visibleCoordinates = $coordinates->filter()->values();
 @endphp
 
-<div {{ $attributes }}>
+<div {{ $attributes->merge(['class' => 'relative']) }} data-line-chart>
     @if ($validPoints->isEmpty())
         <div class="grid min-h-64 place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm text-slate-500">{{ $emptyMessage }}</div>
     @else
-        <svg class="h-64 w-full overflow-visible" viewBox="0 0 100 58" role="img" aria-label="{{ $title }}">
-            <title>{{ $title }}</title>
+        <svg class="h-64 w-full overflow-visible" viewBox="0 0 100 58" role="{{ $hasDetailedPoints ? 'group' : 'img' }}" aria-label="{{ $title }}">
             @foreach ([100 => 7, 75 => 17, 50 => 27, 25 => 37, 0 => 47] as $label => $y)
                 <line x1="8" y1="{{ $y }}" x2="96" y2="{{ $y }}" stroke="#e2e8f0" stroke-width="0.45" stroke-dasharray="2 2" />
                 <text x="1" y="{{ $y + 1 }}" fill="#94a3b8" font-size="3">{{ $label }}</text>
@@ -59,13 +60,56 @@
                 <polyline points="{{ $lineSegment }}" fill="none" stroke="#059669" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
             @endforeach
             @foreach ($visibleCoordinates as $point)
-                <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="2" fill="#ffffff" stroke="#059669" stroke-width="1.2"><title>{{ $point['label'] }}{{ isset($point['dateLabel']) ? ' · '.$point['dateLabel'] : '' }}: {{ number_format((float) $point['value'], 2, ',', '.') }}</title></circle>
+                @if (isset($point['subjectName'], $point['assessmentName']))
+                    @php
+                        $pointValueLabel = $point['valueLabel'] ?? 'Nilai Siswa';
+                        $pointDateLabel = $point['detailDateLabel'] ?? $point['dateLabel'] ?? 'Tidak tersedia';
+                        $pointDescription = 'Detail Penilaian. Mata Pelajaran: '.$point['subjectName'].'. Penugasan: '.$point['assessmentName'].'. Tanggal: '.$pointDateLabel.'. '.$pointValueLabel.': '.number_format((float) $point['value'], 2, ',', '.');
+                        if (isset($point['filledCount'], $point['studentCount'])) {
+                            $pointDescription .= '. Siswa dinilai: '.$point['filledCount'].' dari '.$point['studentCount'];
+                        }
+                    @endphp
+                    @if (isset($point['url']))
+                        <a href="{{ $point['url'] }}" data-chart-point data-tooltip-subject="{{ $point['subjectName'] }}" data-tooltip-assessment="{{ $point['assessmentName'] }}" data-tooltip-date="{{ $pointDateLabel }}" data-tooltip-score="{{ (float) $point['value'] }}" data-tooltip-value-label="{{ $pointValueLabel }}" data-tooltip-count="{{ $point['filledCount'] ?? '' }}" data-tooltip-total="{{ $point['studentCount'] ?? '' }}" tabindex="0" aria-describedby="{{ $tooltipId }}" aria-label="{{ $pointDescription }}" class="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-700">
+                            <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3" fill="#ffffff" stroke="#059669" stroke-width="1.2" class="focus-visible:stroke-blue-700 focus-visible:stroke-2" />
+                        </a>
+                    @else
+                        <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3" fill="#ffffff" stroke="#059669" stroke-width="1.2" tabindex="0" role="img" aria-describedby="{{ $tooltipId }}" aria-label="{{ $pointDescription }}" data-chart-point data-tooltip-subject="{{ $point['subjectName'] }}" data-tooltip-assessment="{{ $point['assessmentName'] }}" data-tooltip-date="{{ $pointDateLabel }}" data-tooltip-score="{{ (float) $point['value'] }}" data-tooltip-value-label="{{ $pointValueLabel }}" data-tooltip-count="{{ $point['filledCount'] ?? '' }}" data-tooltip-total="{{ $point['studentCount'] ?? '' }}" class="cursor-pointer focus-visible:stroke-blue-700 focus-visible:stroke-2" />
+                    @endif
+                @else
+                    <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="2" fill="#ffffff" stroke="#059669" stroke-width="1.2" role="img" aria-label="{{ $point['label'] }}{{ isset($point['dateLabel']) ? ' · '.$point['dateLabel'] : '' }}: {{ number_format((float) $point['value'], 2, ',', '.') }}" />
+                @endif
             @endforeach
         </svg>
-        <div class="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-100 pt-3 sm:grid-cols-3">
-            @foreach ($chartPoints as $point)
-                <div class="min-w-0"><strong class="block truncate text-xs text-slate-600" title="{{ $point['label'] }}">{{ $point['label'] }}</strong><span class="mt-1 block text-xs font-bold text-slate-700">{{ $point['dateLabel'] ?? $point['shortLabel'] }} · {{ $point['value'] === null ? '—' : number_format((float) $point['value'], 1, ',', '.') }}</span></div>
-            @endforeach
+    @endif
+    @if ($hasDetailedPoints)
+        <div id="{{ $tooltipId }}" class="pointer-events-none fixed left-0 top-0 z-[100] hidden w-max max-w-[calc(100vw-1.25rem)] rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-700 shadow-xl" role="tooltip" aria-hidden="true" data-chart-tooltip>
+            <strong class="mb-2 block text-sm font-bold text-[#102d4b]">Detail Penilaian</strong>
+            <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+                <dt class="font-semibold text-slate-500">Mata Pelajaran</dt><dd data-tooltip-subject-value></dd>
+                <dt class="font-semibold text-slate-500">Penugasan</dt><dd data-tooltip-assessment-value></dd>
+                <dt class="font-semibold text-slate-500">Tanggal</dt><dd data-tooltip-date-value></dd>
+                <dt class="font-semibold text-slate-500" data-tooltip-value-label></dt><dd class="font-bold text-[#102d4b]" data-tooltip-score-value></dd>
+                <dt class="hidden font-semibold text-slate-500" data-tooltip-count-label></dt><dd class="hidden" data-tooltip-count-value></dd>
+            </dl>
         </div>
     @endif
+    <div class="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-100 pt-3 sm:grid-cols-3">
+        @foreach ($chartPoints as $point)
+            <div class="min-w-0">
+                @if (isset($point['url']))
+                    <a href="{{ $point['url'] }}" class="block rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2" aria-label="Lihat rincian nilai {{ $point['label'] }}">
+                        <strong class="block truncate text-xs text-emerald-700 underline decoration-emerald-300 underline-offset-2">{{ $point['label'] }}</strong>
+                        <span class="mt-1 block text-xs font-bold text-slate-700">{{ $point['dateLabel'] ?? $point['shortLabel'] }} · {{ $point['value'] === null ? 'Belum tersedia' : number_format((float) $point['value'], 1, ',', '.') }}</span>
+                        @if (isset($point['filledCount'], $point['studentCount']))
+                            <span class="mt-1 block text-xs text-slate-500">{{ $point['filledCount'] }}/{{ $point['studentCount'] }} siswa dinilai · Lihat rincian &amp; input</span>
+                        @endif
+                    </a>
+                @else
+                    <strong class="block truncate text-xs text-slate-600">{{ $point['label'] }}</strong>
+                    <span class="mt-1 block text-xs font-bold text-slate-700">{{ $point['dateLabel'] ?? $point['shortLabel'] }} · {{ $point['value'] === null ? '—' : number_format((float) $point['value'], 1, ',', '.') }}</span>
+                @endif
+            </div>
+        @endforeach
+    </div>
 </div>

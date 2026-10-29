@@ -52,12 +52,67 @@ class AnalisisNilaiControllerTest extends TestCase
             ->assertSee('Matematika Analisis')
             ->assertSee('Penilaian Satu')
             ->assertSee('Penilaian Dua')
+            ->assertSee('2/2 siswa dinilai')
+            ->assertSee('data-tooltip-value-label="Rata-rata Kelas"', false)
+            ->assertSee('data-tooltip-subject="Matematika Analisis"', false)
+            ->assertSee('data-tooltip-assessment="Penilaian Satu"', false)
+            ->assertSee('data-chart-point data-tooltip-subject="Matematika Analisis"', false)
+            ->assertSee('data-tooltip-score="70"', false)
+            ->assertSee('data-tooltip-count="2"', false)
+            ->assertSee('aria-label="Grafik rata-rata kelas per penilaian"', false)
+            ->assertDontSee('<title>Grafik rata-rata kelas per penilaian</title>', false)
+            ->assertSee(route('guru.nilai.index', [
+                'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+                'mata_pelajaran_id' => $assignment->mata_pelajaran_id,
+                'kelas_id' => $assignment->kelas_id,
+                'penilaian_id' => $firstAssessment->id,
+            ]))
             ->assertSee('aria-label="Grafik distribusi rata-rata siswa: 0–59: 0; 60–69: 0; 70–79: 1; 80–89: 0; 90–100: 1"', false)
             ->assertViewHas('classStats', fn (array $stats): bool => $stats['average'] === 80.0
                 && $stats['highest'] === 100.0
                 && $stats['lowest'] === 60.0
                 && $stats['belowKkmCount'] === 1
                 && $stats['meetsKkmCount'] === 1);
+
+        $detailResponse = $this->actingAs($user)->get(route('guru.nilai.index', [
+            'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+            'mata_pelajaran_id' => $assignment->mata_pelajaran_id,
+            'kelas_id' => $assignment->kelas_id,
+            'penilaian_id' => $firstAssessment->id,
+        ]));
+
+        $detailResponse->assertOk()
+            ->assertSee($students[0]->nama)
+            ->assertSee($students[1]->nama)
+            ->assertSee('80.00')
+            ->assertSee('60.00')
+            ->assertSee('Di bawah KKM');
+    }
+
+    public function test_class_analysis_shows_unavailable_assessments_with_zero_marked_count_and_detail_link(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        Siswa::factory()->count(2)->for($class)->create();
+        $assessment = Penilaian::factory()->for($assignment)->create(['nama' => 'Tugas Belum Dinilai']);
+
+        $response = $this->actingAs($user)->get(route('guru.analisis.index', [
+            'pengampu_id' => $assignment->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Belum ada nilai tersimpan untuk penilaian pada kelas dan mata pelajaran ini.')
+            ->assertSee('Tugas Belum Dinilai')
+            ->assertSee('0/2 siswa dinilai')
+            ->assertSee('Belum tersedia')
+            ->assertSee(route('guru.nilai.index', [
+                'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+                'mata_pelajaran_id' => $assignment->mata_pelajaran_id,
+                'kelas_id' => $assignment->kelas_id,
+                'penilaian_id' => $assessment->id,
+            ]));
     }
 
     public function test_student_analysis_explains_an_increasing_trend(): void
@@ -65,7 +120,11 @@ class AnalisisNilaiControllerTest extends TestCase
         $user = User::factory()->guru()->create();
         $guru = Guru::factory()->for($user)->create();
         $class = Kelas::factory()->create();
-        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $subject = MataPelajaran::factory()->create(['nama' => 'Matematika Individu']);
+        $assignment = Pengampu::factory()->for($guru)->create([
+            'kelas_id' => $class->id,
+            'mata_pelajaran_id' => $subject->id,
+        ]);
         $student = Siswa::factory()->for($class)->create(['nama' => 'Alya Meningkat']);
         $scores = [60, 65, 80, 85];
 
@@ -91,6 +150,9 @@ class AnalisisNilaiControllerTest extends TestCase
             ->assertSee('Alya Meningkat')
             ->assertSee('Tren Meningkat')
             ->assertSee('Berdasarkan perkembangan nilai')
+            ->assertSee('data-tooltip-subject="Matematika Individu"', false)
+            ->assertSee('data-tooltip-value-label="Nilai Siswa"', false)
+            ->assertDontSee('<title>Grafik perkembangan nilai Alya Meningkat</title>', false)
             ->assertViewHas('studentAnalysis', fn (array $analysis): bool => $analysis['trend']['label'] === 'Meningkat'
                 && $analysis['trend']['difference'] === 20.0);
     }

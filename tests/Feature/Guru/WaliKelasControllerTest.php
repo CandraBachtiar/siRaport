@@ -339,6 +339,84 @@ class WaliKelasControllerTest extends TestCase
             });
     }
 
+    public function test_wali_progress_chart_exposes_each_zero_score_with_its_assessment_context(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+        $year = TahunAjaran::factory()->create(['aktif' => true]);
+        $subject = MataPelajaran::factory()->create(['nama' => 'Bahasa Indonesia Tooltip']);
+        $assignment = Pengampu::factory()->for($guru)->create([
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+            'mata_pelajaran_id' => $subject->id,
+        ]);
+        $student = Siswa::factory()->for($class)->create();
+        $assessment = Penilaian::factory()->for($assignment)->create([
+            'nama' => 'Menulis',
+            'tanggal' => '2026-10-29',
+            'urutan' => 1,
+        ]);
+        Nilai::factory()->create([
+            'siswa_id' => $student->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 0,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('guru.wali.perkembangan.index', [
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Detail Penilaian')
+            ->assertSee('data-tooltip-subject="Bahasa Indonesia Tooltip"', false)
+            ->assertSee('data-tooltip-assessment="Menulis"', false)
+            ->assertSee('data-tooltip-date="29 Oktober 2026"', false)
+            ->assertSee('data-tooltip-score="0"', false)
+            ->assertSee('data-tooltip-value-label="Nilai Siswa"', false)
+            ->assertDontSee('/guru/input-nilai', false)
+            ->assertSee('Nilai Siswa: 0,00', false)
+            ->assertSee('aria-label="Perkembangan nilai siswa lintas mata pelajaran"', false)
+            ->assertDontSee('<title>Perkembangan nilai siswa lintas mata pelajaran</title>', false)
+            ->assertViewHas('studentRow', function (array $row): bool {
+                $point = $row['progressSeries']->first();
+
+                $this->assertSame('Bahasa Indonesia Tooltip', $point['subjectName']);
+                $this->assertSame('Menulis', $point['assessmentName']);
+                $this->assertSame('29 Oktober 2026', $point['detailDateLabel']);
+                $this->assertSame(0.0, $point['value']);
+
+                return true;
+            });
+    }
+
+    public function test_wali_progress_chart_keeps_empty_scores_without_inventing_tooltip_data(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+        $year = TahunAjaran::factory()->create(['aktif' => true]);
+        $assignment = Pengampu::factory()->for($guru)->create([
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+        ]);
+        $student = Siswa::factory()->for($class)->create();
+        Penilaian::factory()->for($assignment)->create(['nama' => 'Tugas Belum Dinilai']);
+
+        $response = $this->actingAs($user)->get(route('guru.wali.perkembangan.index', [
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Belum ada data yang dapat digambarkan.')
+            ->assertDontSee('data-chart-tooltip', false)
+            ->assertViewHas('studentRow', fn (array $row): bool => $row['progressSeries']->first()['value'] === null);
+    }
+
     public function test_subject_average_chart_keeps_valid_zero_and_missing_data_distinct(): void
     {
         $user = User::factory()->guru()->create();

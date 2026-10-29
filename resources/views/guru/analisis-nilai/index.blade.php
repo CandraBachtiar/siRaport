@@ -37,7 +37,7 @@
             </div>
 
             <div class="mt-6 grid gap-6 xl:grid-cols-2">
-                <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div><h3 class="font-bold text-[#102d4b]">Rata-rata Kelas per Penilaian</h3><p class="mt-1 text-sm text-slate-500">Garis diurutkan berdasarkan tanggal, lalu urutan penilaian.</p></div><x-charts.line-chart :points="$classSeries" title="Grafik rata-rata kelas per penilaian" class="mt-5" /></article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div><h3 class="font-bold text-[#102d4b]">Rata-rata Kelas per Penilaian</h3><p class="mt-1 text-sm text-slate-500">Garis diurutkan berdasarkan tanggal, lalu urutan penilaian. Pilih nama penilaian untuk melihat rincian nilai siswa dan mengubah nilai.</p></div><x-charts.line-chart :points="$classSeries" title="Grafik rata-rata kelas per penilaian" empty-message="Belum ada nilai tersimpan untuk penilaian pada kelas dan mata pelajaran ini." class="mt-5" /></article>
                 <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div><h3 class="font-bold text-[#102d4b]">Distribusi Rata-rata Siswa</h3><p class="mt-1 text-sm text-slate-500">Setiap siswa dihitung satu kali berdasarkan rata-rata nilai yang sudah terisi.</p></div><x-charts.bar-chart :items="$distribution" :has-data="$distribution->sum('value') > 0" title="Grafik distribusi rata-rata siswa" class="mt-5" /></article>
             </div>
 

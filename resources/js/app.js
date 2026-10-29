@@ -268,6 +268,169 @@ deleteAssessmentDialog?.querySelector('[data-dialog-cancel]')?.addEventListener(
     deleteAssessmentDialog.close();
 });
 
+document.querySelectorAll('[data-line-chart]').forEach((chart) => {
+    const tooltip = chart.querySelector('[data-chart-tooltip]');
+
+    if (!(tooltip instanceof HTMLElement)) {
+        return;
+    }
+
+    let activePoint = null;
+    let pinnedPoint = null;
+    let hideTimer = null;
+
+    const positionTooltip = (x, y) => {
+        const edge = 10;
+        const gap = 12;
+        const bounds = tooltip.getBoundingClientRect();
+        let left = x + gap;
+        let top = y + gap;
+
+        if (left + bounds.width > window.innerWidth - edge) {
+            left = x - bounds.width - gap;
+        }
+
+        if (top + bounds.height > window.innerHeight - edge) {
+            top = y - bounds.height - gap;
+        }
+
+        left = Math.min(Math.max(edge, left), window.innerWidth - bounds.width - edge);
+        top = Math.min(Math.max(edge, top), window.innerHeight - bounds.height - edge);
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+    };
+
+    const showTooltip = (point, x, y, pin = false) => {
+        window.clearTimeout(hideTimer);
+        tooltip.querySelector('[data-tooltip-subject-value]')?.replaceChildren(point.dataset.tooltipSubject || 'Tidak tersedia');
+        tooltip.querySelector('[data-tooltip-assessment-value]')?.replaceChildren(point.dataset.tooltipAssessment || 'Tidak tersedia');
+        tooltip.querySelector('[data-tooltip-date-value]')?.replaceChildren(point.dataset.tooltipDate || 'Tidak tersedia');
+        tooltip.querySelector('[data-tooltip-value-label]')?.replaceChildren(point.dataset.tooltipValueLabel || 'Nilai Siswa');
+
+        const score = Number(point.dataset.tooltipScore);
+        tooltip.querySelector('[data-tooltip-score-value]')?.replaceChildren(
+            Number.isFinite(score) ? score.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Belum tersedia',
+        );
+
+        const countLabel = tooltip.querySelector('[data-tooltip-count-label]');
+        const countValue = tooltip.querySelector('[data-tooltip-count-value]');
+        const hasCount = point.dataset.tooltipCount !== '' && point.dataset.tooltipTotal !== '';
+        countLabel?.classList.toggle('hidden', !hasCount);
+        countValue?.classList.toggle('hidden', !hasCount);
+        countLabel?.replaceChildren('Siswa dinilai');
+        countValue?.replaceChildren(`${point.dataset.tooltipCount}/${point.dataset.tooltipTotal}`);
+
+        tooltip.classList.remove('hidden');
+        tooltip.setAttribute('aria-hidden', 'false');
+        activePoint = point;
+        pinnedPoint = pin ? point : null;
+        positionTooltip(x, y);
+    };
+
+    const showPointAtCenter = (point, pin = false) => {
+        const bounds = point.getBoundingClientRect();
+        showTooltip(point, bounds.left + (bounds.width / 2), bounds.top + (bounds.height / 2), pin);
+    };
+
+    const hideTooltip = () => {
+        window.clearTimeout(hideTimer);
+        tooltip.classList.add('hidden');
+        tooltip.setAttribute('aria-hidden', 'true');
+        activePoint = null;
+        pinnedPoint = null;
+    };
+
+    chart.addEventListener('pointerover', (event) => {
+        if (event.pointerType === 'touch') {
+            return;
+        }
+
+        const point = event.target.closest('[data-chart-point]');
+
+        if (point instanceof SVGElement) {
+            showTooltip(point, event.clientX, event.clientY);
+        }
+    });
+
+    chart.addEventListener('pointermove', (event) => {
+        const point = event.target.closest('[data-chart-point]');
+
+        if (event.pointerType !== 'touch' && point === activePoint && pinnedPoint !== point) {
+            positionTooltip(event.clientX, event.clientY);
+        }
+    });
+
+    chart.addEventListener('pointerout', (event) => {
+        const point = event.target.closest('[data-chart-point]');
+        const nextPoint = event.relatedTarget instanceof Element ? event.relatedTarget.closest('[data-chart-point]') : null;
+
+        if (point === activePoint && nextPoint !== point && pinnedPoint !== point) {
+            hideTimer = window.setTimeout(hideTooltip, 100);
+        }
+    });
+
+    chart.addEventListener('focusin', (event) => {
+        const point = event.target.closest('[data-chart-point]');
+
+        if (point instanceof SVGElement) {
+            showPointAtCenter(point);
+        }
+    });
+
+    chart.addEventListener('focusout', (event) => {
+        if (event.target === activePoint && pinnedPoint !== activePoint) {
+            hideTooltip();
+        }
+    });
+
+    chart.addEventListener('click', (event) => {
+        const point = event.target.closest('[data-chart-point]');
+        const isTouchInput = event.pointerType === 'touch' || window.matchMedia('(pointer: coarse)').matches;
+
+        if (!(point instanceof SVGElement) || !isTouchInput || point instanceof SVGAnchorElement) {
+            return;
+        }
+
+        if (pinnedPoint === point) {
+            hideTooltip();
+        } else {
+            showPointAtCenter(point, true);
+        }
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+        if (pinnedPoint !== null && !chart.contains(event.target)) {
+            hideTooltip();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && activePoint !== null) {
+            hideTooltip();
+        }
+    });
+
+    chart.addEventListener('keydown', (event) => {
+        if (event.key !== ' ' || !(event.target instanceof SVGElement)) {
+            return;
+        }
+
+        const point = event.target.closest('[data-chart-point]');
+        const link = point instanceof SVGAnchorElement ? point : point?.closest('a[href]');
+
+        if (link instanceof SVGAnchorElement) {
+            event.preventDefault();
+            link.click();
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        if (activePoint !== null && pinnedPoint !== null) {
+            showPointAtCenter(pinnedPoint, true);
+        }
+    });
+});
+
 document.querySelectorAll('[data-score-input]').forEach((input) => {
     input.addEventListener('input', () => {
         const status = document.querySelector(`[data-score-status="${input.dataset.scoreInput}"]`);

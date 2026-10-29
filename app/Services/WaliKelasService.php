@@ -287,9 +287,12 @@ class WaliKelasService
             ->flatMap(fn (array $subject): Collection => $subject['scores']->map(function (array $entry) use ($subject): array {
                 return [
                     'label' => $subject['assignment']->mataPelajaran->nama.' · '.$entry['assessment']->nama,
+                    'subjectName' => $subject['assignment']->mataPelajaran->nama,
+                    'assessmentName' => $entry['assessment']->nama,
                     'shortLabel' => $subject['assignment']->mataPelajaran->kode.' P'.$entry['assessment']->urutan,
                     'date' => $entry['assessment']->tanggal,
                     'dateLabel' => $entry['assessment']->tanggal->format('d/m'),
+                    'detailDateLabel' => $entry['assessment']->tanggal->locale('id')->translatedFormat('j F Y'),
                     'order' => $entry['assessment']->urutan,
                     'assessmentId' => $entry['assessment']->id,
                     'value' => $entry['value'],

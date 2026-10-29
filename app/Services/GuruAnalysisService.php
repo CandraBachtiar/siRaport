@@ -55,13 +55,17 @@ class GuruAnalysisService
         $filledStudentAverages = $studentAverages->filter(fn (?float $average): bool => $average !== null);
         $kkm = (float) $assignment->mataPelajaran->kkm;
 
-        $classSeries = $assessments->map(function (Penilaian $assessment): array {
+        $classSeries = $assessments->map(function (Penilaian $assessment) use ($assignment): array {
             $scores = $assessment->nilai->pluck('nilai')->map(fn ($score): float => (float) $score);
 
             return [
+                'assessmentId' => $assessment->id,
                 'label' => $assessment->nama,
+                'subjectName' => $assignment->mataPelajaran->nama,
+                'assessmentName' => $assessment->nama,
                 'shortLabel' => 'P'.$assessment->urutan,
                 'dateLabel' => $assessment->tanggal->format('d/m'),
+                'detailDateLabel' => $assessment->tanggal->locale('id')->translatedFormat('j F Y'),
                 'value' => $scores->isEmpty() ? null : round((float) $scores->average(), 2),
                 'filledCount' => $scores->count(),
             ];
@@ -95,7 +99,7 @@ class GuruAnalysisService
             ],
             'studentAnalysis' => $student === null
                 ? null
-                : $this->studentAnalysis($student, $assessments, $kkm),
+                : $this->studentAnalysis($student, $assignment->mataPelajaran->nama, $assessments, $kkm),
             'students' => $students,
             'assessments' => $assessments,
         ];
@@ -238,15 +242,19 @@ class GuruAnalysisService
      * @param  EloquentCollection<int, Penilaian>  $assessments
      * @return array<string, mixed>
      */
-    private function studentAnalysis(Siswa $student, EloquentCollection $assessments, float $kkm): array
+    private function studentAnalysis(Siswa $student, string $subjectName, EloquentCollection $assessments, float $kkm): array
     {
-        $series = $assessments->map(function (Penilaian $assessment) use ($student): array {
+        $series = $assessments->map(function (Penilaian $assessment) use ($student, $subjectName): array {
             $score = $assessment->nilai->firstWhere('siswa_id', $student->id);
 
             return [
                 'label' => $assessment->nama,
+                'subjectName' => $subjectName,
+                'assessmentName' => $assessment->nama,
                 'shortLabel' => 'P'.$assessment->urutan,
                 'dateLabel' => $assessment->tanggal->format('d/m'),
+                'detailDateLabel' => $assessment->tanggal->locale('id')->translatedFormat('j F Y'),
+                'valueLabel' => 'Nilai Siswa',
                 'value' => $score === null ? null : (float) $score->nilai,
             ];
         });
