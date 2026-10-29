@@ -6,6 +6,7 @@ use App\Models\Guru;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
 
@@ -59,6 +60,151 @@ class GuruControllerTest extends TestCase
             ->assertSee('Tambah Guru')
             ->assertDontSee('Import Guru')
             ->assertDontSee('rahasia-guru');
+    }
+
+    /** @return array<string, array{string}> */
+    public static function guruNameSearchTerms(): array
+    {
+        return [
+            'full_name' => ['Andi Suryana'],
+            'partial_case_insensitive_name' => ['SURYA'],
+        ];
+    }
+
+    #[DataProvider('guruNameSearchTerms')]
+    public function test_admin_can_search_guru_by_full_or_partial_name(string $term): void
+    {
+        $admin = User::factory()->admin()->create();
+        $guruUser = User::factory()->guru()->create(['name' => 'Andi Suryana', 'email' => 'andi@example.test']);
+        Guru::factory()->for($guruUser)->create(['nama' => 'Andi Suryana', 'nip' => '197501012000011001']);
+        $otherUser = User::factory()->guru()->create(['name' => 'Budi Santoso', 'email' => 'budi@example.test']);
+        Guru::factory()->for($otherUser)->create(['nama' => 'Budi Santoso', 'nip' => '197601012000011002']);
+
+        $this->actingAs($admin)->get(route('admin.guru.index', ['q' => $term]))
+            ->assertOk()
+            ->assertSee('Andi Suryana')
+            ->assertDontSee('Budi Santoso')
+            ->assertSee('Jumlah hasil pencarian: 1 guru')
+            ->assertSee('value="'.$term.'"', false);
+    }
+
+    public function test_admin_can_search_guru_by_nip_across_all_pages(): void
+    {
+        $admin = User::factory()->admin()->create();
+        for ($index = 1; $index <= 11; $index++) {
+            $name = 'Guru '.str_pad((string) $index, 2, '0', STR_PAD_LEFT);
+            $user = User::factory()->guru()->create(['name' => $name]);
+            Guru::factory()->for($user)->create(['nama' => $name, 'nip' => '1985'.str_pad((string) $index, 14, '0', STR_PAD_LEFT)]);
+        }
+        $targetUser = User::factory()->guru()->create(['name' => 'Guru Zulkifli']);
+        Guru::factory()->for($targetUser)->create(['nama' => 'Guru Zulkifli', 'nip' => 'NIP-KHUSUS-9912']);
+
+        $this->actingAs($admin)->get(route('admin.guru.index', ['q' => 'KHUSUS-99']))
+            ->assertOk()
+            ->assertSee('Guru Zulkifli')
+            ->assertSee('NIP-KHUSUS-9912')
+            ->assertDontSee('Guru 01')
+            ->assertSee('Jumlah hasil pencarian: 1 guru');
+    }
+
+    public function test_admin_can_search_guru_by_email(): void
+    {
+        $admin = User::factory()->admin()->create(['email' => 'admin-only@example.test']);
+        $guruUser = User::factory()->guru()->create(['name' => 'Siti Aminah', 'email' => 'siti.aminah@sekolah.test']);
+        Guru::factory()->for($guruUser)->create(['nama' => 'Siti Aminah', 'nip' => '198801012010012003']);
+
+        $this->actingAs($admin)->get(route('admin.guru.index', ['q' => 'AMINAH@SEKOLAH']))
+            ->assertOk()
+            ->assertSee('Siti Aminah')
+            ->assertSee('siti.aminah@sekolah.test')
+            ->assertSee('Jumlah hasil pencarian: 1 guru');
+
+        $this->actingAs($admin)->get(route('admin.guru.index', ['q' => 'admin-only']))
+            ->assertOk()
+            ->assertSee('Jumlah hasil pencarian: 0 guru')
+            ->assertSee('Guru tidak ditemukan')
+            ->assertDontSee('Siti Aminah');
+    }
+
+    public function test_unmatched_search_displays_empty_state_and_reset_link(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $user = User::factory()->guru()->create(['name' => 'Dewi Rahma']);
+        Guru::factory()->for($user)->create(['nama' => 'Dewi Rahma']);
+
+        $this->actingAs($admin)->get(route('admin.guru.index', ['q' => 'TidakAdaNamaIni']))
+            ->assertOk()
+            ->assertSee('Jumlah hasil pencarian: 0 guru')
+            ->assertSee('Guru tidak ditemukan')
+            ->assertSee('Hapus pencarian')
+            ->assertSee(route('admin.guru.index'));
+    }
+
+    public function test_empty_search_shows_all_gurus_and_a_clear_result_count(): void
+    {
+        $admin = User::factory()->admin()->create();
+        foreach (['Guru Satu', 'Guru Dua', 'Guru Tiga'] as $index => $name) {
+            $user = User::factory()->guru()->create(['name' => $name]);
+            Guru::factory()->for($user)->create(['nama' => $name, 'nip' => 'NIP-ALL-'.$index]);
+        }
+
+        $this->actingAs($admin)->get(route('admin.guru.index', ['q' => '']))
+            ->assertOk()
+            ->assertSee('Guru Satu')
+            ->assertSee('Guru Dua')
+            ->assertSee('Guru Tiga')
+            ->assertSee('Jumlah guru: 3');
+    }
+
+    public function test_search_pagination_keeps_query_and_keyword_change_starts_on_first_page(): void
+    {
+        $admin = User::factory()->admin()->create();
+        for ($index = 1; $index <= 12; $index++) {
+            $name = 'Target Guru '.str_pad((string) $index, 2, '0', STR_PAD_LEFT);
+            $user = User::factory()->guru()->create(['name' => $name]);
+            Guru::factory()->for($user)->create(['nama' => $name, 'nip' => 'NIP-PAGE-'.$index]);
+        }
+        $otherUser = User::factory()->guru()->create(['name' => 'Kata Baru']);
+        Guru::factory()->for($otherUser)->create(['nama' => 'Kata Baru', 'nip' => 'NIP-BARU']);
+
+        $firstPage = $this->actingAs($admin)->get(route('admin.guru.index', ['q' => 'Target']));
+        $firstPage->assertOk()
+            ->assertSee('Jumlah hasil pencarian: 12 guru')
+            ->assertSee('Target Guru 01')
+            ->assertDontSee('Target Guru 12')
+            ->assertSee('q=Target')
+            ->assertSee('page=2');
+
+        $secondPage = $this->actingAs($admin)->get(route('admin.guru.index', ['q' => 'Target', 'page' => 2]));
+        $secondPage->assertOk()
+            ->assertSee('Target Guru 12')
+            ->assertDontSee('Target Guru 01')
+            ->assertSee('value="Target"', false)
+            ->assertSee('q=Target');
+
+        $newSearch = $this->actingAs($admin)->get(route('admin.guru.index', ['q' => 'Baru']));
+        $newSearch->assertOk()
+            ->assertSee('Kata Baru')
+            ->assertDontSee('Target Guru 12')
+            ->assertSee('value="Baru"', false);
+    }
+
+    public function test_search_does_not_change_guru_or_user_records(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $user = User::factory()->guru()->create(['name' => 'Guru Tetap', 'email' => 'tetap@example.test']);
+        $guru = Guru::factory()->for($user)->create(['nama' => 'Guru Tetap', 'nip' => 'NIP-TETAP']);
+        $userCount = User::query()->count();
+        $guruCount = Guru::query()->count();
+
+        $this->actingAs($admin)->get(route('admin.guru.index', ['q' => 'TETAP']))
+            ->assertOk()
+            ->assertSee('Guru Tetap');
+
+        $this->assertSame($userCount, User::query()->count());
+        $this->assertSame($guruCount, Guru::query()->count());
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'name' => 'Guru Tetap', 'email' => 'tetap@example.test']);
+        $this->assertDatabaseHas('guru', ['id' => $guru->id, 'nama' => 'Guru Tetap', 'nip' => 'NIP-TETAP']);
     }
 
     public function test_admin_can_open_create_guru_form(): void

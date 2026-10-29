@@ -7,6 +7,7 @@ use App\Http\Requests\StoreGuruRequest;
 use App\Http\Requests\UpdateGuruRequest;
 use App\Models\Guru;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,16 +18,34 @@ class GuruController extends Controller
 {
     public function index(Request $request): View
     {
+        $search = $request->string('q')->trim()->toString();
+
         $gurus = Guru::query()
             ->select(['id', 'user_id', 'nip', 'nama'])
             ->with('user:id,name,email')
+            ->when($search !== '', function (Builder $query) use ($search): void {
+                $pattern = '%'.$search.'%';
+
+                $query->where(function (Builder $query) use ($pattern): void {
+                    $query->whereLike('nip', $pattern)
+                        ->orWhereLike('nama', $pattern)
+                        ->orWhereHas('user', function (Builder $userQuery) use ($pattern): void {
+                            $userQuery->where(function (Builder $userQuery) use ($pattern): void {
+                                $userQuery->whereLike('name', $pattern)
+                                    ->orWhereLike('email', $pattern);
+                            });
+                        });
+                });
+            })
             ->orderBy('nama')
             ->orderBy('id')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.guru.index', [
             'admin' => $request->user(),
             'gurus' => $gurus,
+            'search' => $search,
         ]);
     }
 
