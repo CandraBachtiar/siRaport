@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\MataPelajaranController;
 use App\Http\Controllers\Admin\PengampuController;
 use App\Http\Controllers\Admin\SiswaController;
+use App\Http\Controllers\Admin\SiswaImportController;
 use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Guru\AnalisisNilaiController;
@@ -46,6 +47,10 @@ Route::middleware(['auth', 'admin', 'cache.headers:no_store;no_cache;must_revali
         Route::get('/guru/import/template', [GuruImportController::class, 'template'])->name('guru.template');
         Route::post('/guru/import/preview', [GuruImportController::class, 'preview'])->name('guru.import.preview');
         Route::post('/guru/import', [GuruImportController::class, 'import'])->name('guru.import.store');
+        Route::get('/siswa/import', [SiswaImportController::class, 'create'])->name('siswa.import.create');
+        Route::get('/siswa/import/template', [SiswaImportController::class, 'template'])->name('siswa.import.template');
+        Route::post('/siswa/import/preview', [SiswaImportController::class, 'preview'])->name('siswa.import.preview');
+        Route::post('/siswa/import', [SiswaImportController::class, 'import'])->name('siswa.import.store');
         Route::resource('guru', GuruController::class)->except('show');
         Route::resource('siswa', SiswaController::class)->except('show');
         Route::resource('kelas', KelasController::class)

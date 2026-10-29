@@ -10,9 +10,12 @@
                 <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#102d4b]">Data Siswa</h1>
                 <p class="mt-2 text-sm leading-6 text-slate-500">Kelola identitas siswa dan penempatan kelas di RaporKu.</p>
             </div>
-            <a href="{{ route('admin.siswa.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20">
-                <span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Siswa
-            </a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.siswa.import.create') }}" class="rk-button rk-button-secondary"><x-nav-icon name="upload" class="size-4 text-emerald-700" /> Import Excel</a>
+                <a href="{{ route('admin.siswa.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20">
+                    <span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Siswa
+                </a>
+            </div>
         </div>
 
         <form method="GET" action="{{ route('admin.siswa.index') }}" class="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/[0.03] md:grid-cols-[minmax(0,1fr)_16rem_auto] md:items-end">
