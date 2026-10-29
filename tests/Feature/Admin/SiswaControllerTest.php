@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\Nilai;
 use App\Models\Pengampu;
@@ -9,6 +10,7 @@ use App\Models\Penilaian;
 use App\Models\Siswa;
 use App\Models\User;
 use Illuminate\Database\QueryException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
 
@@ -70,6 +72,167 @@ class SiswaControllerTest extends TestCase
             ->assertSee('VII A')
             ->assertDontSee('Anisa Lain')
             ->assertDontSee('Budi Santoso');
+    }
+
+    public function test_student_overview_groups_existing_classes_by_saved_level_and_counts_students(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $firstClass = Kelas::factory()->create(['tingkat' => '1', 'nama' => 'A']);
+        $secondClass = Kelas::factory()->create(['tingkat' => '1', 'nama' => 'B']);
+        Kelas::factory()->create(['tingkat' => '2', 'nama' => 'A']);
+        Siswa::factory()->count(2)->for($firstClass)->create();
+
+        $this->actingAs($admin)->get(route('admin.siswa.index'))
+            ->assertOk()
+            ->assertSee('Tingkat Kelas')
+            ->assertSee('1')
+            ->assertSee('2 rombel')
+            ->assertSee('2 siswa')
+            ->assertSee(route('admin.siswa.index', ['tingkat' => '1']))
+            ->assertSee(route('admin.siswa.index', ['tingkat' => '2']));
+
+        $this->assertDatabaseCount('kelas', 3);
+        $this->assertDatabaseCount('siswa', 2);
+    }
+
+    public function test_level_cards_show_all_rooms_wali_names_and_empty_class_counts(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $teacherA = $this->createTeacher('Anisa Puspitasari', 'anisa@example.test', 'NIP-ANISA');
+        $teacherB = $this->createTeacher('Arif Kurniawan', 'arif@example.test', 'NIP-ARIF');
+        $teacherC = $this->createTeacher('Ayu Kartika', 'ayu@example.test', 'NIP-AYU');
+        $teacherD = $this->createTeacher('Bayu Aditya', 'bayu@example.test', 'NIP-BAYU');
+        $classA = Kelas::factory()->create(['tingkat' => '1', 'nama' => 'A', 'wali_kelas_id' => $teacherA->id]);
+        Kelas::factory()->create(['tingkat' => '1', 'nama' => 'B', 'wali_kelas_id' => $teacherB->id]);
+        Kelas::factory()->create(['tingkat' => '1', 'nama' => 'C', 'wali_kelas_id' => $teacherC->id]);
+        Kelas::factory()->create(['tingkat' => '1', 'nama' => 'D', 'wali_kelas_id' => $teacherD->id]);
+        Siswa::factory()->count(2)->for($classA)->create();
+
+        $this->actingAs($admin)->get(route('admin.siswa.index', ['tingkat' => '1']))
+            ->assertOk()
+            ->assertSee('Rombongan Belajar Tingkat 1')
+            ->assertSee('1 A')
+            ->assertSee('1 B')
+            ->assertSee('1 C')
+            ->assertSee('1 D')
+            ->assertSee('Anisa Puspitasari')
+            ->assertSee('Arif Kurniawan')
+            ->assertSee('Ayu Kartika')
+            ->assertSee('Bayu Aditya')
+            ->assertSee('2 siswa')
+            ->assertSee('0 siswa')
+            ->assertSee(route('admin.siswa.index', ['kelas_id' => $classA->id]));
+
+        $this->assertDatabaseCount('kelas', 4);
+    }
+
+    public static function globalStudentSearchTerms(): array
+    {
+        return [
+            'name' => ['Nama Sasaran'],
+            'nis' => ['NIS-SEARCH'],
+            'nisn' => ['NISN-SEARCH'],
+        ];
+    }
+
+    #[DataProvider('globalStudentSearchTerms')]
+    public function test_global_search_finds_students_by_name_nis_or_nisn(string $term): void
+    {
+        $admin = User::factory()->admin()->create();
+        $firstClass = Kelas::factory()->create(['tingkat' => '1', 'nama' => 'A']);
+        $secondClass = Kelas::factory()->create(['tingkat' => '2', 'nama' => 'B']);
+        Siswa::factory()->for($firstClass)->create(['nama' => 'Siswa Lain', 'nis' => 'NIS-LAIN', 'nisn' => 'NISN-LAIN']);
+        $target = Siswa::factory()->for($secondClass)->create([
+            'nama' => 'Nama Sasaran',
+            'nis' => 'NIS-SEARCH',
+            'nisn' => 'NISN-SEARCH',
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.siswa.index', ['search' => $term]))
+            ->assertOk()
+            ->assertSee('Nama Sasaran')
+            ->assertSee('NIS-SEARCH')
+            ->assertSee('NISN-SEARCH')
+            ->assertSee('2 B')
+            ->assertDontSee('Siswa Lain');
+
+        $this->assertDatabaseHas('siswa', ['id' => $target->id, 'kelas_id' => $secondClass->id]);
+    }
+
+    public function test_class_detail_shows_only_its_students_and_preserves_actions(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $kelasA = Kelas::factory()->create(['tingkat' => 'V', 'nama' => 'A']);
+        $kelasB = Kelas::factory()->create(['tingkat' => 'V', 'nama' => 'B']);
+        $studentA = Siswa::factory()->for($kelasA)->create(['nama' => 'Siswa Kelas A']);
+        Siswa::factory()->for($kelasB)->create(['nama' => 'Siswa Kelas B']);
+
+        $this->actingAs($admin)->get(route('admin.siswa.index', ['kelas_id' => $kelasA->id]))
+            ->assertOk()
+            ->assertSee('Data Siswa')
+            ->assertSee('Tingkat V')
+            ->assertSee('Siswa Kelas A')
+            ->assertDontSee('Siswa Kelas B')
+            ->assertSee('1 siswa')
+            ->assertSee(route('admin.siswa.create'))
+            ->assertSee(route('admin.siswa.import.create'))
+            ->assertSee(route('admin.siswa.edit', $studentA))
+            ->assertSee(route('admin.siswa.destroy', $studentA));
+
+        $this->assertDatabaseCount('siswa', 2);
+    }
+
+    public function test_global_search_pagination_keeps_filters_and_changes_to_first_page(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $kelas = Kelas::factory()->create(['tingkat' => 'IV', 'nama' => 'A']);
+        for ($index = 1; $index <= 12; $index++) {
+            Siswa::factory()->for($kelas)->create([
+                'nama' => 'Target Siswa '.str_pad((string) $index, 2, '0', STR_PAD_LEFT),
+                'nis' => 'NIS-TARGET-'.$index,
+            ]);
+        }
+
+        $firstPage = $this->actingAs($admin)->get(route('admin.siswa.index', ['search' => 'Target']));
+        $firstPage->assertOk()
+            ->assertSee('Jumlah hasil: 12 siswa')
+            ->assertSee('Target Siswa 01')
+            ->assertDontSee('Target Siswa 12')
+            ->assertSee('search=Target')
+            ->assertSee('page=2');
+
+        $secondPage = $this->actingAs($admin)->get(route('admin.siswa.index', ['search' => 'Target', 'page' => 2]));
+        $secondPage->assertOk()
+            ->assertSee('Target Siswa 12')
+            ->assertDontSee('Target Siswa 01')
+            ->assertSee('value="Target"', false)
+            ->assertSee('search=Target');
+
+        $changedSearch = $this->actingAs($admin)->get(route('admin.siswa.index', ['search' => 'NIS-TARGET-12']));
+        $changedSearch->assertOk()
+            ->assertSee('Target Siswa 12')
+            ->assertDontSee('Target Siswa 01')
+            ->assertSee('value="NIS-TARGET-12"', false);
+    }
+
+    public function test_student_navigation_does_not_change_academic_records(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $kelas = Kelas::factory()->create(['tingkat' => 'VI', 'nama' => 'A']);
+        $student = Siswa::factory()->for($kelas)->create(['nama' => 'Tetap Ada']);
+        $studentCount = Siswa::query()->count();
+        $classCount = Kelas::query()->count();
+
+        $this->actingAs($admin)->get(route('admin.siswa.index'))
+            ->assertOk();
+        $this->actingAs($admin)->get(route('admin.siswa.index', ['tingkat' => 'VI']))
+            ->assertOk();
+        $this->actingAs($admin)->get(route('admin.siswa.index', ['kelas_id' => $kelas->id]))
+            ->assertOk();
+
+        $this->assertSame($studentCount, Siswa::query()->count());
+        $this->assertSame($classCount, Kelas::query()->count());
+        $this->assertDatabaseHas('siswa', ['id' => $student->id, 'nama' => 'Tetap Ada', 'kelas_id' => $kelas->id]);
     }
 
     public function test_admin_can_open_create_form_with_classes_from_database(): void
@@ -278,9 +441,9 @@ class SiswaControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $dangerousName = '<script>alert("xss")</script>';
-        Siswa::factory()->create(['nama' => $dangerousName]);
+        $siswa = Siswa::factory()->create(['nama' => $dangerousName]);
 
-        $response = $this->actingAs($admin)->get(route('admin.siswa.index'));
+        $response = $this->actingAs($admin)->get(route('admin.siswa.index', ['kelas_id' => $siswa->kelas_id]));
 
         $response->assertSee($dangerousName)
             ->assertDontSee($dangerousName, false);
@@ -301,5 +464,18 @@ class SiswaControllerTest extends TestCase
             'tempat_lahir' => 'Makassar',
             'alamat' => 'Jalan Pendidikan No. 1',
         ];
+    }
+
+    private function createTeacher(string $name, string $email, string $nip): Guru
+    {
+        $user = User::factory()->guru()->create([
+            'name' => $name,
+            'email' => $email,
+        ]);
+
+        return Guru::factory()->for($user)->create([
+            'nama' => $name,
+            'nip' => $nip,
+        ]);
     }
 }
