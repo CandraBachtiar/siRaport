@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Ruang kerja guru RaporKu untuk melihat tugas mengajar dan data akademik.">
     <meta name="theme-color" content="#0f2f4f">
+    @include('components.favicon')
     <title>@yield('title', 'Guru') — {{ config('app.name', 'RaporKu') }}</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800" rel="stylesheet">
