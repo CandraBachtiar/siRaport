@@ -40,6 +40,7 @@ class PenilaianController extends Controller
                 'pengampu.kelas:id,nama,tingkat',
                 'pengampu.mataPelajaran:id,kode,nama',
                 'pengampu.tahunAjaran:id,tahun,semester',
+                'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp',
             ])
             ->withCount('nilai')
             ->orderByDesc('tanggal')
@@ -96,12 +97,14 @@ class PenilaianController extends Controller
         $user = $request->user();
         $guru = $user->guru()->firstOrFail();
         $penilaian->load(['pengampu.kelas', 'pengampu.mataPelajaran', 'pengampu.tahunAjaran']);
+        $penilaian->loadMissing('tujuanPembelajaran');
 
         return view('guru.penilaian.edit', [
             'user' => $user,
             'guru' => $guru,
             'workspace' => 'mapel',
             'assessment' => $penilaian,
+            'assignments' => collect([$penilaian->pengampu->load('tujuanPembelajaran')]),
             ...$this->dashboardService->capabilities($guru),
         ]);
     }
@@ -147,7 +150,7 @@ class PenilaianController extends Controller
     {
         return Pengampu::query()
             ->where('guru_id', $guruId)
-            ->with(['kelas:id,nama,tingkat', 'mataPelajaran:id,kode,nama', 'tahunAjaran:id,tahun,semester,aktif'])
+            ->with(['kelas:id,nama,tingkat', 'mataPelajaran:id,kode,nama', 'tahunAjaran:id,tahun,semester,aktif', 'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp'])
             ->orderByDesc('tahun_ajaran_id')
             ->orderBy('kelas_id')
             ->orderBy('mata_pelajaran_id')

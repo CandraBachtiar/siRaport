@@ -56,6 +56,16 @@ trait CreatesAdminTestSchema
             $table->timestamps();
         });
 
+        Schema::create('tujuan_pembelajaran', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('pengampu_id')->constrained('pengampu')->restrictOnDelete();
+            $table->unsignedSmallInteger('urutan');
+            $table->text('tujuan');
+            $table->decimal('kktp', 5, 2);
+            $table->timestamps();
+            $table->unique(['pengampu_id', 'urutan']);
+        });
+
         Schema::create('siswa', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('kelas_id');
@@ -72,6 +82,7 @@ trait CreatesAdminTestSchema
         Schema::create('penilaian', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('pengampu_id')->constrained('pengampu')->restrictOnDelete();
+            $table->foreignId('tujuan_pembelajaran_id')->nullable()->constrained('tujuan_pembelajaran')->restrictOnDelete();
             $table->string('nama');
             $table->enum('jenis', ['tugas', 'ulangan_harian', 'uts', 'uas']);
             $table->date('tanggal');

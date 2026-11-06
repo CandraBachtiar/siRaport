@@ -9,6 +9,7 @@ use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\TujuanPembelajaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -313,14 +314,25 @@ class RaporDigitalFlowTest extends TestCase
             ->where('tahun_ajaran_id', $schoolYear->id)
             ->firstOrFail();
 
+        $this->actingAs($teacherUser)->post(route('guru.tujuan-pembelajaran.store', $assignment), [
+            'urutan' => 1,
+            'tujuan' => 'Murid menerapkan konsep pembelajaran pada pemecahan masalah.',
+            'kktp' => 75,
+        ])->assertRedirectToRoute('guru.tujuan-pembelajaran.index', $assignment);
+
         return compact('admin', 'teacherUser', 'teacher', 'class', 'subject', 'schoolYear', 'assignment', 'students');
     }
 
     private function createAssessment(Pengampu $assignment, int $order, string $name): Penilaian
     {
         $user = $assignment->guru->user;
+        $tujuanPembelajaran = TujuanPembelajaran::query()
+            ->where('pengampu_id', $assignment->id)
+            ->firstOrFail();
+
         $this->actingAs($user)->post(route('guru.penilaian.store'), [
             'pengampu_id' => $assignment->id,
+            'tujuan_pembelajaran_id' => $tujuanPembelajaran->id,
             'nama' => $name,
             'jenis' => 'tugas',
             'tanggal' => '2025-09-'.str_pad((string) $order, 2, '0', STR_PAD_LEFT),

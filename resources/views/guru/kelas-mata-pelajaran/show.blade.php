@@ -13,6 +13,7 @@
                 <p class="mt-2 text-sm text-slate-500">Ringkasan siswa, penilaian, dan progres nilai pada tugas mengajar ini.</p>
             </div>
             <div class="flex flex-wrap gap-3">
+                <a href="{{ route('guru.tujuan-pembelajaran.index', $assignment) }}" class="rk-button rk-button-secondary">Kelola TP &amp; KKTP</a>
                 <a href="{{ route('guru.penilaian.create', ['pengampu_id' => $assignment->id]) }}" class="rk-button rk-button-secondary">+ Buat Penilaian</a>
                 <a href="{{ route('guru.nilai.index', ['tahun_ajaran_id' => $assignment->tahun_ajaran_id, 'mata_pelajaran_id' => $assignment->mata_pelajaran_id, 'kelas_id' => $assignment->kelas_id]) }}" class="rk-button rk-button-primary">Input Nilai</a>
             </div>
@@ -34,7 +35,7 @@
                 <div class="flex items-center justify-between border-b border-slate-200 px-5 py-5"><div><h2 class="font-bold text-[#102d4b]">Daftar Penilaian</h2><p class="mt-1 text-sm text-slate-500">Urutan penilaian dan progres pengisian nilai.</p></div><a href="{{ route('guru.penilaian.index', ['pengampu_id' => $assignment->id]) }}" class="text-sm font-bold text-emerald-700">Kelola</a></div>
                 <div class="divide-y divide-slate-100">
                     @forelse ($assignment->penilaian as $assessment)
-                        <div class="flex items-center justify-between gap-4 px-5 py-4"><div><h3 class="text-sm font-bold text-slate-700">{{ $assessment->urutan }}. {{ $assessment->nama }}</h3><p class="mt-1 text-xs text-slate-400">{{ str($assessment->jenis)->replace('_', ' ')->title() }} · {{ $assessment->tanggal->translatedFormat('d M Y') }}</p></div><div class="text-right"><strong class="text-sm text-slate-700">{{ $assessment->nilai_count }}/{{ $assignment->kelas->siswa->count() }}</strong><small class="block text-xs text-slate-400">nilai terisi</small></div></div>
+                        <div class="flex items-center justify-between gap-4 px-5 py-4"><div><h3 class="text-sm font-bold text-slate-700">{{ $assessment->urutan }}. {{ $assessment->nama }}</h3><p class="mt-1 text-xs text-slate-400">{{ str($assessment->jenis)->replace('_', ' ')->title() }} · {{ $assessment->tanggal->translatedFormat('d M Y') }}</p><p class="mt-1 text-xs font-semibold {{ $assessment->tujuanPembelajaran ? 'text-emerald-700' : 'text-amber-700' }}">{{ $assessment->tujuanPembelajaran ? 'TP '.$assessment->tujuanPembelajaran->urutan : 'Belum dipetakan ke TP' }}</p></div><div class="text-right"><strong class="text-sm text-slate-700">{{ $assessment->nilai_count }}/{{ $assignment->kelas->siswa->count() }}</strong><small class="block text-xs text-slate-400">nilai terisi</small></div></div>
                     @empty
                         <div class="px-5 py-10 text-center"><p class="font-bold text-slate-700">Belum ada penilaian</p><p class="mt-1 text-sm text-slate-500">Buat penilaian pertama untuk mulai memasukkan nilai siswa.</p></div>
                     @endforelse

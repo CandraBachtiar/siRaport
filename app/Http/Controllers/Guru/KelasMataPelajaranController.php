@@ -54,6 +54,7 @@ class KelasMataPelajaranController extends Controller
             'mataPelajaran:id,kode,nama,kkm',
             'tahunAjaran:id,tahun,semester,aktif',
             'penilaian' => fn ($query) => $query
+                ->with('tujuanPembelajaran:id,urutan,tujuan')
                 ->withCount('nilai')
                 ->withAvg('nilai', 'nilai')
                 ->orderBy('urutan')

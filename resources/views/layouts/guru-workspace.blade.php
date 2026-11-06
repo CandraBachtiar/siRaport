@@ -76,6 +76,7 @@
                     <span class="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-100 text-sm font-extrabold text-emerald-800">{{ mb_strtoupper(mb_substr($guru->nama, 0, 1)) }}</span>
                     <span class="min-w-0"><strong class="block truncate text-sm">{{ $guru->nama }}</strong><small class="block truncate text-xs text-slate-400">{{ $user->email }}</small></span>
                 </div>
+                <a href="{{ route('akun.edit') }}" class="mb-3 flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition {{ request()->routeIs('akun.*') ? $activeNavClass : $inactiveNavClass }}" @if (request()->routeIs('akun.*')) aria-current="page" @endif><x-nav-icon name="profile" /> Pengaturan Akun</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-red-300/20 hover:bg-red-400/10 hover:text-red-200"><x-nav-icon name="logout" /> Keluar</button>

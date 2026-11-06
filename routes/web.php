@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\GuruImportController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Guru\KelasMataPelajaranController;
 use App\Http\Controllers\Guru\PenilaianController;
 use App\Http\Controllers\Guru\RekapNilaiController;
 use App\Http\Controllers\Guru\SiswaPerluPerhatianController;
+use App\Http\Controllers\Guru\TujuanPembelajaranController;
 use App\Http\Controllers\Guru\WaliKelasController;
 use App\Http\Controllers\Guru\WaliKelasDashboardController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +39,13 @@ Route::middleware('guest')->group(function (): void {
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+Route::middleware(['auth', 'cache.headers:no_store;no_cache;must_revalidate'])->group(function (): void {
+    Route::get('/akun', [AccountSettingsController::class, 'edit'])->name('akun.edit');
+    Route::put('/akun/password', [AccountSettingsController::class, 'updatePassword'])
+        ->middleware('throttle:6,1')
+        ->name('akun.password.update');
+});
 
 Route::middleware(['auth', 'admin', 'cache.headers:no_store;no_cache;must_revalidate'])
     ->prefix('admin')
@@ -93,6 +102,12 @@ Route::middleware(['auth', 'guru', 'cache.headers:no_store;no_cache;must_revalid
         Route::middleware('guru.mapel')->group(function (): void {
             Route::get('/kelas-mata-pelajaran', [KelasMataPelajaranController::class, 'index'])->name('kelas-mapel.index');
             Route::get('/kelas-mata-pelajaran/{pengampu}', [KelasMataPelajaranController::class, 'show'])->name('kelas-mapel.show');
+            Route::get('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran', [TujuanPembelajaranController::class, 'index'])->name('tujuan-pembelajaran.index');
+            Route::get('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/create', [TujuanPembelajaranController::class, 'create'])->name('tujuan-pembelajaran.create');
+            Route::post('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran', [TujuanPembelajaranController::class, 'store'])->name('tujuan-pembelajaran.store');
+            Route::get('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/{tujuan_pembelajaran}/edit', [TujuanPembelajaranController::class, 'edit'])->name('tujuan-pembelajaran.edit');
+            Route::put('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/{tujuan_pembelajaran}', [TujuanPembelajaranController::class, 'update'])->name('tujuan-pembelajaran.update');
+            Route::delete('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/{tujuan_pembelajaran}', [TujuanPembelajaranController::class, 'destroy'])->name('tujuan-pembelajaran.destroy');
             Route::resource('penilaian', PenilaianController::class)->except('show');
             Route::get('/input-nilai', [InputNilaiController::class, 'index'])->name('nilai.index');
             Route::put('/input-nilai/{penilaian}', [InputNilaiController::class, 'update'])->name('nilai.update');

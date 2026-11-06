@@ -72,7 +72,7 @@
         gap: 0.625rem;
         border-radius: 0.75rem;
         padding: 0.625rem 1rem;
-        font-size: 0.875rem;
+        font-size: 1rem;
         font-weight: 700;
         line-height: 1.25rem;
         transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
@@ -111,7 +111,7 @@
         background: #ffffff;
         padding: 0.75rem 1rem;
         color: #0f2942;
-        font-size: 0.875rem;
+        font-size: 1rem;
         outline: none;
         transition: border-color 180ms ease, box-shadow 180ms ease;
     }
@@ -131,6 +131,41 @@
         font-weight: 800;
         letter-spacing: 0.14em;
         text-transform: uppercase;
+    }
+}
+
+@layer utilities {
+    /* Normalize small text utilities so page-specific classes stay readable. */
+    .text-xs {
+        font-size: 0.875rem;
+        line-height: 1.35rem;
+    }
+
+    .text-sm {
+        font-size: 1rem;
+        line-height: 1.6rem;
+    }
+
+    [class*="text-[0.65rem]"] {
+        font-size: 0.875rem;
+        line-height: 1.35rem;
+    }
+}
+
+@media print {
+    body {
+        font-size: 10pt;
+        line-height: 1.35;
+    }
+
+    .report-sheet .text-xs {
+        font-size: 8pt;
+        line-height: 1.2;
+    }
+
+    .report-sheet .text-sm {
+        font-size: 10pt;
+        line-height: 1.35;
     }
 }
 
