@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Pengampu;
 use App\Models\Penilaian;
+use App\Models\TujuanPembelajaran;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -36,6 +37,7 @@ class StorePenilaianRequest extends FormRequest
     {
         return [
             'pengampu_id' => ['required', 'integer', Rule::exists(Pengampu::class, 'id')],
+            'tujuan_pembelajaran_id' => ['required', 'integer', Rule::exists(TujuanPembelajaran::class, 'id')],
             'nama' => ['required', 'string', 'max:255'],
             'jenis' => ['required', Rule::in(['tugas', 'ulangan_harian', 'uts', 'uas'])],
             'tanggal' => ['required', 'date'],
@@ -48,6 +50,17 @@ class StorePenilaianRequest extends FormRequest
     {
         $validator->after(function (Validator $validator): void {
             if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $goalMatchesAssignment = TujuanPembelajaran::query()
+                ->whereKey($this->integer('tujuan_pembelajaran_id'))
+                ->where('pengampu_id', $this->integer('pengampu_id'))
+                ->exists();
+
+            if (! $goalMatchesAssignment) {
+                $validator->errors()->add('tujuan_pembelajaran_id', 'Tujuan pembelajaran harus berasal dari tugas mengajar yang dipilih.');
+
                 return;
             }
 
@@ -71,6 +84,8 @@ class StorePenilaianRequest extends FormRequest
         return [
             'pengampu_id.required' => 'Tugas mengajar wajib dipilih.',
             'pengampu_id.exists' => 'Tugas mengajar yang dipilih tidak tersedia.',
+            'tujuan_pembelajaran_id.required' => 'Tujuan pembelajaran wajib dipilih.',
+            'tujuan_pembelajaran_id.exists' => 'Tujuan pembelajaran yang dipilih tidak tersedia.',
             'nama.required' => 'Nama penilaian wajib diisi.',
             'nama.max' => 'Nama penilaian maksimal 255 karakter.',
             'jenis.required' => 'Jenis penilaian wajib dipilih.',

@@ -58,7 +58,7 @@
                                 <div class="flex gap-2 text-center">
                                     <span class="min-w-20 rounded-xl bg-slate-50 px-3 py-2"><strong class="block text-sm text-slate-800">{{ $assignment->student_count }}</strong><small class="text-[0.65rem] font-semibold text-slate-500">Siswa</small></span>
                                     <span class="min-w-20 rounded-xl bg-slate-50 px-3 py-2"><strong class="block text-sm text-slate-800">{{ $assignment->penilaian_count }}</strong><small class="text-[0.65rem] font-semibold text-slate-500">Penilaian</small></span>
-                                    <a href="{{ route('guru.kelas-mapel.show', $assignment) }}" class="inline-flex min-h-11 items-center rounded-xl border border-emerald-200 px-3 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50">Buka Kelas</a>
+                                    <a href="{{ route('guru.kelas-mapel.show', $assignment) }}" class="inline-flex min-h-11 items-center rounded-xl border border-emerald-200 px-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-50">Kelola Penilaian</a>
                                 </div>
                             </div>
                         @endforeach

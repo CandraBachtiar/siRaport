@@ -35,7 +35,7 @@
                             <div><dt class="text-xs text-slate-400">Siswa</dt><dd class="mt-1 font-extrabold text-slate-700">{{ $assignment->kelas?->siswa_count ?? 0 }}</dd></div>
                             <div><dt class="text-xs text-slate-400">Penilaian</dt><dd class="mt-1 font-extrabold text-slate-700">{{ $assignment->penilaian_count }}</dd></div>
                         </dl>
-                        <a href="{{ route('guru.kelas-mapel.show', $assignment) }}" class="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700 focus:ring-4 focus:ring-emerald-500/20">Buka Kelas</a>
+                        <a href="{{ route('guru.kelas-mapel.show', $assignment) }}" class="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700 focus:ring-4 focus:ring-emerald-500/20">Kelola Penilaian</a>
                     </article>
                 @endforeach
             </div>

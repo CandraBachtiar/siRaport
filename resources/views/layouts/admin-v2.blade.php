@@ -25,6 +25,9 @@
                 ['label' => 'Tahun Ajaran', 'route' => 'admin.tahun-ajaran.index', 'match' => 'admin.tahun-ajaran.*', 'icon' => 'calendar'],
                 ['label' => 'Pengampu', 'route' => 'admin.pengampu.index', 'match' => 'admin.pengampu.*', 'icon' => 'pengampu'],
             ],
+            'AKUN' => [
+                ['label' => 'Pengaturan Akun', 'route' => 'akun.edit', 'match' => 'akun.*', 'icon' => 'profile'],
+            ],
         ];
     @endphp
 

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Penilaian;
+use App\Models\TujuanPembelajaran;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,6 +30,7 @@ class UpdatePenilaianRequest extends FormRequest
     {
         return [
             'nama' => ['required', 'string', 'max:255'],
+            'tujuan_pembelajaran_id' => ['sometimes', 'nullable', 'integer', Rule::exists(TujuanPembelajaran::class, 'id')],
             'jenis' => ['required', Rule::in(['tugas', 'ulangan_harian', 'uts', 'uas'])],
             'tanggal' => ['required', 'date'],
             'bobot' => ['nullable', 'numeric', 'min:0.01', 'max:100'],
@@ -47,6 +49,34 @@ class UpdatePenilaianRequest extends FormRequest
 
             if (! $assessment instanceof Penilaian) {
                 return;
+            }
+
+            if ($this->exists('tujuan_pembelajaran_id')) {
+                $tujuanPembelajaranId = $this->input('tujuan_pembelajaran_id');
+
+                if ($tujuanPembelajaranId === null && $assessment->tujuan_pembelajaran_id !== null) {
+                    $validator->errors()->add('tujuan_pembelajaran_id', 'TP yang sudah dipilih tidak boleh dikosongkan.');
+
+                    return;
+                }
+
+                if ($tujuanPembelajaranId !== null && ! TujuanPembelajaran::query()
+                    ->whereKey($tujuanPembelajaranId)
+                    ->where('pengampu_id', $assessment->pengampu_id)
+                    ->exists()) {
+                    $validator->errors()->add('tujuan_pembelajaran_id', 'Tujuan pembelajaran harus berasal dari tugas mengajar penilaian ini.');
+
+                    return;
+                }
+
+                if ($tujuanPembelajaranId !== null
+                    && $assessment->tujuan_pembelajaran_id !== null
+                    && (int) $tujuanPembelajaranId !== (int) $assessment->tujuan_pembelajaran_id
+                    && $assessment->nilai()->exists()) {
+                    $validator->errors()->add('tujuan_pembelajaran_id', 'TP penilaian tidak dapat diubah setelah nilai siswa tersimpan.');
+
+                    return;
+                }
             }
 
             $duplicateExists = Penilaian::query()
@@ -69,6 +99,7 @@ class UpdatePenilaianRequest extends FormRequest
     {
         return [
             'nama.required' => 'Nama penilaian wajib diisi.',
+            'tujuan_pembelajaran_id.exists' => 'Tujuan pembelajaran yang dipilih tidak tersedia.',
             'nama.max' => 'Nama penilaian maksimal 255 karakter.',
             'jenis.required' => 'Jenis penilaian wajib dipilih.',
             'jenis.in' => 'Jenis penilaian tidak valid.',

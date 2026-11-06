@@ -235,6 +235,32 @@ document.querySelectorAll('[data-auto-submit]').forEach((field) => {
     });
 });
 
+document.querySelectorAll('[data-assessment-assignment]').forEach((assignmentField) => {
+    const form = assignmentField.closest('form');
+    const goalsField = form?.querySelector('[data-assessment-goals]');
+
+    if (!(assignmentField instanceof HTMLSelectElement) || !(goalsField instanceof HTMLSelectElement)) {
+        return;
+    }
+
+    const goalGroups = Array.from(goalsField.querySelectorAll('optgroup[data-assessment-goal-group]'));
+
+    const syncGoalOptions = () => {
+        goalGroups.forEach((group) => {
+            group.hidden = group.dataset.assessmentGoalGroup !== assignmentField.value;
+        });
+
+        const selectedGroup = goalsField.selectedOptions[0]?.closest('optgroup');
+
+        if (selectedGroup instanceof HTMLOptGroupElement && selectedGroup.hidden) {
+            goalsField.value = '';
+        }
+    };
+
+    assignmentField.addEventListener('change', syncGoalOptions);
+    syncGoalOptions();
+});
+
 document.querySelectorAll('[data-wali-class-filter]').forEach((field) => {
     field.addEventListener('change', () => {
         const form = field.closest('form');

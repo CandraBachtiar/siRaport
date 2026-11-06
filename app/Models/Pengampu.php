@@ -41,4 +41,9 @@ class Pengampu extends Model
     {
         return $this->hasMany(Penilaian::class);
     }
+
+    public function tujuanPembelajaran(): HasMany
+    {
+        return $this->hasMany(TujuanPembelajaran::class)->orderBy('urutan');
+    }
 }

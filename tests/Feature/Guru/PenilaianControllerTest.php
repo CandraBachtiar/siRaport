@@ -7,6 +7,7 @@ use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Models\TujuanPembelajaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -53,9 +54,11 @@ class PenilaianControllerTest extends TestCase
         $user = User::factory()->guru()->create();
         $guru = Guru::factory()->for($user)->create();
         $assignment = Pengampu::factory()->for($guru)->create();
+        $tujuanPembelajaran = TujuanPembelajaran::factory()->for($assignment)->create();
 
         $response = $this->actingAs($user)->post(route('guru.penilaian.store'), [
             'pengampu_id' => $assignment->id,
+            'tujuan_pembelajaran_id' => $tujuanPembelajaran->id,
             'nama' => 'Ulangan Bab Satu',
             'jenis' => 'ulangan_harian',
             'tanggal' => '2026-10-08',
@@ -67,6 +70,7 @@ class PenilaianControllerTest extends TestCase
             ->assertSessionHas('success', 'Penilaian berhasil ditambahkan.');
         $this->assertDatabaseHas('penilaian', [
             'pengampu_id' => $assignment->id,
+            'tujuan_pembelajaran_id' => $tujuanPembelajaran->id,
             'nama' => 'Ulangan Bab Satu',
             'jenis' => 'ulangan_harian',
         ]);
@@ -91,6 +95,32 @@ class PenilaianControllerTest extends TestCase
         $this->assertDatabaseMissing('penilaian', ['nama' => 'Penilaian Ilegal']);
     }
 
+    public function test_assessment_must_use_a_goal_from_its_own_assignment(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+        $otherAssignment = Pengampu::factory()->for($guru)->create();
+        $otherGoal = TujuanPembelajaran::factory()->for($otherAssignment)->create();
+
+        $this->actingAs($user)
+            ->from(route('guru.penilaian.create', ['pengampu_id' => $assignment->id]))
+            ->post(route('guru.penilaian.store'), [
+                'pengampu_id' => $assignment->id,
+                'tujuan_pembelajaran_id' => $otherGoal->id,
+                'nama' => 'Penilaian pada TP yang salah',
+                'jenis' => 'tugas',
+                'tanggal' => '2026-11-05',
+                'urutan' => 1,
+            ])
+            ->assertRedirect(route('guru.penilaian.create', ['pengampu_id' => $assignment->id]))
+            ->assertSessionHasErrors([
+                'tujuan_pembelajaran_id' => 'Tujuan pembelajaran harus berasal dari tugas mengajar yang dipilih.',
+            ]);
+
+        $this->assertDatabaseMissing('penilaian', ['nama' => 'Penilaian pada TP yang salah']);
+    }
+
     public function test_invalid_assessment_payload_returns_specific_validation_errors(): void
     {
         $user = User::factory()->guru()->create();
@@ -102,6 +132,7 @@ class PenilaianControllerTest extends TestCase
             ->post(route('guru.penilaian.store'), [
                 'pengampu_id' => $assignment->id,
                 'nama' => '',
+                'tujuan_pembelajaran_id' => '',
                 'jenis' => 'tidak_valid',
                 'tanggal' => 'bukan-tanggal',
                 'bobot' => 101,
@@ -111,6 +142,7 @@ class PenilaianControllerTest extends TestCase
         $response->assertRedirect(route('guru.penilaian.create'))
             ->assertSessionHasErrors([
                 'nama' => 'Nama penilaian wajib diisi.',
+                'tujuan_pembelajaran_id' => 'Tujuan pembelajaran wajib dipilih.',
                 'jenis' => 'Jenis penilaian tidak valid.',
                 'tanggal' => 'Tanggal penilaian tidak valid.',
                 'bobot' => 'Bobot maksimal 100.',
@@ -123,6 +155,7 @@ class PenilaianControllerTest extends TestCase
         $user = User::factory()->guru()->create();
         $guru = Guru::factory()->for($user)->create();
         $assignment = Pengampu::factory()->for($guru)->create();
+        $tujuanPembelajaran = TujuanPembelajaran::factory()->for($assignment)->create();
         $assessment = Penilaian::factory()->for($assignment)->create([
             'nama' => 'Penilaian Sama',
             'jenis' => 'tugas',
@@ -135,6 +168,7 @@ class PenilaianControllerTest extends TestCase
             ->post(route('guru.penilaian.store'), [
                 'pengampu_id' => $assignment->id,
                 'nama' => $assessment->nama,
+                'tujuan_pembelajaran_id' => $tujuanPembelajaran->id,
                 'jenis' => $assessment->jenis,
                 'tanggal' => $assessment->tanggal->toDateString(),
                 'urutan' => $assessment->urutan,

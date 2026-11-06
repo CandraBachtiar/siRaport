@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['pengampu_id', 'nama', 'jenis', 'tanggal', 'bobot', 'urutan'])]
+#[Fillable(['pengampu_id', 'tujuan_pembelajaran_id', 'nama', 'jenis', 'tanggal', 'bobot', 'urutan'])]
 class Penilaian extends Model
 {
     /** @use HasFactory<PenilaianFactory> */
@@ -20,6 +20,11 @@ class Penilaian extends Model
     public function pengampu(): BelongsTo
     {
         return $this->belongsTo(Pengampu::class);
+    }
+
+    public function tujuanPembelajaran(): BelongsTo
+    {
+        return $this->belongsTo(TujuanPembelajaran::class);
     }
 
     public function nilai(): HasMany

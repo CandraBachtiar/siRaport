@@ -12,7 +12,7 @@
     @if ($assessment === null)
         <div class="grid gap-2">
             <label for="pengampu_id" class="text-sm font-bold text-slate-700">Tugas Mengajar <span class="text-red-500">*</span></label>
-            <select id="pengampu_id" name="pengampu_id" required class="rk-field" aria-describedby="pengampu-help">
+            <select id="pengampu_id" name="pengampu_id" required class="rk-field" aria-describedby="pengampu-help" data-assessment-assignment>
                 <option value="">Pilih kelas dan mata pelajaran</option>
                 @foreach ($assignments as $assignment)
                     <option value="{{ $assignment->id }}" @selected((int) old('pengampu_id', $selectedAssignmentId) === $assignment->id)>{{ $assignment->mataPelajaran->nama }} · {{ $assignment->kelas->tingkat }} {{ $assignment->kelas->nama }} · {{ $assignment->tahunAjaran->tahun }} {{ $assignment->tahunAjaran->semester }}</option>
@@ -28,6 +28,25 @@
             <p class="mt-2 text-xs">Tugas mengajar tidak dapat dipindahkan setelah penilaian dibuat untuk mencegah nilai terhubung ke kelas yang salah.</p>
         </div>
     @endif
+
+    <div class="grid gap-2">
+        <label for="tujuan_pembelajaran_id" class="text-sm font-bold text-slate-700">Tujuan Pembelajaran <span class="text-red-500">*</span></label>
+        <select id="tujuan_pembelajaran_id" name="tujuan_pembelajaran_id" class="rk-field" aria-describedby="tujuan-pembelajaran-help" data-assessment-goals @if ($assessment === null || $assessment->tujuan_pembelajaran_id !== null) required @endif>
+            <option value="">{{ $assessment === null ? 'Pilih TP' : ($assessment->tujuan_pembelajaran_id ? 'Pilih TP' : 'Belum dipetakan') }}</option>
+            @foreach ($assignments as $goalAssignment)
+                <optgroup label="{{ $goalAssignment->mataPelajaran->nama }} · {{ $goalAssignment->kelas->tingkat }} {{ $goalAssignment->kelas->nama }} · {{ $goalAssignment->tahunAjaran->tahun }} {{ $goalAssignment->tahunAjaran->semester }}" data-assessment-goal-group="{{ $goalAssignment->id }}">
+                    @foreach ($goalAssignment->tujuanPembelajaran as $tujuanPembelajaran)
+                        <option value="{{ $tujuanPembelajaran->id }}" @selected((int) old('tujuan_pembelajaran_id', $assessment?->tujuan_pembelajaran_id) === $tujuanPembelajaran->id)>TP {{ $tujuanPembelajaran->urutan }} · {{ str($tujuanPembelajaran->tujuan)->limit(110) }} (KKTP {{ number_format((float) $tujuanPembelajaran->kktp, 2, ',', '.') }})</option>
+                    @endforeach
+                </optgroup>
+            @endforeach
+        </select>
+        <p id="tujuan-pembelajaran-help" class="text-xs leading-5 text-slate-500">Pilih TP dalam tugas mengajar ini. Penilaian lama yang belum diketahui kaitannya tetap belum dipetakan sampai Anda memilih TP.</p>
+        @error('tujuan_pembelajaran_id')<p class="text-xs font-semibold text-red-600" role="alert">{{ $message }}</p>@enderror
+        @if ($assessment?->tujuan_pembelajaran_id === null)
+            <p class="text-xs font-semibold text-amber-700">Penilaian ini belum dipetakan ke TP. Sistem tidak menentukan hubungan secara otomatis.</p>
+        @endif
+    </div>
 
     <div class="grid gap-5 sm:grid-cols-2">
         <div class="grid gap-2 sm:col-span-2"><label for="nama" class="text-sm font-bold text-slate-700">Nama Penilaian <span class="text-red-500">*</span></label><input id="nama" name="nama" type="text" required maxlength="255" value="{{ old('nama', $assessment?->nama) }}" placeholder="Contoh: Tugas Persamaan Linear" class="rk-field" @error('nama') aria-invalid="true" @enderror>@error('nama')<p class="text-xs font-semibold text-red-600">{{ $message }}</p>@enderror</div>
