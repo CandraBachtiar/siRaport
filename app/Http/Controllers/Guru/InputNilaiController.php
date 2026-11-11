@@ -51,6 +51,7 @@ class InputNilaiController extends Controller
         $selectedAssessment = null;
         $students = collect();
         $scores = collect();
+        $importPreview = null;
 
         if ($filters['assessmentId'] > 0) {
             $selectedAssessment = $assessments->firstWhere('id', $filters['assessmentId']);
@@ -68,6 +69,14 @@ class InputNilaiController extends Controller
                 ->whereIn('siswa_id', $students->pluck('id'))
                 ->get()
                 ->keyBy('siswa_id');
+            $previewKey = 'guru.nilai_import_preview.'.$selectedAssessment->id;
+            $storedPreview = $request->session()->get($previewKey);
+
+            if (is_array($storedPreview) && ($storedPreview['user_id'] ?? null) === $user->id) {
+                $importPreview = $storedPreview;
+            } elseif ($storedPreview !== null) {
+                $request->session()->forget($previewKey);
+            }
         }
 
         return view('guru.nilai.index', [
@@ -83,6 +92,8 @@ class InputNilaiController extends Controller
             'selectedAssessment' => $selectedAssessment,
             'students' => $students,
             'scores' => $scores,
+            'importPreview' => $importPreview,
+            'importHeaderError' => $request->session()->get('nilai_import_header_error'),
             ...$filters,
             ...$this->dashboardService->capabilities($guru),
         ]);

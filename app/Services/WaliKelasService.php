@@ -302,7 +302,8 @@ class WaliKelasService
             )))
             ->count();
         $hasSumativeOutcomes = $sumativeCategories->isNotEmpty();
-        $hasUnclassifiedAssessments = $goalSummaries->contains(fn (array $goal): bool => $goal['unclassifiedAssessments']->isNotEmpty());
+        $hasUnclassifiedAssessments = $assignment->penilaian->contains(fn (Penilaian $assessment): bool => $assessment->tujuan_pembelajaran_id === null)
+            || $goalSummaries->contains(fn (array $goal): bool => $goal['unclassifiedAssessments']->isNotEmpty());
         $isComplete = $hasSumativeOutcomes
             && $incompleteOutcomeCount === 0
             && ! $hasUnclassifiedAssessments
@@ -386,7 +387,7 @@ class WaliKelasService
         }
 
         if ($summary['hasUnclassifiedAssessments']) {
-            $parts[] = 'Ada penilaian yang belum diklasifikasikan dan perlu ditinjau.';
+            $parts[] = 'Ada penilaian yang belum dipetakan ke TP atau kategori dan perlu ditinjau.';
         }
 
         if ($summary['trend']['label'] === 'Meningkat') {

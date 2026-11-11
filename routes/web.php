@@ -16,6 +16,7 @@ use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Guru\DeskripsiRaporController;
 use App\Http\Controllers\Guru\InputNilaiController;
 use App\Http\Controllers\Guru\KelasMataPelajaranController;
+use App\Http\Controllers\Guru\NilaiImportController;
 use App\Http\Controllers\Guru\PenilaianController;
 use App\Http\Controllers\Guru\RekapNilaiController;
 use App\Http\Controllers\Guru\SiswaPerluPerhatianController;
@@ -111,6 +112,9 @@ Route::middleware(['auth', 'guru', 'cache.headers:no_store;no_cache;must_revalid
             Route::resource('penilaian', PenilaianController::class)->except('show');
             Route::get('/input-nilai', [InputNilaiController::class, 'index'])->name('nilai.index');
             Route::put('/input-nilai/{penilaian}', [InputNilaiController::class, 'update'])->name('nilai.update');
+            Route::get('/input-nilai/{penilaian}/template', [NilaiImportController::class, 'template'])->name('nilai.template');
+            Route::post('/input-nilai/{penilaian}/impor/pratinjau', [NilaiImportController::class, 'preview'])->name('nilai.import.preview');
+            Route::post('/input-nilai/{penilaian}/impor', [NilaiImportController::class, 'import'])->name('nilai.import.store');
             Route::get('/analisis-nilai', AnalisisNilaiController::class)->name('analisis.index');
             Route::get('/siswa-perlu-perhatian', SiswaPerluPerhatianController::class)->name('perhatian.index');
             Route::get('/rekap-nilai', RekapNilaiController::class)->name('rekap-nilai.index');

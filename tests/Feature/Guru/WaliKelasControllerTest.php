@@ -293,9 +293,16 @@ class WaliKelasControllerTest extends TestCase
         $year = TahunAjaran::factory()->create(['aktif' => true]);
         $student = Siswa::factory()->for($class)->create();
         $assignment = Pengampu::factory()->create(['kelas_id' => $class->id, 'tahun_ajaran_id' => $year->id]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create([
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
+        ]);
 
         foreach ([90, 90, 90, 90] as $index => $score) {
-            $assessment = Penilaian::factory()->for($assignment)->create(['urutan' => $index + 1]);
+            $assessment = Penilaian::factory()->for($assignment)->create([
+                'tujuan_pembelajaran_id' => $goal->id,
+                'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
+                'urutan' => $index + 1,
+            ]);
             Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => $score]);
         }
 
