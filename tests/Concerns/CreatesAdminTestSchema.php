@@ -62,6 +62,7 @@ trait CreatesAdminTestSchema
             $table->unsignedSmallInteger('urutan');
             $table->text('tujuan');
             $table->decimal('kktp', 5, 2);
+            $table->string('metode_rekap')->nullable();
             $table->timestamps();
             $table->unique(['pengampu_id', 'urutan']);
         });
@@ -85,6 +86,7 @@ trait CreatesAdminTestSchema
             $table->foreignId('tujuan_pembelajaran_id')->nullable()->constrained('tujuan_pembelajaran')->restrictOnDelete();
             $table->string('nama');
             $table->enum('jenis', ['tugas', 'ulangan_harian', 'uts', 'uas']);
+            $table->string('kategori_asesmen')->nullable();
             $table->date('tanggal');
             $table->decimal('bobot', 5, 2)->nullable();
             $table->unsignedInteger('urutan');

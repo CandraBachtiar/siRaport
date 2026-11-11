@@ -42,10 +42,11 @@ class RaporDigitalFlowTest extends TestCase
             ->assertSee('Ulangan Pecahan')
             ->assertSee('Siswa Lengkap')
             ->assertSee('70,00')
-            ->assertViewHas('rows', function ($rows) use ($student): bool {
-                $row = $rows->firstWhere('student.id', $student->id);
+            ->assertSee('Belum mencapai KKTP')
+            ->assertViewHas('goalSummaries', function ($goals) use ($student): bool {
+                $result = $goals->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows']->get($student->id);
 
-                return $row !== null && $row['average'] === 70.0 && $row['isComplete'];
+                return $result !== null && $result['score'] === 70.0 && $result['isComplete'];
             });
 
         $analysis = $this->actingAs($context['teacherUser'])->get(route('guru.analisis.index', [
@@ -86,6 +87,7 @@ class RaporDigitalFlowTest extends TestCase
             ->assertSee('Guru Kelas Integrasi')
             ->assertSee($description)
             ->assertSee('Cetak / Simpan PDF')
+            ->assertSee('Nilai akhir mata pelajaran belum ditetapkan')
             ->assertViewHas('studentRow', fn (array $row): bool => $row['readyToPrint']
                 && $row['subjects']->first()['average'] === 70.0);
 
@@ -114,17 +116,18 @@ class RaporDigitalFlowTest extends TestCase
         $recap = $this->actingAs($context['teacherUser'])
             ->get(route('guru.rekap-nilai.index', ['pengampu_id' => $context['assignment']->id]));
         $recap->assertOk()
-            ->assertSee('Belum Lengkap')
-            ->assertViewHas('rows', function ($rows) use ($student, $secondAssessment, $otherStudent): bool {
-                $row = $rows->firstWhere('student.id', $student->id);
-                $otherRow = $rows->firstWhere('student.id', $otherStudent->id);
+            ->assertSee('Nilai belum lengkap')
+            ->assertSee('Hasil sementara: 76,00')
+            ->assertSee('1/2 asesmen terisi')
+            ->assertViewHas('goalSummaries', function ($goals) use ($student, $secondAssessment): bool {
+                $result = $goals->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows']->get($student->id);
 
-                return $row !== null
-                    && $row['average'] === 76.0
-                    && $row['scores']->get($secondAssessment->id) === null
-                    && ! $row['isComplete']
-                    && $otherRow !== null
-                    && $otherRow['average'] === null;
+                return $result !== null
+                    && $result['score'] === 76.0
+                    && $result['filledCount'] === 1
+                    && $result['totalCount'] === 2
+                    && $result['scores']->get($secondAssessment->id) === null
+                    && ! $result['isComplete'];
             });
 
         $analysis = $this->actingAs($context['teacherUser'])->get(route('guru.analisis.index', [
@@ -132,6 +135,9 @@ class RaporDigitalFlowTest extends TestCase
             'siswa_id' => $student->id,
         ]));
         $analysis->assertOk()
+            ->assertSee('Hasil sementara: 76,00')
+            ->assertSee('1/2 asesmen terisi')
+            ->assertSee('Nilai belum lengkap')
             ->assertViewHas('studentAnalysis', fn (?array $studentAnalysis): bool => $studentAnalysis !== null
                 && $studentAnalysis['average'] === 76.0
                 && $studentAnalysis['missingCount'] === 1
@@ -150,8 +156,11 @@ class RaporDigitalFlowTest extends TestCase
             'tahun_ajaran_id' => $context['schoolYear']->id,
         ]));
         $report->assertOk()
-            ->assertSee('Rapor belum siap dicetak.')
-            ->assertSee('1 nilai belum lengkap')
+            ->assertSee('Rapor belum siap ditinjau.')
+            ->assertSee('Hasil sementara: 76,00')
+            ->assertSee('1/2 asesmen terisi')
+            ->assertSee('Nilai belum lengkap')
+            ->assertSee('1 nilai tugas belum diisi')
             ->assertSee('Deskripsi rapor belum divalidasi untuk seluruh mata pelajaran.')
             ->assertSee('Cetak Belum Tersedia');
 
@@ -182,8 +191,8 @@ class RaporDigitalFlowTest extends TestCase
         $updatedRecap = $this->actingAs($context['teacherUser'])
             ->get(route('guru.rekap-nilai.index', ['pengampu_id' => $context['assignment']->id]));
         $updatedRecap->assertOk()
-            ->assertViewHas('rows', fn ($rows): bool => $rows->first()['average'] === 40.0
-                && $rows->first()['scores']->get($firstAssessment->id) === 0.0);
+            ->assertViewHas('goalSummaries', fn ($goals): bool => $goals->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows']->get($student->id)['score'] === 40.0
+                && $goals->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows']->get($student->id)['scores']->get($firstAssessment->id) === 0.0);
 
         $this->saveScore($context['teacherUser'], $secondAssessment, $student, '');
 
@@ -191,10 +200,10 @@ class RaporDigitalFlowTest extends TestCase
             ->get(route('guru.rekap-nilai.index', ['pengampu_id' => $context['assignment']->id]));
         $recap->assertOk()
             ->assertSee('0,00')
-            ->assertSee('Belum Lengkap')
-            ->assertViewHas('rows', fn ($rows): bool => $rows->first()['average'] === 0.0
-                && $rows->first()['scores']->get($secondAssessment->id) === null
-                && ! $rows->first()['isComplete']);
+            ->assertSee('Nilai belum lengkap')
+            ->assertViewHas('goalSummaries', fn ($goals): bool => $goals->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows']->get($student->id)['score'] === 0.0
+                && $goals->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows']->get($student->id)['scores']->get($secondAssessment->id) === null
+                && ! $goals->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows']->get($student->id)['isComplete']);
 
         $this->assertDatabaseHas('nilai', [
             'siswa_id' => $student->id,
@@ -318,6 +327,7 @@ class RaporDigitalFlowTest extends TestCase
             'urutan' => 1,
             'tujuan' => 'Murid menerapkan konsep pembelajaran pada pemecahan masalah.',
             'kktp' => 75,
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
         ])->assertRedirectToRoute('guru.tujuan-pembelajaran.index', $assignment);
 
         return compact('admin', 'teacherUser', 'teacher', 'class', 'subject', 'schoolYear', 'assignment', 'students');
@@ -335,6 +345,7 @@ class RaporDigitalFlowTest extends TestCase
             'tujuan_pembelajaran_id' => $tujuanPembelajaran->id,
             'nama' => $name,
             'jenis' => 'tugas',
+            'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
             'tanggal' => '2025-09-'.str_pad((string) $order, 2, '0', STR_PAD_LEFT),
             'bobot' => null,
             'urutan' => $order,

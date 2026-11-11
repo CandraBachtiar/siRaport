@@ -22,12 +22,15 @@ class TujuanPembelajaranController extends Controller
     {
         Gate::authorize('view', $pengampu);
         $pengampu->load(['kelas:id,nama,tingkat', 'mataPelajaran:id,kode,nama', 'tahunAjaran:id,tahun,semester']);
-        $tujuanPembelajaran = $pengampu->tujuanPembelajaran()->withCount('penilaian')->get();
+        $tujuanPembelajaran = $pengampu->tujuanPembelajaran()
+            ->withCount(['penilaian', 'penilaian as penilaian_belum_diklasifikasikan_count' => fn ($query) => $query->whereNull('kategori_asesmen')])
+            ->get();
 
         return view('guru.tujuan-pembelajaran.index', [
             ...$this->viewData($request, $pengampu),
             'tujuanPembelajaran' => $tujuanPembelajaran,
             'unmappedAssessmentCount' => $pengampu->penilaian()->whereNull('tujuan_pembelajaran_id')->count(),
+            'unclassifiedAssessmentCount' => $pengampu->penilaian()->whereNotNull('tujuan_pembelajaran_id')->whereNull('kategori_asesmen')->count(),
         ]);
     }
 

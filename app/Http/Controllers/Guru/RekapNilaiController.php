@@ -37,7 +37,7 @@ class RekapNilaiController extends Controller
         }
 
         $recap = $selectedAssignment === null
-            ? ['students' => collect(), 'assessments' => collect(), 'rows' => collect(), 'calculationMode' => 'Rata-rata sederhana']
+            ? ['students' => collect(), 'assessments' => collect(), 'goalSummaries' => collect(), 'calculationMode' => 'Rekap terpisah per TP dan kategori asesmen']
             : $this->scoreService->recap($selectedAssignment);
 
         return view('guru.rekap-nilai.index', [

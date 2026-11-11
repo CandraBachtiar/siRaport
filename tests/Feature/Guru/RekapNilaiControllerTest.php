@@ -9,6 +9,7 @@ use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Models\TujuanPembelajaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -24,7 +25,7 @@ class RekapNilaiControllerTest extends TestCase
         $this->createAdminTestSchema();
     }
 
-    public function test_recap_displays_assessment_scores_average_and_kkm_status(): void
+    public function test_recap_displays_task_scores_and_goal_attainment_without_subject_final_grade(): void
     {
         $user = User::factory()->guru()->create();
         $guru = Guru::factory()->for($user)->create();
@@ -34,9 +35,10 @@ class RekapNilaiControllerTest extends TestCase
             'kelas_id' => $class->id,
             'mata_pelajaran_id' => $subject->id,
         ]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create(['kktp' => 75]);
         $student = Siswa::factory()->for($class)->create(['nama' => 'Alya Rekap']);
-        $firstAssessment = Penilaian::factory()->for($assignment)->create(['nama' => 'Tugas Satu', 'urutan' => 1, 'bobot' => null]);
-        $secondAssessment = Penilaian::factory()->for($assignment)->create(['nama' => 'Tugas Dua', 'urutan' => 2, 'bobot' => null]);
+        $firstAssessment = Penilaian::factory()->for($assignment)->create(['tujuan_pembelajaran_id' => $goal->id, 'nama' => 'Tugas Satu', 'urutan' => 1, 'bobot' => null]);
+        $secondAssessment = Penilaian::factory()->for($assignment)->create(['tujuan_pembelajaran_id' => $goal->id, 'nama' => 'Tugas Dua', 'urutan' => 2, 'bobot' => null]);
         Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $firstAssessment->id, 'nilai' => 80]);
         Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $secondAssessment->id, 'nilai' => 60]);
 
@@ -47,27 +49,30 @@ class RekapNilaiControllerTest extends TestCase
             ->assertSee('Alya Rekap')
             ->assertSee('Tugas Satu')
             ->assertSee('70,00')
-            ->assertSee('Di bawah KKM')
-            ->assertViewHas('calculationMode', 'Rata-rata sederhana');
+            ->assertSee('Belum mencapai KKTP')
+            ->assertSee('Nilai akhir mata pelajaran belum dihitung')
+            ->assertViewHas('goalSummaries', fn ($goals): bool => $goals->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows'][$student->id]['score'] === 70.0);
     }
 
-    public function test_recap_uses_weights_when_every_assessment_has_a_weight(): void
+    public function test_recap_does_not_use_task_weights_as_subject_final_weights(): void
     {
         $user = User::factory()->guru()->create();
         $guru = Guru::factory()->for($user)->create();
         $class = Kelas::factory()->create();
         $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create();
         $student = Siswa::factory()->for($class)->create();
-        $firstAssessment = Penilaian::factory()->for($assignment)->create(['bobot' => 25, 'urutan' => 1]);
-        $secondAssessment = Penilaian::factory()->for($assignment)->create(['bobot' => 75, 'urutan' => 2]);
+        $firstAssessment = Penilaian::factory()->for($assignment)->create(['tujuan_pembelajaran_id' => $goal->id, 'bobot' => 25, 'urutan' => 1]);
+        $secondAssessment = Penilaian::factory()->for($assignment)->create(['tujuan_pembelajaran_id' => $goal->id, 'bobot' => 75, 'urutan' => 2]);
         Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $firstAssessment->id, 'nilai' => 100]);
         Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $secondAssessment->id, 'nilai' => 60]);
 
         $response = $this->actingAs($user)->get(route('guru.rekap-nilai.index', ['pengampu_id' => $assignment->id]));
 
         $response->assertOk()
-            ->assertSee('70,00')
-            ->assertViewHas('calculationMode', 'Rata-rata berbobot');
+            ->assertSee('80,00')
+            ->assertSee('belum menjadi nilai akhir mata pelajaran')
+            ->assertViewHas('goalSummaries', fn ($goals): bool => $goals->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows'][$student->id]['score'] === 80.0);
     }
 
     public function test_guru_cannot_open_another_gurus_recap(): void

@@ -40,6 +40,18 @@
         @error('kktp')<p id="kktp-error" class="text-sm font-medium text-red-700" role="alert">{{ $message }}</p>@enderror
     </div>
 
+    <div class="grid max-w-sm gap-2">
+        <label for="metode_rekap" class="text-base font-semibold text-slate-700">Metode rekap tugas pada TP</label>
+        <select id="metode_rekap" name="metode_rekap" required class="rk-field">
+            <option value="">Pilih metode rekap</option>
+            @foreach (App\Models\TujuanPembelajaran::METODE_REKAP_LABELS as $value => $label)
+                <option value="{{ $value }}" @selected(old('metode_rekap', $tujuan?->metode_rekap) === $value)>{{ $label }}</option>
+            @endforeach
+        </select>
+        <p class="text-sm leading-6 text-slate-500">Pilihan guru ini mengolah nilai di setiap kategori sumatif secara terpisah untuk TP ini. Pilihan nilai tertinggi berasal dari kebutuhan rekap guru, bukan rumus nilai akhir yang diwajibkan panduan. Asesmen formatif tetap menjadi umpan balik.</p>
+        @error('metode_rekap')<p class="text-sm font-medium text-red-700" role="alert">{{ $message }}</p>@enderror
+    </div>
+
     <div class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
         <a href="{{ route('guru.tujuan-pembelajaran.index', $assignment) }}" class="rk-button rk-button-secondary">Batal</a>
         <button type="submit" class="rk-button rk-button-primary">{{ $submitLabel }}</button>

@@ -11,7 +11,10 @@ use Illuminate\Support\Collection;
 
 class GuruAnalysisService
 {
-    public function __construct(private ScoreTrendService $trendService) {}
+    public function __construct(
+        private ScoreTrendService $trendService,
+        private TujuanPembelajaranScoreService $outcomeService,
+    ) {}
 
     /**
      * @return array{
@@ -29,6 +32,7 @@ class GuruAnalysisService
             'kelas:id,nama,tingkat',
             'mataPelajaran:id,kode,nama,kkm',
             'tahunAjaran:id,tahun,semester,aktif',
+            'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
         ]);
         $students = Siswa::query()
             ->where('kelas_id', $assignment->kelas_id)
@@ -53,7 +57,7 @@ class GuruAnalysisService
                 return [$classStudent->id => $scores->isEmpty() ? null : round((float) $scores->average(), 2)];
             });
         $filledStudentAverages = $studentAverages->filter(fn (?float $average): bool => $average !== null);
-        $kkm = (float) $assignment->mataPelajaran->kkm;
+        $goalSummaries = $this->outcomeService->summarize($assignment->tujuanPembelajaran, $students, $assessments);
 
         $classSeries = $assessments->map(function (Penilaian $assessment) use ($assignment): array {
             $scores = $assessment->nilai->pluck('nilai')->map(fn ($score): float => (float) $score);
@@ -92,14 +96,14 @@ class GuruAnalysisService
                 'average' => $allScores->isEmpty() ? null : round((float) $allScores->average(), 2),
                 'highest' => $allScores->isEmpty() ? null : (float) $allScores->max(),
                 'lowest' => $allScores->isEmpty() ? null : (float) $allScores->min(),
-                'belowKkmCount' => $filledStudentAverages->filter(fn (float $average): bool => $average < $kkm)->count(),
-                'meetsKkmCount' => $filledStudentAverages->filter(fn (float $average): bool => $average >= $kkm)->count(),
+                'classifiedOutcomeCount' => $goalSummaries->sum(fn (array $goal): int => $goal['categories']->filter(fn (array $category): bool => ! $category['isFormative'])->count()),
                 'studentCount' => $students->count(),
                 'assessmentCount' => $assessments->count(),
             ],
             'studentAnalysis' => $student === null
                 ? null
-                : $this->studentAnalysis($student, $assignment->mataPelajaran->nama, $assessments, $kkm),
+                : $this->studentAnalysis($student, $assignment->mataPelajaran->nama, $assessments, $goalSummaries),
+            'goalSummaries' => $goalSummaries,
             'students' => $students,
             'assessments' => $assessments,
         ];
@@ -111,7 +115,10 @@ class GuruAnalysisService
      *     rows: Collection<int, array<string, mixed>>,
      *     summary: array{
      *         studentCount: int,
-     *         belowKkmCount: int,
+     *         belowKktpCount: int,
+     *         belowTpStudentCount: int,
+     *         belowCategoryCount: int,
+     *         incompleteTpStudentCount: int,
      *         decliningCount: int,
      *         incompleteCount: int,
      *         assignmentCount: int,
@@ -136,6 +143,7 @@ class GuruAnalysisService
                     ->orderBy('id'),
                 'mataPelajaran:id,kode,nama,kkm',
                 'tahunAjaran:id,tahun,semester,aktif',
+                'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
                 'penilaian' => fn ($query) => $query
                     ->with('nilai:id,siswa_id,penilaian_id,nilai')
                     ->orderBy('tanggal')
@@ -149,10 +157,11 @@ class GuruAnalysisService
 
         $rows = $assignments->flatMap(function (Pengampu $assignment): Collection {
             $assessmentCount = $assignment->penilaian->count();
-            $kkm = (float) $assignment->mataPelajaran->kkm;
             $classStudentIds = $assignment->kelas->siswa->pluck('id');
 
-            return $assignment->kelas->siswa->map(function (Siswa $student) use ($assignment, $assessmentCount, $classStudentIds, $kkm): ?array {
+            $outcomes = $this->outcomeService->summarize($assignment->tujuanPembelajaran, $assignment->kelas->siswa, $assignment->penilaian);
+
+            return $assignment->kelas->siswa->map(function (Siswa $student) use ($assignment, $assessmentCount, $classStudentIds, $outcomes): ?array {
                 $scores = $assignment->penilaian
                     ->flatMap(fn (Penilaian $assessment): Collection => $assessment->nilai
                         ->whereIn('siswa_id', $classStudentIds)
@@ -163,9 +172,47 @@ class GuruAnalysisService
                 $missingCount = max($assessmentCount - $scores->count(), 0);
                 $trend = $this->trendService->summarize($scores);
                 $reasons = collect();
+                $studentOutcomes = $outcomes->map(function (array $goal) use ($student): array {
+                    return [
+                        ...$goal,
+                        'categories' => $goal['categories']->map(fn (array $category): array => [
+                            ...$category,
+                            'result' => $category['rows']->get($student->id),
+                        ]),
+                    ];
+                });
+                $incompleteCategoryCount = $studentOutcomes->sum(fn (array $goal): int => $goal['categories']
+                    ->filter(fn (array $category): bool => ! $category['isFormative'] && in_array(
+                        $category['result']['status'],
+                        ['Nilai belum lengkap', 'Metode rekap TP belum dipilih'],
+                        true,
+                    ))
+                    ->count());
+                $incompleteOutcomeCount = $studentOutcomes
+                    ->filter(fn (array $goal): bool => $goal['categories']->contains(fn (array $category): bool => ! $category['isFormative'] && in_array(
+                        $category['result']['status'],
+                        ['Nilai belum lengkap', 'Metode rekap TP belum dipilih'],
+                        true,
+                    )))
+                    ->count();
+                $belowCategoryCount = $studentOutcomes->sum(fn (array $goal): int => $goal['categories']
+                    ->filter(fn (array $category): bool => ! $category['isFormative'] && $category['result']['attainment'] === false)
+                    ->count());
+                $belowThresholdCount = $studentOutcomes
+                    ->filter(fn (array $goal): bool => $goal['categories']->contains(fn (array $category): bool => ! $category['isFormative'] && $category['result']['attainment'] === false))
+                    ->count();
+                $unclassifiedCount = $studentOutcomes->sum(fn (array $goal): int => $goal['unclassifiedAssessments']->count());
 
-                if ($average !== null && $average < $kkm) {
-                    $reasons->push('Rata-rata di bawah KKM');
+                if ($incompleteOutcomeCount > 0) {
+                    $reasons->push($incompleteOutcomeCount.' TP memiliki kategori sumatif yang belum lengkap atau metodenya belum dipilih ('.$incompleteCategoryCount.' temuan kategori); periksa kemungkinan susulan.');
+                }
+
+                if ($belowThresholdCount > 0) {
+                    $reasons->push($belowThresholdCount.' TP memiliki hasil kategori sumatif di bawah KKTP ('.$belowCategoryCount.' temuan kategori).');
+                }
+
+                if ($unclassifiedCount > 0) {
+                    $reasons->push($unclassifiedCount.' penilaian belum diklasifikasikan.');
                 }
 
                 if ($trend['label'] === 'Menurun') {
@@ -173,7 +220,7 @@ class GuruAnalysisService
                 }
 
                 if ($missingCount > 0) {
-                    $reasons->push($missingCount.' nilai belum diisi');
+                    $reasons->push($missingCount.' nilai tugas belum diisi.');
                 }
 
                 if ($reasons->isNotEmpty() && in_array($trend['label'], ['Belum ada data', 'Belum cukup data'], true)) {
@@ -190,17 +237,22 @@ class GuruAnalysisService
                     'average' => $average,
                     'trend' => $trend,
                     'missingCount' => $missingCount,
+                    'incompleteOutcomeCount' => $incompleteOutcomeCount,
+                    'incompleteCategoryCount' => $incompleteCategoryCount,
+                    'belowThresholdCount' => $belowThresholdCount,
+                    'belowCategoryCount' => $belowCategoryCount,
+                    'goalSummaries' => $studentOutcomes,
                     'reasons' => $reasons,
-                    'status' => $average !== null && $average < $kkm
+                    'status' => $belowThresholdCount > 0 || $incompleteOutcomeCount > 0
                         ? 'Perlu Tindak Lanjut'
-                        : ($trend['label'] === 'Menurun' ? 'Pantau Perkembangan' : 'Lengkapi Nilai'),
-                    'severity' => ($average !== null && $average < $kkm ? 2 : 0)
+                        : ($trend['label'] === 'Menurun' ? 'Pantau Perkembangan' : 'Periksa Data'),
+                    'severity' => ($belowThresholdCount > 0 || $incompleteOutcomeCount > 0 ? 2 : 0)
                         + ($trend['label'] === 'Menurun' ? 1 : 0),
                 ];
             })->filter();
         })->sortBy([
             ['severity', 'desc'],
-            ['average', 'asc'],
+            ['belowThresholdCount', 'desc'],
         ])->values();
 
         $studentTrendAnalyses = $assignments->flatMap(function (Pengampu $assignment): Collection {
@@ -222,9 +274,20 @@ class GuruAnalysisService
             'rows' => $rows,
             'summary' => [
                 'studentCount' => $rows->pluck('student.id')->unique()->count(),
-                'belowKkmCount' => $rows->filter(fn (array $row): bool => $row['average'] !== null && $row['average'] < (float) $row['assignment']->mataPelajaran->kkm)->count(),
-                'decliningCount' => $rows->where('trend.label', 'Menurun')->count(),
-                'incompleteCount' => $rows->filter(fn (array $row): bool => $row['missingCount'] > 0)->count(),
+                'belowKktpCount' => $rows
+                    ->filter(fn (array $row): bool => $row['belowThresholdCount'] > 0)
+                    ->pluck('student.id')
+                    ->unique()
+                    ->count(),
+                'belowTpStudentCount' => $rows->sum('belowThresholdCount'),
+                'belowCategoryCount' => $rows->sum('belowCategoryCount'),
+                'incompleteTpStudentCount' => $rows->sum('incompleteOutcomeCount'),
+                'decliningCount' => $rows->where('trend.label', 'Menurun')->pluck('student.id')->unique()->count(),
+                'incompleteCount' => $rows
+                    ->filter(fn (array $row): bool => $row['missingCount'] > 0)
+                    ->pluck('student.id')
+                    ->unique()
+                    ->count(),
                 'assignmentCount' => $assignments->count(),
                 'assessmentCount' => $assignments->sum(fn (Pengampu $assignment): int => $assignment->penilaian->count()),
                 'rosterCount' => $assignments->flatMap(fn (Pengampu $assignment): Collection => $assignment->kelas->siswa->pluck('id'))
@@ -242,7 +305,7 @@ class GuruAnalysisService
      * @param  EloquentCollection<int, Penilaian>  $assessments
      * @return array<string, mixed>
      */
-    private function studentAnalysis(Siswa $student, string $subjectName, EloquentCollection $assessments, float $kkm): array
+    private function studentAnalysis(Siswa $student, string $subjectName, EloquentCollection $assessments, Collection $goalSummaries): array
     {
         $series = $assessments->map(function (Penilaian $assessment) use ($student, $subjectName): array {
             $score = $assessment->nilai->firstWhere('siswa_id', $student->id);
@@ -270,7 +333,17 @@ class GuruAnalysisService
             'highest' => $scores->isEmpty() ? null : (float) $scores->max(),
             'lowest' => $scores->isEmpty() ? null : (float) $scores->min(),
             'missingCount' => max($assessments->count() - $scores->count(), 0),
-            'meetsKkm' => $average !== null && $average >= $kkm,
+            'goalSummaries' => $goalSummaries->map(function (array $goal) use ($student): array {
+                return [
+                    ...$goal,
+                    'categories' => $goal['categories']->map(function (array $category) use ($student): array {
+                        return [
+                            ...$category,
+                            'rows' => collect([$student->id => $category['rows']->get($student->id)]),
+                        ];
+                    }),
+                ];
+            }),
             'trend' => $trend,
         ];
     }

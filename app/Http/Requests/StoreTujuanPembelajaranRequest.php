@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Pengampu;
+use App\Models\TujuanPembelajaran;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -36,6 +37,7 @@ class StoreTujuanPembelajaranRequest extends FormRequest
             ],
             'tujuan' => ['required', 'string', 'max:5000'],
             'kktp' => ['required', 'numeric', 'min:0', 'max:100'],
+            'metode_rekap' => ['required', Rule::in(array_keys(TujuanPembelajaran::METODE_REKAP_LABELS))],
         ];
     }
 
@@ -54,6 +56,8 @@ class StoreTujuanPembelajaranRequest extends FormRequest
             'kktp.numeric' => 'KKTP harus berupa angka.',
             'kktp.min' => 'KKTP minimal 0.',
             'kktp.max' => 'KKTP maksimal 100.',
+            'metode_rekap.required' => 'Metode rekap TP wajib dipilih.',
+            'metode_rekap.in' => 'Metode rekap TP tidak valid.',
         ];
     }
 }

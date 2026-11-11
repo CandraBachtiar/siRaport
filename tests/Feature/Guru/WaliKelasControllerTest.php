@@ -11,6 +11,7 @@ use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\TujuanPembelajaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -140,7 +141,7 @@ class WaliKelasControllerTest extends TestCase
             ->assertSee('Alya Lintas Mapel')
             ->assertSee('Matematika')
             ->assertSee('IPA')
-            ->assertViewHas('studentRow', fn (array $row): bool => $row['overallAverage'] === 70.0 && $row['belowKkmCount'] === 1);
+            ->assertViewHas('studentRow', fn (array $row): bool => $row['overallAverage'] === 70.0 && $row['belowKktpCount'] === 0);
     }
 
     public function test_attention_page_aggregates_indicators_across_subjects(): void
@@ -166,9 +167,53 @@ class WaliKelasControllerTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Bima Perlu Dukungan')
-            ->assertSee('1 mata pelajaran di bawah KKM')
-            ->assertSee('1 nilai belum lengkap')
+            ->assertSee('1 nilai tugas belum diisi')
             ->assertSee('1 mata pelajaran belum cukup data untuk menentukan tren');
+    }
+
+    public function test_wali_attention_counts_a_tp_once_and_shows_category_findings_separately(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
+        $year = TahunAjaran::factory()->create(['aktif' => true]);
+        $student = Siswa::factory()->for($class)->create(['nama' => 'Alya Wali Satu TP']);
+        $assignment = Pengampu::factory()->create([
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+        ]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create([
+            'kktp' => 75,
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
+        ]);
+        $assessments = collect([
+            [Penilaian::KATEGORI_LINGKUP_MATERI, 'Lingkup Materi Wali'],
+            [Penilaian::KATEGORI_PTS, 'PTS Wali'],
+            [Penilaian::KATEGORI_AKHIR_SEMESTER, 'AAS Wali'],
+        ])->map(fn (array $assessment): Penilaian => Penilaian::factory()->for($assignment)->create([
+            'tujuan_pembelajaran_id' => $goal->id,
+            'kategori_asesmen' => $assessment[0],
+            'nama' => $assessment[1],
+        ]));
+        foreach ([60, 70, 90] as $index => $score) {
+            Nilai::factory()->create([
+                'siswa_id' => $student->id,
+                'penilaian_id' => $assessments[$index]->id,
+                'nilai' => $score,
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get(route('guru.wali.perhatian.index', [
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $year->id,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('1 TP memiliki hasil kategori sumatif di bawah KKTP (2 temuan kategori)')
+            ->assertSee('Pasangan siswa-TP unik di bawah KKTP')
+            ->assertSee('Temuan kategori di bawah KKTP')
+            ->assertViewHas('attentionRows', fn ($rows): bool => $rows->firstWhere('student.id', $student->id)['belowKktpCount'] === 1
+                && $rows->firstWhere('student.id', $student->id)['belowKktpCategoryCount'] === 2);
     }
 
     public function test_wali_attention_explains_when_the_selected_class_has_no_assignment(): void
@@ -226,7 +271,8 @@ class WaliKelasControllerTest extends TestCase
         $year = TahunAjaran::factory()->create(['aktif' => true]);
         $student = Siswa::factory()->for($class)->create();
         $assignment = Pengampu::factory()->create(['kelas_id' => $class->id, 'tahun_ajaran_id' => $year->id]);
-        $assessment = Penilaian::factory()->for($assignment)->create();
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create();
+        $assessment = Penilaian::factory()->for($assignment)->create(['tujuan_pembelajaran_id' => $goal->id]);
         Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => 90]);
 
         $response = $this->actingAs($user)->get(route('guru.wali.perhatian.index', [
@@ -469,7 +515,8 @@ class WaliKelasControllerTest extends TestCase
         $year = TahunAjaran::factory()->create(['aktif' => true]);
         $student = Siswa::factory()->for($class)->create();
         $assignment = Pengampu::factory()->create(['kelas_id' => $class->id, 'tahun_ajaran_id' => $year->id]);
-        $assessment = Penilaian::factory()->for($assignment)->create();
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create();
+        $assessment = Penilaian::factory()->for($assignment)->create(['tujuan_pembelajaran_id' => $goal->id]);
         Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id]);
 
         $response = $this->actingAs($user)->get(route('guru.wali.rapor.print', [
@@ -491,9 +538,11 @@ class WaliKelasControllerTest extends TestCase
         $year = TahunAjaran::factory()->create(['aktif' => true]);
         $student = Siswa::factory()->for($class)->create(['nama' => 'Citra Siap Cetak']);
         $assignment = Pengampu::factory()->create(['kelas_id' => $class->id, 'tahun_ajaran_id' => $year->id]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create();
+        $assessment = Penilaian::factory()->for($assignment)->create(['tujuan_pembelajaran_id' => $goal->id]);
         $score = Nilai::factory()->create([
             'siswa_id' => $student->id,
-            'penilaian_id' => Penilaian::factory()->for($assignment)->create()->id,
+            'penilaian_id' => $assessment->id,
             'nilai' => 88,
         ]);
         Deskripsi::factory()->for($score)->create([
@@ -539,7 +588,7 @@ class WaliKelasControllerTest extends TestCase
             ->assertSee('Dina Preview')
             ->assertSee('VIII C')
             ->assertSee('Bahasa Indonesia')
-            ->assertSee('Rapor belum siap dicetak.')
+            ->assertSee('Rapor belum siap ditinjau.')
             ->assertSee('Deskripsi rapor belum divalidasi untuk seluruh mata pelajaran.')
             ->assertDontSee('0 nilai belum lengkap.');
     }

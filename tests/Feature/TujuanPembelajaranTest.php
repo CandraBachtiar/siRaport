@@ -35,6 +35,7 @@ class TujuanPembelajaranTest extends TestCase
                 'urutan' => 1,
                 'tujuan' => 'Murid menjelaskan hubungan antar konsep.',
                 'kktp' => 72.5,
+                'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
             ])
             ->assertRedirectToRoute('guru.tujuan-pembelajaran.index', $assignment)
             ->assertSessionHas('success', 'Tujuan pembelajaran berhasil ditambahkan.');
@@ -44,6 +45,7 @@ class TujuanPembelajaranTest extends TestCase
             'urutan' => 1,
             'tujuan' => 'Murid menjelaskan hubungan antar konsep.',
             'kktp' => 72.5,
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
         ]);
     }
 
@@ -80,6 +82,7 @@ class TujuanPembelajaranTest extends TestCase
                 'urutan' => 2,
                 'tujuan' => 'Murid membandingkan dua strategi penyelesaian.',
                 'kktp' => 78.5,
+                'metode_rekap' => TujuanPembelajaran::METODE_NILAI_TERTINGGI,
             ])
             ->assertRedirectToRoute('guru.tujuan-pembelajaran.index', $assignment)
             ->assertSessionHas('success', 'Tujuan pembelajaran berhasil diperbarui.');
@@ -89,6 +92,7 @@ class TujuanPembelajaranTest extends TestCase
             'urutan' => 2,
             'tujuan' => 'Murid membandingkan dua strategi penyelesaian.',
             'kktp' => 78.5,
+            'metode_rekap' => TujuanPembelajaran::METODE_NILAI_TERTINGGI,
         ]);
     }
 
@@ -108,6 +112,7 @@ class TujuanPembelajaranTest extends TestCase
             'urutan' => 2,
             'tujuan' => 'Perubahan tanpa izin.',
             'kktp' => 75,
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
         ])->assertForbidden();
 
         $this->assertDatabaseMissing('tujuan_pembelajaran', [
@@ -142,6 +147,7 @@ class TujuanPembelajaranTest extends TestCase
                 'urutan' => 1,
                 'tujuan' => 'Tujuan lainnya.',
                 'kktp' => 75,
+                'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
             ])
             ->assertRedirect(route('guru.tujuan-pembelajaran.create', $assignment))
             ->assertSessionHasErrors([

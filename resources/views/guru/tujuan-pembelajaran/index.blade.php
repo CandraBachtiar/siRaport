@@ -21,19 +21,26 @@
                 Hubungkan satu per satu hanya setelah guru memastikan TP yang sesuai. Data tidak dipetakan otomatis.
             </div>
         @endif
+        @if ($unclassifiedAssessmentCount > 0)
+            <div class="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900" role="status">
+                <strong>{{ $unclassifiedAssessmentCount }} penilaian yang sudah dipetakan ke TP belum memiliki kategori pengolahan.</strong>
+                Tentukan apakah setiap penilaian merupakan umpan balik formatif, sumatif lingkup materi, PTS, atau asesmen akhir semester.
+            </div>
+        @endif
 
         <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
                     <caption class="sr-only">Daftar tujuan pembelajaran dan KKTP untuk {{ $assignment->mataPelajaran->nama }} kelas {{ $assignment->kelas->nama }}</caption>
-                    <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-4">Urutan</th><th class="px-5 py-4">Tujuan Pembelajaran</th><th class="px-5 py-4">KKTP</th><th class="px-5 py-4">Penilaian Terkait</th><th class="px-5 py-4 text-right">Aksi</th></tr></thead>
+                    <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-4">Urutan</th><th class="px-5 py-4">Tujuan Pembelajaran</th><th class="px-5 py-4">KKTP</th><th class="px-5 py-4">Metode Rekap TP</th><th class="px-5 py-4">Penilaian Terkait</th><th class="px-5 py-4 text-right">Aksi</th></tr></thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($tujuanPembelajaran as $tujuan)
                             <tr>
                                 <td class="whitespace-nowrap px-5 py-4 font-semibold text-slate-700">TP {{ $tujuan->urutan }}</td>
                                 <td class="min-w-[20rem] px-5 py-4 leading-6 text-slate-700">{{ $tujuan->tujuan }}</td>
                                 <td class="whitespace-nowrap px-5 py-4 font-semibold text-slate-700">{{ number_format((float) $tujuan->kktp, 2, ',', '.') }}</td>
-                                <td class="whitespace-nowrap px-5 py-4">@if ($tujuan->penilaian_count > 0)<span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">{{ $tujuan->penilaian_count }} penilaian</span>@else<span class="text-slate-500">Belum digunakan</span>@endif</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ \App\Models\TujuanPembelajaran::METODE_REKAP_LABELS[$tujuan->metode_rekap] ?? 'Belum dipilih' }}</td>
+                                <td class="whitespace-nowrap px-5 py-4">@if ($tujuan->penilaian_count > 0)<span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">{{ $tujuan->penilaian_count }} penilaian</span>@if ($tujuan->penilaian_belum_diklasifikasikan_count > 0)<span class="mt-1 block text-xs text-amber-700">{{ $tujuan->penilaian_belum_diklasifikasikan_count }} belum diklasifikasikan</span>@endif @else<span class="text-slate-500">Belum digunakan</span>@endif</td>
                                 <td class="whitespace-nowrap px-5 py-4 text-right">
                                     <div class="inline-flex items-center gap-2">
                                         <a href="{{ route('guru.tujuan-pembelajaran.edit', [$assignment, $tujuan]) }}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Edit</a>
@@ -50,7 +57,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-5 py-14 text-center"><h2 class="font-bold text-slate-700">Belum ada tujuan pembelajaran</h2><p class="mt-2 text-sm text-slate-500">Tambahkan TP dan KKTP untuk mulai mengaitkan penilaian baru.</p><a href="{{ route('guru.tujuan-pembelajaran.create', $assignment) }}" class="rk-button rk-button-primary mt-5">Tambah TP Pertama</a></td></tr>
+                            <tr><td colspan="6" class="px-5 py-14 text-center"><h2 class="font-bold text-slate-700">Belum ada tujuan pembelajaran</h2><p class="mt-2 text-sm text-slate-500">Tambahkan TP, KKTP, dan metode rekap sebelum mengaitkan penilaian baru.</p><a href="{{ route('guru.tujuan-pembelajaran.create', $assignment) }}" class="rk-button rk-button-primary mt-5">Tambah TP Pertama</a></td></tr>
                         @endforelse
                     </tbody>
                 </table>

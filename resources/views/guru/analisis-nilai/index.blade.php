@@ -22,23 +22,23 @@
         @elseif ($selectedAssignment === null)
             <div class="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center"><span class="mx-auto grid size-12 place-items-center rounded-xl bg-blue-50 text-blue-700"><x-nav-icon name="chart" /></span><h2 class="mt-4 font-bold text-slate-700">Pilih mata pelajaran dan kelas</h2><p class="mt-2 text-sm text-slate-500">Analisis akan tampil setelah konteks pembelajaran dipilih.</p></div>
         @else
-            <div class="mt-6 flex flex-col gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-blue-900 sm:flex-row sm:items-center sm:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">Analisis Tingkat Kelas</p><h2 class="mt-1 text-lg font-extrabold">{{ $selectedAssignment->mataPelajaran->nama }} · {{ $selectedAssignment->kelas->tingkat }} {{ $selectedAssignment->kelas->nama }}</h2><p class="mt-1 text-xs">{{ $selectedAssignment->tahunAjaran->tahun }} · {{ $selectedAssignment->tahunAjaran->semester }}</p></div><span class="rounded-full bg-white/80 px-3 py-1 text-xs font-bold">KKM {{ number_format((float) $selectedAssignment->mataPelajaran->kkm, 0, ',', '.') }}</span></div>
+            <div class="mt-6 flex flex-col gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-blue-900 sm:flex-row sm:items-center sm:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">Analisis Tingkat Kelas</p><h2 class="mt-1 text-lg font-extrabold">{{ $selectedAssignment->mataPelajaran->nama }} · {{ $selectedAssignment->kelas->tingkat }} {{ $selectedAssignment->kelas->nama }}</h2><p class="mt-1 text-xs">{{ $selectedAssignment->tahunAjaran->tahun }} · {{ $selectedAssignment->tahunAjaran->semester }}</p></div><span class="rounded-full bg-white/80 px-3 py-1 text-xs font-bold">Nilai tugas per penilaian</span></div>
 
             <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 @foreach ([
-                    ['label' => 'Rata-rata', 'value' => $classStats['average'] === null ? '—' : number_format($classStats['average'], 2, ',', '.')],
+                    ['label' => 'Rata-rata nilai terisi', 'value' => $classStats['average'] === null ? '—' : number_format($classStats['average'], 2, ',', '.')],
                     ['label' => 'Nilai Tertinggi', 'value' => $classStats['highest'] === null ? '—' : number_format($classStats['highest'], 2, ',', '.')],
                     ['label' => 'Nilai Terendah', 'value' => $classStats['lowest'] === null ? '—' : number_format($classStats['lowest'], 2, ',', '.')],
-                    ['label' => 'Di bawah KKM', 'value' => $classStats['belowKkmCount']],
-                    ['label' => 'Mencapai KKM', 'value' => $classStats['meetsKkmCount']],
+                    ['label' => 'Penilaian terdata', 'value' => $classStats['assessmentCount']],
+                    ['label' => 'Kategori hasil TP', 'value' => $classStats['classifiedOutcomeCount']],
                 ] as $stat)
                     <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">{{ $stat['label'] }}</p><p class="mt-3 text-2xl font-extrabold text-[#102d4b]">{{ $stat['value'] }}</p></article>
                 @endforeach
             </div>
 
             <div class="mt-6 grid gap-6 xl:grid-cols-2">
-                <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div><h3 class="font-bold text-[#102d4b]">Rata-rata Kelas per Penilaian</h3><p class="mt-1 text-sm text-slate-500">Garis diurutkan berdasarkan tanggal, lalu urutan penilaian. Pilih nama penilaian untuk melihat rincian nilai siswa dan mengubah nilai.</p></div><x-charts.line-chart :points="$classSeries" title="Grafik rata-rata kelas per penilaian" empty-message="Belum ada nilai tersimpan untuk penilaian pada kelas dan mata pelajaran ini." class="mt-5" /></article>
-                <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div><h3 class="font-bold text-[#102d4b]">Distribusi Rata-rata Siswa</h3><p class="mt-1 text-sm text-slate-500">Setiap siswa dihitung satu kali berdasarkan rata-rata nilai yang sudah terisi.</p></div><x-charts.bar-chart :items="$distribution" :has-data="$distribution->sum('value') > 0" title="Grafik distribusi rata-rata siswa" class="mt-5" /></article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div><h3 class="font-bold text-[#102d4b]">Rata-rata Kelas per Penilaian</h3><p class="mt-1 text-sm text-slate-500">Setiap titik adalah rata-rata nilai pada satu penilaian, bukan nilai akhir mata pelajaran. Garis diurutkan berdasarkan tanggal. Pilih nama penilaian untuk melihat nilai siswa.</p></div><x-charts.line-chart :points="$classSeries" title="Grafik rata-rata kelas per penilaian" empty-message="Belum ada nilai tersimpan untuk penilaian pada kelas dan mata pelajaran ini." class="mt-5" /></article>
+                <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div><h3 class="font-bold text-[#102d4b]">Distribusi ringkasan nilai siswa</h3><p class="mt-1 text-sm text-slate-500">Ringkasan aritmetika nilai tugas terisi untuk pemantauan; tidak digunakan sebagai nilai akhir atau dibandingkan dengan KKM.</p></div><x-charts.bar-chart :items="$distribution" :has-data="$distribution->sum('value') > 0" title="Distribusi ringkasan nilai tugas" class="mt-5" /></article>
             </div>
 
             @if ($studentAnalysis !== null)
@@ -53,14 +53,35 @@
                     <div class="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.14em] text-emerald-600">Analisis Tingkat Siswa</p><h3 class="mt-2 text-xl font-extrabold text-[#102d4b]">{{ $studentAnalysis['student']->nama }}</h3><p class="mt-1 text-sm text-slate-500">NIS {{ $studentAnalysis['student']->nis }}</p></div><span class="rounded-full px-3 py-1.5 text-xs font-bold {{ $trendTone }}">Tren {{ $studentAnalysis['trend']['label'] }}</span></div>
                     <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                         @foreach ([
-                            ['label' => 'Rata-rata', 'value' => $studentAnalysis['average']],
+                            ['label' => 'Rata-rata nilai tugas', 'value' => $studentAnalysis['average']],
                             ['label' => 'Nilai Terakhir', 'value' => $studentAnalysis['latest']],
                             ['label' => 'Nilai Tertinggi', 'value' => $studentAnalysis['highest']],
                             ['label' => 'Nilai Terendah', 'value' => $studentAnalysis['lowest']],
                         ] as $stat)
                             <div class="rounded-xl bg-slate-50 p-4"><p class="text-xs font-bold text-slate-400">{{ $stat['label'] }}</p><p class="mt-2 text-xl font-extrabold text-slate-800">{{ $stat['value'] === null ? '—' : number_format($stat['value'], 2, ',', '.') }}</p></div>
                         @endforeach
-                        <div class="rounded-xl bg-slate-50 p-4"><p class="text-xs font-bold text-slate-400">Status KKM</p><p class="mt-2 text-sm font-extrabold {{ $studentAnalysis['average'] === null ? 'text-slate-500' : ($studentAnalysis['meetsKkm'] ? 'text-emerald-700' : 'text-rose-700') }}">{{ $studentAnalysis['average'] === null ? 'Belum ada nilai' : ($studentAnalysis['meetsKkm'] ? 'Mencapai KKM' : 'Di bawah KKM') }}</p></div>
+                        <div class="rounded-xl bg-slate-50 p-4"><p class="text-xs font-bold text-slate-400">Nilai belum diisi</p><p class="mt-2 text-sm font-extrabold text-slate-700">{{ $studentAnalysis['missingCount'] }}</p></div>
+                    </div>
+                    <div class="mt-6 grid gap-4">
+                        @foreach ($studentAnalysis['goalSummaries'] as $goalSummary)
+                            <section class="rounded-xl border border-slate-200 p-4">
+                                <h4 class="font-bold text-[#102d4b]">TP {{ $goalSummary['goal']->urutan }} · {{ $goalSummary['goal']->tujuan }}</h4>
+                                <p class="mt-1 text-xs text-slate-500">KKTP {{ number_format((float) $goalSummary['goal']->kktp, 2, ',', '.') }} · Metode {{ \App\Models\TujuanPembelajaran::METODE_REKAP_LABELS[$goalSummary['goal']->metode_rekap] ?? 'belum dipilih' }}</p>
+                                @foreach ($goalSummary['categories'] as $category)
+                                    @php($result = $category['rows']->get($studentAnalysis['student']->id))
+                                    <p class="mt-3 text-sm"><strong>{{ $category['label'] }}:</strong>
+                                        @if ($result['missingCount'] > 0)
+                                            {{ $category['isFormative'] ? 'Umpan balik belum lengkap' : ($result['score'] === null ? '—' : 'Hasil sementara: '.number_format($result['score'], 2, ',', '.')) }}
+                                            <small class="mt-1 block text-slate-500">{{ $result['filledCount'] }}/{{ $result['totalCount'] }} asesmen terisi</small>
+                                        @else
+                                            {{ $category['isFormative'] || $result['score'] === null ? '—' : number_format($result['score'], 2, ',', '.') }}
+                                        @endif
+                                        <span class="text-slate-500">· {{ $result['status'] }}</span>
+                                    </p>
+                                @endforeach
+                                @if ($goalSummary['unclassifiedAssessments']->isNotEmpty())<p class="mt-3 text-xs text-amber-700">{{ $goalSummary['unclassifiedAssessments']->count() }} penilaian belum diklasifikasikan.</p>@endif
+                            </section>
+                        @endforeach
                     </div>
                     <div class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]"><x-charts.line-chart :points="$studentAnalysis['series']" title="Grafik perkembangan nilai {{ $studentAnalysis['student']->nama }}" /><div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-900"><strong class="block">Berdasarkan perkembangan nilai</strong><p class="mt-2">{{ $studentAnalysis['trend']['explanation'] }}</p>@if ($studentAnalysis['missingCount'] > 0)<p class="mt-3 font-semibold">{{ $studentAnalysis['missingCount'] }} penilaian belum memiliki nilai.</p>@endif</div></div>
                 </article>
