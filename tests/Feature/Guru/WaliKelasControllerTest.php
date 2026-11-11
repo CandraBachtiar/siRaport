@@ -13,6 +13,7 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\TujuanPembelajaran;
 use App\Models\User;
+use App\Services\WaliKelasService;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
 
@@ -552,9 +553,13 @@ class WaliKelasControllerTest extends TestCase
             'penilaian_id' => $assessment->id,
             'nilai' => 88,
         ]);
-        Deskripsi::factory()->for($score)->create([
+        $description = Deskripsi::factory()->for($score)->create([
             'deskripsi_akhir' => 'Menunjukkan capaian yang konsisten dan sangat baik.',
             'status' => 'tervalidasi',
+        ]);
+        $description->update([
+            'validasi_fingerprint' => app(WaliKelasService::class)
+                ->subjectSummary($assignment, $student)['academicFingerprint'],
         ]);
 
         $response = $this->actingAs($user)->get(route('guru.wali.rapor.print', [

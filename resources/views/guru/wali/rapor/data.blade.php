@@ -1,0 +1,14 @@
+@extends('layouts.guru-workspace')
+@section('title', 'Data Rapor '.$student->nama)
+@section('content')
+<section class="mx-auto max-w-4xl"><h1 class="text-3xl font-extrabold text-[#102d4b]">Data Rapor: {{ $student->nama }}</h1><p class="mt-2 text-sm text-slate-500">NIS {{ $student->nis }} · NISN {{ $student->nisn ?: 'Belum tersedia' }}</p>
+    <form method="GET" class="mt-5"><label for="tahun_ajaran_id" class="text-sm font-bold">Periode</label><select id="tahun_ajaran_id" name="tahun_ajaran_id" onchange="this.form.submit()" class="rk-field mt-2">@foreach ($years as $yearOption)<option value="{{ $yearOption->id }}" @selected($yearOption->id === $year->id)>{{ $yearOption->tahun }} · {{ $yearOption->semester }}</option>@endforeach</select></form>
+    <form method="POST" action="{{ route('guru.wali.rapor.data.update', ['siswa' => $student, 'tahun_ajaran_id' => $year->id]) }}" class="mt-5 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6">@csrf @method('PUT')<input type="hidden" name="tahun_ajaran_id" value="{{ $year->id }}">
+        @foreach (['sakit' => 'Sakit', 'izin' => 'Izin', 'tanpa_keterangan' => 'Tanpa keterangan'] as $field => $label)<div class="grid gap-2"><label for="{{ $field }}" class="text-sm font-bold">{{ $label }} (kosong berarti belum diisi)</label><input id="{{ $field }}" name="{{ $field }}" type="number" min="0" step="1" value="{{ old($field, $record?->$field) }}" class="rk-field">@error($field)<p class="text-sm text-red-600">{{ $message }}</p>@enderror</div>@endforeach
+        <div class="grid gap-2"><label for="catatan_wali_kelas" class="text-sm font-bold">Catatan Wali Kelas</label><textarea id="catatan_wali_kelas" name="catatan_wali_kelas" rows="4" class="rk-field">{{ old('catatan_wali_kelas', $record?->catatan_wali_kelas) }}</textarea>@error('catatan_wali_kelas')<p class="text-sm text-red-600">{{ $message }}</p>@enderror</div>
+        <h2 class="font-bold">Ekstrakurikuler</h2>@foreach ($activities as $index => $activity)<div class="grid gap-2 rounded-xl bg-slate-50 p-4"><input name="ekstrakurikuler[{{ $index }}][nama_kegiatan]" value="{{ $activity->nama_kegiatan }}" class="rk-field"><input name="ekstrakurikuler[{{ $index }}][keterangan]" value="{{ $activity->keterangan }}" class="rk-field"></div>@endforeach
+        <div class="grid gap-2"><label class="text-sm">Tambah kegiatan</label><input name="ekstrakurikuler[{{ $activities->count() }}][nama_kegiatan]" placeholder="Nama kegiatan" class="rk-field"><input name="ekstrakurikuler[{{ $activities->count() }}][keterangan]" placeholder="Keterangan atau capaian" class="rk-field"></div>
+        <p class="text-sm text-amber-800">Keputusan kenaikan kelas belum tersedia di formulir ini. Keputusan hanya dapat dicatat pihak berwenang dan hanya untuk semester genap.</p><button class="rk-button rk-button-primary">Simpan Data Rapor</button>
+    </form>
+</section>
+@endsection

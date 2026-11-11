@@ -108,8 +108,43 @@ trait CreatesAdminTestSchema
             $table->text('rekomendasi')->nullable();
             $table->text('deskripsi_akhir')->nullable();
             $table->enum('status', ['draft', 'tervalidasi'])->default('draft');
+            $table->string('validasi_fingerprint', 64)->nullable();
             $table->unique('nilai_id', 'deskripsi_nilai_id_unique');
             $table->timestamps();
+        });
+
+        Schema::create('identitas_sekolah', function (Blueprint $table): void {
+            $table->id();
+            $table->string('nama_sekolah');
+            $table->string('npsn')->nullable();
+            $table->text('alamat')->nullable();
+            $table->string('nama_kepala_sekolah')->nullable();
+            $table->string('nip_kepala_sekolah')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('data_rapor_siswa', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('siswa_id')->constrained('siswa');
+            $table->foreignId('tahun_ajaran_id')->constrained('tahun_ajaran');
+            $table->unsignedSmallInteger('sakit')->nullable();
+            $table->unsignedSmallInteger('izin')->nullable();
+            $table->unsignedSmallInteger('tanpa_keterangan')->nullable();
+            $table->text('catatan_wali_kelas')->nullable();
+            $table->enum('keputusan_kenaikan', ['naik', 'tidak_naik'])->nullable();
+            $table->foreignId('keputusan_oleh')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+            $table->unique(['siswa_id', 'tahun_ajaran_id']);
+        });
+
+        Schema::create('ekstrakurikuler_siswa', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('siswa_id')->constrained('siswa');
+            $table->foreignId('tahun_ajaran_id')->constrained('tahun_ajaran');
+            $table->string('nama_kegiatan');
+            $table->text('keterangan')->nullable();
+            $table->timestamps();
+            $table->unique(['siswa_id', 'tahun_ajaran_id', 'nama_kegiatan']);
         });
 
         Schema::create('mata_pelajaran', function (Blueprint $table): void {
