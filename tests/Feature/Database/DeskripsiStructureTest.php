@@ -99,8 +99,11 @@ class DeskripsiStructureTest extends TestCase
         $indexes = collect(Schema::getIndexes('deskripsi'));
 
         $this->assertSame([
-            'id', 'nilai_id', 'rekomendasi', 'deskripsi_akhir', 'status', 'created_at', 'updated_at',
+            'id', 'nilai_id', 'rekomendasi', 'deskripsi_akhir', 'status', 'validasi_fingerprint', 'created_at', 'updated_at',
         ], $columns);
+        $fingerprint = collect(Schema::getColumns('deskripsi'))->firstWhere('name', 'validasi_fingerprint');
+        $this->assertNotNull($fingerprint);
+        $this->assertTrue($fingerprint['nullable']);
         $this->assertFalse(Schema::hasColumn('deskripsi', 'siswa_id'));
         $this->assertFalse(Schema::hasColumn('deskripsi', 'mata_pelajaran_id'));
         $this->assertTrue($indexes->contains(

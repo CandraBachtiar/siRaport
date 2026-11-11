@@ -3,11 +3,16 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Models\DataRaporSiswa;
+use App\Models\EkstrakurikulerSiswa;
+use App\Models\IdentitasSekolah;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use App\Services\GuruDashboardService;
 use App\Services\WaliKelasService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -83,11 +88,14 @@ class WaliKelasController extends Controller
             abort(404);
         }
 
-        return view('guru.wali.rapor.show', [...$data, 'studentRow' => $studentRow]);
+        return view('guru.wali.rapor.show', [...$data, 'studentRow' => $studentRow, ...$this->reportDetails($siswa, $data['selectedSchoolYear'])]);
     }
 
     public function print(Request $request, Siswa $siswa): View|RedirectResponse
     {
+        $printOptions = $request->validate([
+            'format' => ['sometimes', 'string', 'in:lengkap,isi'],
+        ]);
         $data = $this->viewData($request, $siswa->kelas_id);
         $studentRow = $data['studentRows']->firstWhere('student.id', $siswa->id);
 
@@ -107,7 +115,12 @@ class WaliKelasController extends Controller
             ])->with('error', 'Rapor belum dapat dicetak: '.$incompleteRequirements->implode(' dan ').'.');
         }
 
-        return view('guru.wali.rapor.print', [...$data, 'studentRow' => $studentRow]);
+        return view('guru.wali.rapor.print', [
+            ...$data,
+            'studentRow' => $studentRow,
+            'printMode' => $printOptions['format'] ?? 'lengkap',
+            ...$this->reportDetails($siswa, $data['selectedSchoolYear']),
+        ]);
     }
 
     public function profile(Request $request): View
@@ -131,6 +144,16 @@ class WaliKelasController extends Controller
                 $request->integer('tahun_ajaran_id') ?: null,
             ),
             ...$this->dashboardService->capabilities($guru),
+        ];
+    }
+
+    /** @return array{school: ?IdentitasSekolah, reportRecord: ?DataRaporSiswa, extracurricular: Collection<int, EkstrakurikulerSiswa>} */
+    private function reportDetails(Siswa $student, ?TahunAjaran $year): array
+    {
+        return [
+            'school' => IdentitasSekolah::query()->first(),
+            'reportRecord' => $year === null ? null : DataRaporSiswa::query()->where('siswa_id', $student->id)->where('tahun_ajaran_id', $year->id)->first(),
+            'extracurricular' => $year === null ? collect() : EkstrakurikulerSiswa::query()->where('siswa_id', $student->id)->where('tahun_ajaran_id', $year->id)->orderBy('nama_kegiatan')->get(),
         ];
     }
 }

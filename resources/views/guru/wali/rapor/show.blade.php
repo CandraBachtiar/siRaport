@@ -6,8 +6,17 @@
     <section class="mx-auto max-w-6xl">
         <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div><a href="{{ route('guru.wali.rapor.index', ['kelas_id' => $selectedClass?->id, 'tahun_ajaran_id' => $selectedSchoolYear?->id]) }}" class="text-sm font-bold text-emerald-700">← Data Rapor</a><p class="rk-eyebrow mt-5">Preview Rapor</p><h1 class="mt-2 text-3xl font-extrabold text-[#102d4b]">{{ $studentRow['student']->nama }}</h1></div>
-            <div class="flex flex-wrap gap-3">@if ($studentRow['readyToPrint'])<a href="{{ route('guru.wali.rapor.print', ['siswa' => $studentRow['student'], 'tahun_ajaran_id' => $selectedSchoolYear?->id]) }}" class="rk-button rk-button-primary"><x-nav-icon name="printer" /> Cetak / Simpan PDF</a>@else<span class="rk-button cursor-not-allowed bg-slate-200 text-slate-500" aria-disabled="true" title="Lengkapi data yang tercantum pada status kesiapan rapor.">Cetak Belum Tersedia</span>@endif</div>
+            <div class="flex flex-wrap gap-3">
+                @if ($studentRow['readyToPrint'])
+                    <a href="{{ route('guru.wali.rapor.print', ['siswa' => $studentRow['student'], 'tahun_ajaran_id' => $selectedSchoolYear?->id, 'format' => 'lengkap']) }}" class="rk-button rk-button-primary"><x-nav-icon name="printer" /> Cetak Lengkap</a>
+                    <a href="{{ route('guru.wali.rapor.print', ['siswa' => $studentRow['student'], 'tahun_ajaran_id' => $selectedSchoolYear?->id, 'format' => 'isi']) }}" class="rk-button rk-button-secondary"><x-nav-icon name="printer" /> Cetak Isi</a>
+                @else
+                    <span class="rk-button cursor-not-allowed bg-slate-200 text-slate-500" aria-disabled="true" title="Lengkapi data yang tercantum pada status kesiapan rapor.">Cetak Lengkap Belum Tersedia</span>
+                    <span class="rk-button cursor-not-allowed bg-slate-200 text-slate-500" aria-disabled="true" title="Lengkapi data yang tercantum pada status kesiapan rapor.">Cetak Isi Belum Tersedia</span>
+                @endif
+            </div>
         </div>
+        <a href="{{ route('guru.wali.rapor.data.edit', ['siswa' => $studentRow['student'], 'tahun_ajaran_id' => $selectedSchoolYear?->id]) }}" class="rk-button rk-button-secondary mt-4">Kelola Data Rapor</a>
         @unless ($studentRow['readyToPrint'])
             <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800" role="status">
                 <strong class="block">Rapor belum siap ditinjau.</strong>
@@ -44,10 +53,25 @@
                                 @if ($goal['unclassifiedAssessments']->isNotEmpty())<p class="mt-2 text-xs text-amber-800">{{ $goal['unclassifiedAssessments']->count() }} penilaian belum diklasifikasikan.</p>@endif
                             </div>
                         @endforeach
-                        <p class="mt-4 border-t border-slate-100 pt-4 text-sm leading-6">{{ $subject['description']?->deskripsi_akhir ?: 'Deskripsi belum ditinjau.' }}</p>
+                        <p class="mt-4 border-t border-slate-100 pt-4 text-sm leading-6">
+                            @if ($subject['description'] === null)
+                                Deskripsi belum ditinjau.
+                            @elseif ($subject['descriptionIsCurrent'])
+                                {{ $subject['description']->deskripsi_akhir }}
+                            @else
+                                <strong class="text-amber-800">Draf deskripsi tersimpan; perlu ditinjau ulang.</strong>
+                                {{ $subject['description']->deskripsi_akhir }}
+                            @endif
+                        </p>
                     </section>
                 @endforeach
             </div>
+            <section class="mt-8 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2"><div><h3 class="font-bold">Identitas Sekolah</h3><p class="mt-2 text-sm">{{ $school?->nama_sekolah ?: 'Belum tersedia' }}</p><p class="text-sm">{{ $school?->npsn ? 'NPSN '.$school->npsn : 'NPSN belum tersedia' }}</p><p class="text-sm">{{ $school?->alamat ?: 'Alamat belum tersedia' }}</p><p class="text-sm">Kepala Sekolah: {{ $school?->nama_kepala_sekolah ?: 'Belum tersedia' }} · NIP {{ $school?->nip_kepala_sekolah ?: 'Belum tersedia' }}</p></div><div><h3 class="font-bold">Ekstrakurikuler</h3>@forelse ($extracurricular as $activity)<p class="mt-2 text-sm">{{ $activity->nama_kegiatan }}{{ $activity->keterangan ? ': '.$activity->keterangan : '' }}</p>@empty<p class="mt-2 text-sm text-slate-500">Belum tersedia</p>@endforelse</div><div><h3 class="font-bold">Kehadiran</h3><p class="mt-2 text-sm">Sakit: {{ $reportRecord?->sakit ?? 'Belum diisi' }} · Izin: {{ $reportRecord?->izin ?? 'Belum diisi' }} · Tanpa keterangan: {{ $reportRecord?->tanpa_keterangan ?? 'Belum diisi' }}</p></div><div><h3 class="font-bold">Catatan Wali Kelas</h3><p class="mt-2 whitespace-pre-line text-sm">{{ $reportRecord?->catatan_wali_kelas ?: 'Belum tersedia' }}</p></div>@if ($selectedSchoolYear?->semester === 'Genap')<div class="sm:col-span-2"><h3 class="font-bold">Keputusan Kenaikan Kelas</h3><p class="mt-2 text-sm">{{ match ($reportRecord?->keputusan_kenaikan) { 'naik' => 'Naik kelas', 'tidak_naik' => 'Tidak naik kelas', default => 'Belum ditetapkan' } }}</p></div>@endif</section>
+            <section class="mt-8 grid gap-4 border-t border-slate-200 pt-5 text-sm sm:grid-cols-3" aria-label="Penanda tangan rapor">
+                <div><h3 class="font-bold">Orang Tua/Wali</h3><p class="mt-2 text-slate-500">Nama belum tersedia</p></div>
+                <div><h3 class="font-bold">Wali Kelas</h3><p class="mt-2">{{ $guru->nama }}</p><p class="text-slate-500">{{ $guru->nip ? 'NIP '.$guru->nip : 'NIP belum tersedia' }}</p></div>
+                <div><h3 class="font-bold">Kepala Sekolah</h3><p class="mt-2">{{ $school?->nama_kepala_sekolah ?: 'Nama belum tersedia' }}</p><p class="text-slate-500">{{ $school?->nip_kepala_sekolah ? 'NIP '.$school->nip_kepala_sekolah : 'NIP belum tersedia' }}</p></div>
+            </section>
         </article>
     </section>
 @endsection

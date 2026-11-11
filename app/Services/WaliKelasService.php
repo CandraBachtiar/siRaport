@@ -12,6 +12,7 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class WaliKelasService
 {
@@ -142,21 +143,29 @@ class WaliKelasService
 
     public function saveDescription(Pengampu $assignment, Siswa $student, string $content, string $status): ?Deskripsi
     {
-        $summary = $this->subjectSummary($assignment, $student);
-        $targetScore = $summary['description']?->nilai ?? $summary['referenceScore'];
+        return DB::transaction(function () use ($assignment, $student, $content, $status): ?Deskripsi {
+            $assessmentIds = $assignment->penilaian()->orderBy('id')->pluck('id');
+            DB::table('tujuan_pembelajaran')->where('pengampu_id', $assignment->id)->orderBy('id')->lockForUpdate()->get();
+            DB::table('penilaian')->where('pengampu_id', $assignment->id)->orderBy('id')->lockForUpdate()->get();
+            DB::table('nilai')->whereIn('penilaian_id', $assessmentIds)->where('siswa_id', $student->id)->orderBy('id')->lockForUpdate()->get();
 
-        if (! $targetScore instanceof Nilai) {
-            return null;
-        }
+            $summary = $this->subjectSummary($assignment, $student);
+            $targetScore = $summary['description']?->nilai ?? $summary['referenceScore'];
 
-        return Deskripsi::query()->updateOrCreate(
-            ['nilai_id' => $targetScore->id],
-            [
-                'rekomendasi' => $summary['suggestion'],
-                'deskripsi_akhir' => $content,
-                'status' => $status,
-            ],
-        );
+            if (! $targetScore instanceof Nilai || ($status === 'tervalidasi' && ! $summary['isComplete'])) {
+                return null;
+            }
+
+            return Deskripsi::query()->updateOrCreate(
+                ['nilai_id' => $targetScore->id],
+                [
+                    'rekomendasi' => $summary['suggestion'],
+                    'deskripsi_akhir' => $content,
+                    'status' => $status,
+                    'validasi_fingerprint' => $status === 'tervalidasi' ? $summary['academicFingerprint'] : null,
+                ],
+            );
+        });
     }
 
     /** @param Collection<int, int> $studentIds */
@@ -233,7 +242,7 @@ class WaliKelasService
 
         $allScoresComplete = $subjects->isNotEmpty() && $subjects->every(fn (array $subject): bool => $subject['isComplete']);
         $allDescriptionsValidated = $subjects->isNotEmpty()
-            && $subjects->every(fn (array $subject): bool => $subject['description']?->status === 'tervalidasi');
+            && $subjects->every(fn (array $subject): bool => $subject['descriptionIsCurrent']);
         $readyToPrint = $allScoresComplete && $allDescriptionsValidated;
 
         return [
@@ -302,6 +311,30 @@ class WaliKelasService
             )))
             ->count();
         $hasSumativeOutcomes = $sumativeCategories->isNotEmpty();
+        $academicSnapshot = [
+            'goals' => $assignment->tujuanPembelajaran
+                ->filter(fn ($goal): bool => $assignment->penilaian->contains(fn (Penilaian $assessment): bool => $assessment->tujuan_pembelajaran_id === $goal->id && $assessment->kategori_asesmen !== Penilaian::KATEGORI_FORMATIF))
+                ->map(fn ($goal): array => [
+                    'id' => $goal->id,
+                    'tujuan' => $goal->tujuan,
+                    'kktp' => (string) $goal->kktp,
+                    'metode_rekap' => $goal->metode_rekap,
+                ])->all(),
+            'assessments' => $assignment->penilaian
+                ->filter(fn (Penilaian $assessment): bool => $assessment->tujuan_pembelajaran_id === null || $assessment->kategori_asesmen !== Penilaian::KATEGORI_FORMATIF)
+                ->map(fn (Penilaian $assessment): array => [
+                    'id' => $assessment->id,
+                    'tp_id' => $assessment->tujuan_pembelajaran_id,
+                    'kategori' => $assessment->kategori_asesmen,
+                    'nilai' => $assessment->nilai->firstWhere('siswa_id', $student->id)?->nilai === null
+                        ? null
+                        : (string) $assessment->nilai->firstWhere('siswa_id', $student->id)->nilai,
+                ])->all(),
+        ];
+        $academicFingerprint = hash('sha256', json_encode($academicSnapshot, JSON_THROW_ON_ERROR));
+        $descriptionIsCurrent = $description?->status === 'tervalidasi'
+            && $description->validasi_fingerprint !== null
+            && hash_equals($description->validasi_fingerprint, $academicFingerprint);
         $hasUnclassifiedAssessments = $assignment->penilaian->contains(fn (Penilaian $assessment): bool => $assessment->tujuan_pembelajaran_id === null)
             || $goalSummaries->contains(fn (array $goal): bool => $goal['unclassifiedAssessments']->isNotEmpty());
         $isComplete = $hasSumativeOutcomes
@@ -323,6 +356,8 @@ class WaliKelasService
             'goalSummaries' => $goalSummaries,
             'trend' => $trend,
             'description' => $description,
+            'descriptionIsCurrent' => $descriptionIsCurrent,
+            'academicFingerprint' => $academicFingerprint,
             'referenceScore' => $referenceScore,
             'calculationMode' => 'Ringkasan nilai tugas terisi; bukan nilai akhir',
         ];
@@ -374,7 +409,10 @@ class WaliKelasService
             return 'Belum ada hasil sumatif per TP yang dapat digunakan untuk menyusun deskripsi '.$student->nama.' pada '.$subjectName.'.';
         }
 
-        $parts = [];
+        $strongest = collect();
+        $needsImprovement = collect();
+        $insufficientCategories = collect();
+
         foreach ($summary['goalSummaries'] as $goal) {
             foreach ($goal['categories'] as $category) {
                 if ($category['isFormative']) {
@@ -382,8 +420,37 @@ class WaliKelasService
                 }
 
                 $result = $category['rows']->get($student->id);
-                $parts[] = 'TP '.$goal['goal']->urutan.' · '.$category['label'].': '.$result['status'].'.';
+                $label = 'TP '.$goal['goal']->urutan.' ('.$goal['goal']->tujuan.')';
+
+                if ($result['isComplete'] && $result['attainment'] === true) {
+                    $strongest->push(['label' => $label, 'score' => $result['score']]);
+                } elseif ($result['isComplete'] && $result['attainment'] === false) {
+                    $needsImprovement->push($label);
+                } else {
+                    $insufficientCategories->push($label);
+                }
             }
+        }
+
+        $parts = [];
+        if ($strongest->isNotEmpty()) {
+            $highestScore = $strongest->max('score');
+            $labels = $strongest->where('score', $highestScore)->pluck('label')->implode(', ');
+            $parts[] = 'Capaian terkuat: '.$labels.' ('.$highestScore.').';
+        }
+
+        if ($needsImprovement->isNotEmpty()) {
+            $parts[] = 'Perlu ditingkatkan: '.implode(', ', $needsImprovement->all()).' karena hasil sumatif belum mencapai KKTP.';
+        } elseif ($strongest->isNotEmpty()) {
+            $parts[] = 'Seluruh capaian sumatif yang lengkap telah mencapai KKTP; tidak ada bagian yang ditandai belum tuntas.';
+        }
+
+        if ($parts === []) {
+            $parts[] = 'Data sumatif per TP belum cukup untuk menyusun rekomendasi capaian.';
+        }
+
+        if ($insufficientCategories->isNotEmpty()) {
+            $parts[] = 'Hasil belum lengkap untuk: '.implode(', ', $insufficientCategories->unique()->all()).'.';
         }
 
         if ($summary['hasUnclassifiedAssessments']) {

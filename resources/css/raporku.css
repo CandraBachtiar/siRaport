@@ -152,10 +152,138 @@
     }
 }
 
+.report-sheet {
+    box-sizing: border-box;
+    margin-inline: auto;
+    max-width: 210mm;
+    width: 100%;
+}
+
+.report-cover {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 260mm;
+    text-align: center;
+}
+
+.report-cover__identity,
+.report-cover__student {
+    max-width: 145mm;
+    width: 100%;
+}
+
+.report-subject-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.report-subject-table th,
+.report-subject-table td {
+    border: 1px solid #94a3b8;
+    padding: 0.55rem 0.7rem;
+    text-align: left;
+    vertical-align: top;
+}
+
+.report-subject-table th {
+    background: #f1f5f9;
+}
+
+.report-description {
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+    widows: 3;
+    orphans: 3;
+}
+
+.report-signatures,
+.report-signature {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
 @media print {
+    @page {
+        size: A4 portrait;
+        margin: 14mm;
+    }
+
+    html,
     body {
+        background: #fff !important;
+        color: #0f172a;
         font-size: 10pt;
         line-height: 1.35;
+        margin: 0;
+        padding: 0;
+    }
+
+    .no-print,
+    nav,
+    aside,
+    button,
+    [data-dashboard-sidebar],
+    [data-dashboard-backdrop] {
+        display: none !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    .report-sheet {
+        background: #fff !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        margin: 0;
+        max-width: none !important;
+        padding: 0 !important;
+        width: auto;
+    }
+
+    .report-cover {
+        break-after: page;
+        height: 269mm;
+        min-height: 269mm;
+        page-break-after: always;
+        padding: 12mm !important;
+    }
+
+    .report-cover__identity,
+    .report-cover__student {
+        max-width: 150mm;
+    }
+
+    .report-subject-table {
+        font-size: 9.5pt;
+    }
+
+    .report-subject-table thead {
+        display: table-header-group;
+    }
+
+    .report-subject-table tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .report-subject-table th,
+    .report-subject-table td {
+        background: #fff !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .report-description {
+        break-inside: auto;
+        overflow-wrap: anywhere;
+    }
+
+    .report-signatures {
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 
     .report-sheet .text-xs {

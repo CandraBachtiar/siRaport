@@ -86,7 +86,8 @@ class RaporDigitalFlowTest extends TestCase
             ->assertSee('V A')
             ->assertSee('Guru Kelas Integrasi')
             ->assertSee($description)
-            ->assertSee('Cetak / Simpan PDF')
+            ->assertSee('Cetak Lengkap')
+            ->assertSee('Cetak Isi')
             ->assertSee('Nilai akhir mata pelajaran belum ditetapkan')
             ->assertViewHas('studentRow', fn (array $row): bool => $row['readyToPrint']
                 && $row['subjects']->first()['average'] === 70.0);
@@ -97,11 +98,14 @@ class RaporDigitalFlowTest extends TestCase
         ]));
         $print->assertOk()
             ->assertSee('Laporan Hasil Belajar')
+            ->assertSee('data-report-cover')
+            ->assertSee('Nilai Akhir')
+            ->assertSee('Belum ditetapkan')
             ->assertSee('2025/2026')
             ->assertSee('Semester Ganjil')
             ->assertSee('V A')
             ->assertSee($student->nama)
-            ->assertSee('70,00')
+            ->assertDontSee('70,00')
             ->assertSee($description);
     }
 
@@ -162,7 +166,8 @@ class RaporDigitalFlowTest extends TestCase
             ->assertSee('Nilai belum lengkap')
             ->assertSee('1 nilai tugas belum diisi')
             ->assertSee('Deskripsi rapor belum divalidasi untuk seluruh mata pelajaran.')
-            ->assertSee('Cetak Belum Tersedia');
+            ->assertSee('Cetak Lengkap Belum Tersedia')
+            ->assertSee('Cetak Isi Belum Tersedia');
 
         $this->actingAs($context['teacherUser'])->get(route('guru.wali.rapor.print', [
             'siswa' => $student,
