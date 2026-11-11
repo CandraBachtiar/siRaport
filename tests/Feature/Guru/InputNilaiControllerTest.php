@@ -9,6 +9,7 @@ use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Models\TujuanPembelajaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -45,7 +46,8 @@ class InputNilaiControllerTest extends TestCase
             ->assertSee('Tugas Tampilan')
             ->assertSee('Siswa Tampilan')
             ->assertSee('65.00')
-            ->assertSee('Di bawah KKM');
+            ->assertSee('Nilai tersimpan')
+            ->assertDontSee('KKM');
     }
 
     public function test_guru_can_save_scores_for_students_in_own_assignment_class(): void
@@ -97,8 +99,9 @@ class InputNilaiControllerTest extends TestCase
         $guru = Guru::factory()->for($user)->create();
         $class = Kelas::factory()->create();
         $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
-        $assessment = Penilaian::factory()->for($assignment)->create(['urutan' => 1]);
-        $laterAssessment = Penilaian::factory()->for($assignment)->create(['urutan' => 2]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create();
+        $assessment = Penilaian::factory()->for($assignment)->create(['tujuan_pembelajaran_id' => $goal->id, 'urutan' => 1]);
+        $laterAssessment = Penilaian::factory()->for($assignment)->create(['tujuan_pembelajaran_id' => $goal->id, 'urutan' => 2]);
         $students = Siswa::factory()->count(2)->for($class)->create();
         $clearedScore = Nilai::factory()->create(['siswa_id' => $students[0]->id, 'penilaian_id' => $assessment->id, 'nilai' => 85]);
         Deskripsi::factory()->for($clearedScore)->create();
@@ -120,7 +123,7 @@ class InputNilaiControllerTest extends TestCase
 
         $recap->assertOk()
             ->assertSee('70,00')
-            ->assertSee('Belum Lengkap')
+            ->assertSee('Nilai belum lengkap')
             ->assertDontSee('85,00');
     }
 

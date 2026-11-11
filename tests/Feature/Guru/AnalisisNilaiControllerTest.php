@@ -24,7 +24,7 @@ class AnalisisNilaiControllerTest extends TestCase
         $this->createAdminTestSchema();
     }
 
-    public function test_class_analysis_uses_real_scores_and_kkm(): void
+    public function test_class_analysis_uses_real_scores_without_classifying_the_subject_average_against_kkm(): void
     {
         $user = User::factory()->guru()->create();
         $guru = Guru::factory()->for($user)->create();
@@ -67,12 +67,12 @@ class AnalisisNilaiControllerTest extends TestCase
                 'kelas_id' => $assignment->kelas_id,
                 'penilaian_id' => $firstAssessment->id,
             ]))
-            ->assertSee('aria-label="Grafik distribusi rata-rata siswa: 0–59: 0; 60–69: 0; 70–79: 1; 80–89: 0; 90–100: 1"', false)
+            ->assertSee('aria-label="Distribusi ringkasan nilai tugas: 0–59: 0; 60–69: 0; 70–79: 1; 80–89: 0; 90–100: 1"', false)
             ->assertViewHas('classStats', fn (array $stats): bool => $stats['average'] === 80.0
                 && $stats['highest'] === 100.0
                 && $stats['lowest'] === 60.0
-                && $stats['belowKkmCount'] === 1
-                && $stats['meetsKkmCount'] === 1);
+                && $stats['assessmentCount'] === 2
+                && $stats['classifiedOutcomeCount'] === 0);
 
         $detailResponse = $this->actingAs($user)->get(route('guru.nilai.index', [
             'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
@@ -86,7 +86,8 @@ class AnalisisNilaiControllerTest extends TestCase
             ->assertSee($students[1]->nama)
             ->assertSee('80.00')
             ->assertSee('60.00')
-            ->assertSee('Di bawah KKM');
+            ->assertSee('Nilai tersimpan')
+            ->assertDontSee('KKM');
     }
 
     public function test_class_analysis_shows_unavailable_assessments_with_zero_marked_count_and_detail_link(): void

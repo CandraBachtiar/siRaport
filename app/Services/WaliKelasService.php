@@ -15,7 +15,10 @@ use Illuminate\Support\Collection;
 
 class WaliKelasService
 {
-    public function __construct(private ScoreTrendService $trendService) {}
+    public function __construct(
+        private ScoreTrendService $trendService,
+        private TujuanPembelajaranScoreService $outcomeService,
+    ) {}
 
     /** @return array<string, mixed> */
     public function workspace(Guru $guru, ?int $classId = null, ?int $schoolYearId = null): array
@@ -60,7 +63,7 @@ class WaliKelasService
         $attentionRows = $studentRows
             ->filter(fn (array $row): bool => $row['attentionReasons']->isNotEmpty())
             ->sortBy([
-                ['belowKkmCount', 'desc'],
+                ['belowKktpCount', 'desc'],
                 ['missingScoreCount', 'desc'],
                 ['overallAverage', 'asc'],
             ])
@@ -107,7 +110,9 @@ class WaliKelasService
                 'classAverage' => $studentAverages->isEmpty() ? null : round((float) $studentAverages->average(), 2),
                 'completedStudentCount' => $studentRows->where('allScoresComplete', true)->count(),
                 'masteredStudentCount' => $studentRows->filter(fn (array $row): bool => $row['subjects']->isNotEmpty()
-                    && $row['subjects']->every(fn (array $subject): bool => $subject['meetsKkm']))->count(),
+                    && $row['subjects']->every(fn (array $subject): bool => $subject['hasSumativeOutcomes']
+                        && $subject['belowKktpCount'] === 0
+                        && $subject['incompleteOutcomeCount'] === 0))->count(),
                 'attentionCount' => $attentionRows->count(),
                 'validatedDescriptionCount' => $studentRows->where('allDescriptionsValidated', true)->count(),
                 'readyReportCount' => $readyReportCount,
@@ -122,6 +127,7 @@ class WaliKelasService
         $assignment->load([
             'mataPelajaran:id,kode,nama,kkm',
             'tahunAjaran:id,tahun,semester,aktif',
+            'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
             'penilaian' => fn ($query) => $query
                 ->with(['nilai' => fn ($scoreQuery) => $scoreQuery
                     ->where('siswa_id', $student->id)
@@ -167,6 +173,7 @@ class WaliKelasService
                 'guru:id,nama',
                 'mataPelajaran:id,kode,nama,kkm',
                 'tahunAjaran:id,tahun,semester,aktif',
+                'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
                 'penilaian' => fn ($query) => $query
                     ->with(['nilai' => fn ($scoreQuery) => $scoreQuery
                         ->whereIn('siswa_id', $studentIds)
@@ -186,13 +193,26 @@ class WaliKelasService
     {
         $subjects = $assignments->map(fn (Pengampu $assignment): array => $this->subjectRow($assignment, $student));
         $averages = $subjects->pluck('average')->filter(fn (?float $average): bool => $average !== null);
-        $belowKkmCount = $subjects->where('meetsKkm', false)->filter(fn (array $subject): bool => $subject['average'] !== null)->count();
+        $belowKktpCount = $subjects->sum('belowKktpCount');
+        $belowKktpCategoryCount = $subjects->sum('belowKktpCategoryCount');
         $missingScoreCount = $subjects->sum('missingCount');
+        $unclassifiedAssessmentCount = $subjects->where('hasUnclassifiedAssessments', true)->count();
         $decliningSubjectCount = $subjects->where('trend.label', 'Menurun')->count();
         $attentionReasons = collect();
 
-        if ($belowKkmCount > 0) {
-            $attentionReasons->push($belowKkmCount.' mata pelajaran di bawah KKM');
+        if ($belowKktpCount > 0) {
+            $attentionReasons->push($belowKktpCount.' TP memiliki hasil kategori sumatif di bawah KKTP ('.$belowKktpCategoryCount.' temuan kategori)');
+        }
+
+        $incompleteOutcomeCount = $subjects->sum('incompleteOutcomeCount');
+        $incompleteCategoryCount = $subjects->sum('incompleteCategoryCount');
+
+        if ($incompleteOutcomeCount > 0) {
+            $attentionReasons->push($incompleteOutcomeCount.' TP memiliki kategori sumatif yang belum lengkap atau metodenya belum dipilih ('.$incompleteCategoryCount.' temuan kategori); periksa kemungkinan susulan');
+        }
+
+        if ($unclassifiedAssessmentCount > 0) {
+            $attentionReasons->push($unclassifiedAssessmentCount.' mata pelajaran memiliki penilaian yang belum diklasifikasikan');
         }
 
         if ($decliningSubjectCount > 0) {
@@ -200,7 +220,7 @@ class WaliKelasService
         }
 
         if ($missingScoreCount > 0) {
-            $attentionReasons->push($missingScoreCount.' nilai belum lengkap');
+            $attentionReasons->push($missingScoreCount.' nilai tugas belum diisi');
         }
 
         $insufficientTrendSubjectCount = $subjects
@@ -225,7 +245,11 @@ class WaliKelasService
             ]),
             'progressSeries' => $this->progressSeries($subjects),
             'overallAverage' => $averages->isEmpty() ? null : round((float) $averages->average(), 2),
-            'belowKkmCount' => $belowKkmCount,
+            'belowKktpCount' => $belowKktpCount,
+            'belowKktpCategoryCount' => $belowKktpCategoryCount,
+            'incompleteOutcomeCount' => $incompleteOutcomeCount,
+            'incompleteCategoryCount' => $incompleteCategoryCount,
+            'unclassifiedAssessmentCount' => $unclassifiedAssessmentCount,
             'missingScoreCount' => $missingScoreCount,
             'decliningSubjectCount' => $decliningSubjectCount,
             'attentionReasons' => $attentionReasons,
@@ -250,9 +274,7 @@ class WaliKelasService
         });
         $filledScores = $scoreEntries->whereNotNull('value');
         $values = $filledScores->pluck('value');
-        $usesWeights = $assignment->penilaian->isNotEmpty()
-            && $assignment->penilaian->every(fn (Penilaian $assessment): bool => (float) $assessment->bobot > 0);
-        $average = $this->average($filledScores, $usesWeights);
+        $average = $this->average($filledScores);
         $descriptions = $filledScores
             ->pluck('score.deskripsi')
             ->filter()
@@ -261,17 +283,47 @@ class WaliKelasService
         $referenceScore = $filledScores->last()['score'] ?? null;
         $trend = $this->trendService->summarize($values);
         $missingCount = max($assignment->penilaian->count() - $filledScores->count(), 0);
+        $goalSummaries = $this->outcomeService->summarize($assignment->tujuanPembelajaran, collect([$student]), $assignment->penilaian);
+        $sumativeCategories = $goalSummaries->flatMap(fn (array $goal): Collection => $goal['categories']->filter(fn (array $category): bool => ! $category['isFormative']));
+        $belowKktpCategoryCount = $sumativeCategories->filter(fn (array $category): bool => $category['rows']->get($student->id)['attainment'] === false)->count();
+        $belowKktpCount = $goalSummaries
+            ->filter(fn (array $goal): bool => $goal['categories']->contains(fn (array $category): bool => ! $category['isFormative'] && $category['rows']->get($student->id)['attainment'] === false))
+            ->count();
+        $incompleteCategoryCount = $sumativeCategories->filter(fn (array $category): bool => in_array(
+            $category['rows']->get($student->id)['status'],
+            ['Nilai belum lengkap', 'Metode rekap TP belum dipilih'],
+            true,
+        ))->count();
+        $incompleteOutcomeCount = $goalSummaries
+            ->filter(fn (array $goal): bool => $goal['categories']->contains(fn (array $category): bool => ! $category['isFormative'] && in_array(
+                $category['rows']->get($student->id)['status'],
+                ['Nilai belum lengkap', 'Metode rekap TP belum dipilih'],
+                true,
+            )))
+            ->count();
+        $hasSumativeOutcomes = $sumativeCategories->isNotEmpty();
+        $hasUnclassifiedAssessments = $goalSummaries->contains(fn (array $goal): bool => $goal['unclassifiedAssessments']->isNotEmpty());
+        $isComplete = $hasSumativeOutcomes
+            && $incompleteOutcomeCount === 0
+            && ! $hasUnclassifiedAssessments
+            && $sumativeCategories->every(fn (array $category): bool => $category['rows']->get($student->id)['isComplete']);
         $summary = [
             'assignment' => $assignment,
             'scores' => $scoreEntries,
             'average' => $average,
             'missingCount' => $missingCount,
-            'isComplete' => $assignment->penilaian->isNotEmpty() && $missingCount === 0,
-            'meetsKkm' => $average !== null && $average >= (float) $assignment->mataPelajaran->kkm,
+            'isComplete' => $isComplete,
+            'hasSumativeOutcomes' => $hasSumativeOutcomes,
+            'hasUnclassifiedAssessments' => $hasUnclassifiedAssessments,
+            'belowKktpCount' => $belowKktpCount,
+            'belowKktpCategoryCount' => $belowKktpCategoryCount,
+            'incompleteOutcomeCount' => $incompleteOutcomeCount,
+            'incompleteCategoryCount' => $incompleteCategoryCount,
+            'goalSummaries' => $goalSummaries,
             'trend' => $trend,
             'description' => $description,
             'referenceScore' => $referenceScore,
-            'calculationMode' => $usesWeights ? 'Rata-rata berbobot' : 'Rata-rata sederhana',
+            'calculationMode' => 'Ringkasan nilai tugas terisi; bukan nilai akhir',
         ];
 
         return [
@@ -303,20 +355,13 @@ class WaliKelasService
     }
 
     /** @param Collection<int, array<string, mixed>> $filledScores */
-    private function average(Collection $filledScores, bool $usesWeights): ?float
+    private function average(Collection $filledScores): ?float
     {
         if ($filledScores->isEmpty()) {
             return null;
         }
 
-        if (! $usesWeights) {
-            return round((float) $filledScores->average('value'), 2);
-        }
-
-        $weightedTotal = $filledScores->sum(fn (array $entry): float => $entry['value'] * (float) $entry['assessment']->bobot);
-        $weightTotal = $filledScores->sum(fn (array $entry): float => (float) $entry['assessment']->bobot);
-
-        return $weightTotal > 0 ? round($weightedTotal / $weightTotal, 2) : null;
+        return round((float) $filledScores->average('value'), 2);
     }
 
     /** @param array<string, mixed> $summary */
@@ -324,14 +369,25 @@ class WaliKelasService
     {
         $subjectName = $summary['assignment']->mataPelajaran->nama;
 
-        if ($summary['average'] === null) {
-            return 'Belum ada nilai '.$subjectName.' yang dapat digunakan untuk menyusun deskripsi '.$student->nama.'.';
+        if (! $summary['hasSumativeOutcomes']) {
+            return 'Belum ada hasil sumatif per TP yang dapat digunakan untuk menyusun deskripsi '.$student->nama.' pada '.$subjectName.'.';
         }
 
         $parts = [];
-        $parts[] = $summary['meetsKkm']
-            ? 'Menunjukkan capaian yang baik pada '.$subjectName.' dengan rata-rata '.number_format($summary['average'], 2, ',', '.').'.'
-            : 'Perlu meningkatkan capaian pada '.$subjectName.' karena rata-rata '.number_format($summary['average'], 2, ',', '.').' masih di bawah KKM '.number_format((float) $summary['assignment']->mataPelajaran->kkm, 0, ',', '.').'.';
+        foreach ($summary['goalSummaries'] as $goal) {
+            foreach ($goal['categories'] as $category) {
+                if ($category['isFormative']) {
+                    continue;
+                }
+
+                $result = $category['rows']->get($student->id);
+                $parts[] = 'TP '.$goal['goal']->urutan.' · '.$category['label'].': '.$result['status'].'.';
+            }
+        }
+
+        if ($summary['hasUnclassifiedAssessments']) {
+            $parts[] = 'Ada penilaian yang belum diklasifikasikan dan perlu ditinjau.';
+        }
 
         if ($summary['trend']['label'] === 'Meningkat') {
             $parts[] = 'Perkembangan nilai terbaru menunjukkan tren meningkat.';
@@ -342,7 +398,7 @@ class WaliKelasService
         }
 
         if ($summary['missingCount'] > 0) {
-            $parts[] = $summary['missingCount'].' penilaian belum memiliki nilai dan perlu dilengkapi sebelum deskripsi divalidasi.';
+            $parts[] = $summary['missingCount'].' nilai tugas belum diisi; periksa kemungkinan susulan sebelum deskripsi divalidasi.';
         }
 
         return implode(' ', $parts);

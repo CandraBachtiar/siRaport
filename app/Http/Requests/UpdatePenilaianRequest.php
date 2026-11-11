@@ -32,6 +32,7 @@ class UpdatePenilaianRequest extends FormRequest
             'nama' => ['required', 'string', 'max:255'],
             'tujuan_pembelajaran_id' => ['sometimes', 'nullable', 'integer', Rule::exists(TujuanPembelajaran::class, 'id')],
             'jenis' => ['required', Rule::in(['tugas', 'ulangan_harian', 'uts', 'uas'])],
+            'kategori_asesmen' => ['sometimes', 'nullable', Rule::in(array_keys(Penilaian::KATEGORI_LABELS))],
             'tanggal' => ['required', 'date'],
             'bobot' => ['nullable', 'numeric', 'min:0.01', 'max:100'],
             'urutan' => ['required', 'integer', 'min:1', 'max:999'],
@@ -49,6 +50,25 @@ class UpdatePenilaianRequest extends FormRequest
 
             if (! $assessment instanceof Penilaian) {
                 return;
+            }
+
+            if ($this->exists('kategori_asesmen')) {
+                $category = $this->input('kategori_asesmen');
+
+                if ($category === null && $assessment->kategori_asesmen !== null) {
+                    $validator->errors()->add('kategori_asesmen', 'Kategori asesmen yang sudah ditetapkan tidak boleh dikosongkan.');
+
+                    return;
+                }
+
+                if ($category !== null
+                    && $assessment->kategori_asesmen !== null
+                    && $category !== $assessment->kategori_asesmen
+                    && $assessment->nilai()->exists()) {
+                    $validator->errors()->add('kategori_asesmen', 'Kategori tidak dapat diubah setelah nilai siswa tersimpan.');
+
+                    return;
+                }
             }
 
             if ($this->exists('tujuan_pembelajaran_id')) {
@@ -103,6 +123,7 @@ class UpdatePenilaianRequest extends FormRequest
             'nama.max' => 'Nama penilaian maksimal 255 karakter.',
             'jenis.required' => 'Jenis penilaian wajib dipilih.',
             'jenis.in' => 'Jenis penilaian tidak valid.',
+            'kategori_asesmen.in' => 'Kategori pengolahan asesmen tidak valid.',
             'tanggal.required' => 'Tanggal penilaian wajib diisi.',
             'tanggal.date' => 'Tanggal penilaian tidak valid.',
             'bobot.numeric' => 'Bobot harus berupa angka.',

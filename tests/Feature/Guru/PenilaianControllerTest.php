@@ -61,6 +61,7 @@ class PenilaianControllerTest extends TestCase
             'tujuan_pembelajaran_id' => $tujuanPembelajaran->id,
             'nama' => 'Ulangan Bab Satu',
             'jenis' => 'ulangan_harian',
+            'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
             'tanggal' => '2026-10-08',
             'bobot' => 25,
             'urutan' => 1,
@@ -87,6 +88,7 @@ class PenilaianControllerTest extends TestCase
             'pengampu_id' => $otherAssignment->id,
             'nama' => 'Penilaian Ilegal',
             'jenis' => 'tugas',
+            'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
             'tanggal' => '2026-10-08',
             'urutan' => 1,
         ]);
@@ -110,6 +112,7 @@ class PenilaianControllerTest extends TestCase
                 'tujuan_pembelajaran_id' => $otherGoal->id,
                 'nama' => 'Penilaian pada TP yang salah',
                 'jenis' => 'tugas',
+                'kategori_asesmen' => Penilaian::KATEGORI_PTS,
                 'tanggal' => '2026-11-05',
                 'urutan' => 1,
             ])
@@ -170,6 +173,7 @@ class PenilaianControllerTest extends TestCase
                 'nama' => $assessment->nama,
                 'tujuan_pembelajaran_id' => $tujuanPembelajaran->id,
                 'jenis' => $assessment->jenis,
+                'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
                 'tanggal' => $assessment->tanggal->toDateString(),
                 'urutan' => $assessment->urutan,
             ]);

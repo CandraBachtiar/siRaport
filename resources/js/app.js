@@ -460,8 +460,6 @@ document.querySelectorAll('[data-line-chart]').forEach((chart) => {
 document.querySelectorAll('[data-score-input]').forEach((input) => {
     input.addEventListener('input', () => {
         const status = document.querySelector(`[data-score-status="${input.dataset.scoreInput}"]`);
-        const minimumScore = Number(input.dataset.kkm);
-        const score = Number(input.value);
 
         if (!(status instanceof HTMLElement)) {
             return;
@@ -473,11 +471,8 @@ document.querySelectorAll('[data-score-input]').forEach((input) => {
             return;
         }
 
-        const meetsMinimum = Number.isFinite(score) && score >= minimumScore;
-        status.textContent = meetsMinimum ? 'Mencapai KKM' : 'Di bawah KKM';
-        status.className = meetsMinimum
-            ? 'inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700'
-            : 'inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700';
+        status.textContent = 'Nilai tersimpan';
+        status.className = 'inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700';
     });
 });
 

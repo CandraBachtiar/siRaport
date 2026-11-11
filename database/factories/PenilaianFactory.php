@@ -22,6 +22,7 @@ class PenilaianFactory extends Factory
             'pengampu_id' => Pengampu::factory(),
             'nama' => fake()->words(2, true),
             'jenis' => fake()->randomElement(['tugas', 'ulangan_harian', 'uts', 'uas']),
+            'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
             'tanggal' => fake()->dateTimeBetween('-1 year'),
             'bobot' => null,
             'urutan' => fake()->numberBetween(1, 20),

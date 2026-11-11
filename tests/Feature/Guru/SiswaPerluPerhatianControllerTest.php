@@ -10,6 +10,7 @@ use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\TujuanPembelajaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -35,6 +36,7 @@ class SiswaPerluPerhatianControllerTest extends TestCase
             'kelas_id' => $class->id,
             'mata_pelajaran_id' => $subject->id,
         ]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create(['kktp' => 80]);
         $decliningStudent = Siswa::factory()->for($class)->create(['nama' => 'Alya Menurun']);
         $incompleteStudent = Siswa::factory()->for($class)->create(['nama' => 'Bima Belum Lengkap']);
         $healthyStudent = Siswa::factory()->for($class)->create(['nama' => 'Citra Stabil']);
@@ -42,6 +44,7 @@ class SiswaPerluPerhatianControllerTest extends TestCase
             $assessment = Penilaian::factory()->for($assignment)->create([
                 'urutan' => $index + 1,
                 'tanggal' => now()->addDays($index),
+                'tujuan_pembelajaran_id' => $goal->id,
             ]);
             Nilai::factory()->create(['siswa_id' => $decliningStudent->id, 'penilaian_id' => $assessment->id, 'nilai' => $score]);
             Nilai::factory()->create(['siswa_id' => $healthyStudent->id, 'penilaian_id' => $assessment->id, 'nilai' => 90]);
@@ -57,10 +60,52 @@ class SiswaPerluPerhatianControllerTest extends TestCase
             ->assertSee('Alya Menurun')
             ->assertSee('Bima Belum Lengkap')
             ->assertDontSee('Citra Stabil')
-            ->assertSee('Rata-rata di bawah KKM')
+            ->assertSee('TP memiliki hasil kategori sumatif di bawah KKTP')
             ->assertSee('Tren nilai menurun')
-            ->assertSee('2 nilai belum diisi')
+            ->assertSee('2 nilai tugas belum diisi')
             ->assertViewHas('rows', fn ($rows): bool => $rows->count() === 2);
+    }
+
+    public function test_attention_counts_a_tp_once_and_reports_below_threshold_categories_separately(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create([
+            'kktp' => 75,
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
+        ]);
+        $student = Siswa::factory()->for($class)->create(['nama' => 'Alya Satu TP']);
+        $assessments = collect([
+            [Penilaian::KATEGORI_LINGKUP_MATERI, 'Lingkup Materi'],
+            [Penilaian::KATEGORI_PTS, 'PTS'],
+            [Penilaian::KATEGORI_AKHIR_SEMESTER, 'AAS'],
+        ])->map(fn (array $assessment): Penilaian => Penilaian::factory()->for($assignment)->create([
+            'tujuan_pembelajaran_id' => $goal->id,
+            'kategori_asesmen' => $assessment[0],
+            'nama' => $assessment[1],
+        ]));
+        foreach ([60, 70, 90] as $index => $score) {
+            Nilai::factory()->create([
+                'siswa_id' => $student->id,
+                'penilaian_id' => $assessments[$index]->id,
+                'nilai' => $score,
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get(route('guru.perhatian.index', ['pengampu_id' => $assignment->id]));
+
+        $response->assertOk()
+            ->assertSee('1 TP memiliki hasil kategori sumatif di bawah KKTP (2 temuan kategori).')
+            ->assertViewHas('rows', function ($rows) use ($student): bool {
+                $row = $rows->firstWhere('student.id', $student->id);
+
+                return $row['belowThresholdCount'] === 1
+                    && $row['belowCategoryCount'] === 2;
+            })
+            ->assertViewHas('summary', fn (array $summary): bool => $summary['belowTpStudentCount'] === 1
+                && $summary['belowCategoryCount'] === 2);
     }
 
     public function test_page_does_not_display_students_from_another_guru(): void
@@ -194,8 +239,7 @@ class SiswaPerluPerhatianControllerTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Dina Data Terbatas')
-            ->assertSee('Rata-rata di bawah KKM')
-            ->assertSee('1 nilai belum diisi')
+            ->assertSee('1 nilai tugas belum diisi')
             ->assertSee('Data belum cukup untuk menentukan tren')
             ->assertViewHas('rows', function ($rows) use ($student): bool {
                 $studentRows = $rows->where('student.id', $student->id);
@@ -203,7 +247,7 @@ class SiswaPerluPerhatianControllerTest extends TestCase
                 return $studentRows->count() === 1
                     && $studentRows->first()['average'] === 0.0
                     && $studentRows->first()['trend']['label'] === 'Belum cukup data'
-                    && $studentRows->first()['reasons']->count() === 3;
+                    && $studentRows->first()['reasons']->count() === 2;
             });
     }
 

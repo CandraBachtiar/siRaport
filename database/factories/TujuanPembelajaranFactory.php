@@ -23,6 +23,7 @@ class TujuanPembelajaranFactory extends Factory
             'urutan' => fake()->numberBetween(1, 999),
             'tujuan' => fake()->sentence(),
             'kktp' => fake()->randomFloat(2, 60, 85),
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
         ];
     }
 }
