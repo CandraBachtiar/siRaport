@@ -25,6 +25,41 @@
 
             <div class="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-900"><div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><strong class="block text-base">{{ $selectedAssessment->nama }}</strong><span>{{ $selectedAssessment->pengampu->mataPelajaran->nama }} · {{ $selectedAssessment->pengampu->kelas->tingkat }} {{ $selectedAssessment->pengampu->kelas->nama }}</span><p class="mt-2 text-xs">Status ini menunjukkan kelengkapan input tugas. Ketercapaian ditinjau dari hasil TP dan KKTP di halaman rekap.</p></div></div></div>
 
+            <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="nilai-import-title">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div><h2 id="nilai-import-title" class="font-bold text-slate-800">Impor nilai dari Excel</h2><p class="mt-1 text-sm text-slate-500">Template khusus untuk penilaian dan kelas yang sedang dipilih.</p></div>
+                    <a href="{{ route('guru.nilai.template', $selectedAssessment) }}" class="rk-button rk-button-secondary">Unduh Template Excel</a>
+                </div>
+                <form method="POST" action="{{ route('guru.nilai.import.preview', $selectedAssessment) }}" enctype="multipart/form-data" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" data-loading-form>
+                    @csrf
+                    <div class="grid flex-1 gap-2"><label for="nilai-import-file" class="text-sm font-semibold text-slate-700">Pilih file .xlsx atau .xls (maksimal 5 MB)</label><input id="nilai-import-file" name="file" type="file" accept=".xlsx,.xls" required class="rk-field @error('file') border-red-400 @enderror">@error('file')<p class="text-xs text-red-600" role="alert">{{ $message }}</p>@enderror</div>
+                    <button type="submit" class="rk-button rk-button-primary"><span data-submit-label>Periksa File</span></button>
+                </form>
+                <p class="mt-3 text-xs leading-5 text-slate-500">Nilai 0 tetap sah. Sel Nilai yang kosong mempertahankan nilai tersimpan; gunakan input manual di bawah untuk menghapus nilai.</p>
+            </section>
+
+            @if ($importHeaderError)
+                <div class="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{{ $importHeaderError }}</div>
+            @endif
+
+            @if ($importPreview)
+                @php
+                    $previewRows = collect($importPreview['rows']);
+                    $validPreviewCount = $previewRows->where('valid', true)->count();
+                    $invalidPreviewCount = $previewRows->where('valid', false)->count();
+                    $importablePreviewCount = $previewRows->where('will_import', true)->count();
+                @endphp
+                <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="nilai-import-preview-title">
+                    <div class="border-b border-slate-200 bg-slate-50 p-5"><h2 id="nilai-import-preview-title" class="font-bold text-slate-800">Pratinjau impor nilai</h2><p class="mt-1 text-sm text-slate-600">{{ $validPreviewCount }} dari {{ $previewRows->count() }} baris valid; {{ $importablePreviewCount }} nilai terisi akan disimpan; {{ $invalidPreviewCount }} baris bermasalah.</p></div>
+                    <div class="overflow-x-auto"><table class="min-w-full divide-y divide-slate-200 text-left text-sm"><thead class="bg-white text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Baris</th><th class="px-4 py-3">Siswa (ID · NIS)</th><th class="px-4 py-3">Nilai tersimpan</th><th class="px-4 py-3">Nilai dari file</th><th class="px-4 py-3">Status</th></tr></thead><tbody class="divide-y divide-slate-100">@foreach ($previewRows as $row)<tr class="{{ $row['valid'] ? '' : 'bg-red-50' }}"><td class="px-4 py-3 text-slate-500">{{ $row['row'] }}</td><td class="px-4 py-3"><span class="font-semibold text-slate-800">{{ $row['student_name'] }}</span><span class="block font-mono text-xs text-slate-500">{{ $row['student_id'] ?? '—' }} · {{ $row['nis'] ?: '—' }}</span></td><td class="px-4 py-3">{{ $row['existing_score'] === null ? 'Belum ada' : $row['existing_score'] }}</td><td class="px-4 py-3">{{ $row['score_is_blank'] ? 'Kosong' : ($row['score'] ?? 'Tidak valid') }}</td><td class="px-4 py-3"><span class="font-semibold {{ $row['valid'] ? 'text-emerald-700' : 'text-red-700' }}">{{ $row['message'] }}</span></td></tr>@endforeach</tbody></table></div>
+                    @if ($importPreview['can_import'])
+                        <form method="POST" action="{{ route('guru.nilai.import.store', $selectedAssessment) }}" class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 p-5 sm:flex-row sm:items-center sm:justify-between" data-loading-form>@csrf<p class="text-xs text-slate-600">Periksa siswa dan nilai di atas. Baris kosong tidak akan mengubah nilai tersimpan.</p><button type="submit" class="rk-button rk-button-primary"><span data-submit-label>Simpan {{ $importablePreviewCount }} Nilai</span></button></form>
+                    @else
+                        <div class="border-t border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Impor belum dapat disimpan. Perbaiki baris bermasalah atau unggah file yang memuat setidaknya satu nilai.</div>
+                    @endif
+                </section>
+            @endif
+
             <form method="POST" action="{{ route('guru.nilai.update', $selectedAssessment) }}" class="mt-4" data-loading-form>
                 @csrf
                 @method('PUT')

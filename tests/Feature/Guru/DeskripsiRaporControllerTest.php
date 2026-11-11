@@ -10,6 +10,7 @@ use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\TujuanPembelajaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -56,7 +57,7 @@ class DeskripsiRaporControllerTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Saran sistem — silakan tinjau sebelum disimpan.')
-            ->assertSee('Menunjukkan capaian yang baik')
+            ->assertSee('TP 1 · Sumatif Lingkup Materi: Mencapai KKTP.')
             ->assertSee('84,00');
     }
 
@@ -98,7 +99,12 @@ class DeskripsiRaporControllerTest extends TestCase
     public function test_incomplete_scores_cannot_be_validated_as_a_final_description(): void
     {
         [$user, $student, $assignment, $score] = $this->descriptionContext();
-        Penilaian::factory()->for($assignment)->create(['urutan' => 2]);
+        $goal = $assignment->tujuanPembelajaran()->firstOrFail();
+        Penilaian::factory()->for($assignment)->create([
+            'tujuan_pembelajaran_id' => $goal->id,
+            'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
+            'urutan' => 2,
+        ]);
 
         $response = $this->actingAs($user)
             ->from(route('guru.wali.deskripsi.index'))
@@ -110,6 +116,37 @@ class DeskripsiRaporControllerTest extends TestCase
         $response->assertRedirect(route('guru.wali.deskripsi.index'))
             ->assertSessionHas('error', 'Lengkapi seluruh nilai mata pelajaran sebelum memvalidasi deskripsi.');
         $this->assertDatabaseMissing('deskripsi', ['nilai_id' => $score->id]);
+    }
+
+    public function test_unmapped_legacy_assessment_blocks_final_validation_and_is_explained(): void
+    {
+        [$user, $student, $assignment] = $this->descriptionContext();
+        $legacyAssessment = Penilaian::factory()->for($assignment)->create([
+            'tujuan_pembelajaran_id' => null,
+            'urutan' => 2,
+        ]);
+        $legacyScore = Nilai::factory()->create([
+            'siswa_id' => $student->id,
+            'penilaian_id' => $legacyAssessment->id,
+            'nilai' => 90,
+        ]);
+
+        $index = $this->actingAs($user)->get(route('guru.wali.deskripsi.index', [
+            'kelas_id' => $assignment->kelas_id,
+            'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+            'siswa_id' => $student->id,
+            'pengampu_id' => $assignment->id,
+        ]));
+        $index->assertOk()->assertSee('belum dipetakan ke TP atau kategori');
+
+        $response = $this->actingAs($user)->put(route('guru.wali.deskripsi.update', [$assignment, $student]), [
+            'deskripsi_akhir' => 'Capaian pembelajaran sudah baik dan konsisten sepanjang semester.',
+            'status' => 'tervalidasi',
+        ]);
+
+        $response->assertRedirect()
+            ->assertSessionHas('error', 'Lengkapi seluruh nilai mata pelajaran sebelum memvalidasi deskripsi.');
+        $this->assertDatabaseMissing('deskripsi', ['nilai_id' => $legacyScore->id]);
     }
 
     public function test_short_description_is_rejected_with_a_specific_message(): void
@@ -190,9 +227,18 @@ class DeskripsiRaporControllerTest extends TestCase
             'tahun_ajaran_id' => $year->id,
             'mata_pelajaran_id' => $subject->id,
         ]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create([
+            'urutan' => 1,
+            'kktp' => 75,
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
+        ]);
         $score = Nilai::factory()->create([
             'siswa_id' => $student->id,
-            'penilaian_id' => Penilaian::factory()->for($assignment)->create(['urutan' => 1])->id,
+            'penilaian_id' => Penilaian::factory()->for($assignment)->create([
+                'tujuan_pembelajaran_id' => $goal->id,
+                'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
+                'urutan' => 1,
+            ])->id,
             'nilai' => 84,
         ]);
 
