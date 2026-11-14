@@ -44,7 +44,9 @@ class PengampuControllerTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.pengampu.create'))
             ->assertOk()
-            ->assertSee('Budi')->assertSee('Matematika')->assertSee('V A')->assertSee('2025/2026');
+            ->assertSee('Budi')->assertSee('Matematika')->assertSee('V A')->assertSee('2025/2026')
+            ->assertSee('Periode Akademik')
+            ->assertSee('Semester Ganjil');
 
         Pengampu::factory()->create([
             'guru_id' => $guru->id,

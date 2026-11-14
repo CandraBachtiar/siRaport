@@ -56,7 +56,8 @@ class MataPelajaranControllerTest extends TestCase
         $response->assertOk()
             ->assertSee('MTK')
             ->assertSee('Matematika')
-            ->assertSee('78.00')
+            ->assertDontSee('78.00')
+            ->assertDontSee('KKM')
             ->assertDontSee('Bahasa Indonesia');
     }
 
@@ -70,7 +71,8 @@ class MataPelajaranControllerTest extends TestCase
             ->assertSee('Tambah Mata Pelajaran')
             ->assertSee('Kode Mata Pelajaran')
             ->assertSee('Nama Mata Pelajaran')
-            ->assertSee('KKM');
+            ->assertSee('TP dan KKTP diatur guru melalui ruang kelas pada tugas mengajarnya.')
+            ->assertDontSee('name="kkm"', false);
     }
 
     public function test_admin_can_create_mata_pelajaran(): void
@@ -87,11 +89,11 @@ class MataPelajaranControllerTest extends TestCase
         $this->assertDatabaseHas('mata_pelajaran', [
             'kode' => 'IPA',
             'nama' => 'Ilmu Pengetahuan Alam',
-            'kkm' => 77.5,
+            'kkm' => null,
         ]);
     }
 
-    public function test_create_mata_pelajaran_requires_all_database_fields(): void
+    public function test_create_mata_pelajaran_only_requires_administrative_fields(): void
     {
         $admin = User::factory()->admin()->create();
 
@@ -103,7 +105,6 @@ class MataPelajaranControllerTest extends TestCase
             ->assertSessionHasErrors([
                 'kode' => 'Kode mata pelajaran wajib diisi.',
                 'nama' => 'Nama mata pelajaran wajib diisi.',
-                'kkm' => 'KKM wajib diisi.',
             ]);
     }
 
@@ -122,21 +123,17 @@ class MataPelajaranControllerTest extends TestCase
             ]);
     }
 
-    public function test_create_mata_pelajaran_rejects_kkm_outside_score_range(): void
+    public function test_create_mata_pelajaran_ignores_manually_submitted_legacy_kkm(): void
     {
         $admin = User::factory()->admin()->create();
         $payload = $this->validPayload();
-        $payload['kkm'] = 101;
+        $payload['kkm'] = 63;
 
         $response = $this->actingAs($admin)
-            ->from(route('admin.mata-pelajaran.create'))
             ->post(route('admin.mata-pelajaran.store'), $payload);
 
-        $response->assertRedirect(route('admin.mata-pelajaran.create'))
-            ->assertSessionHasErrors([
-                'kkm' => 'KKM harus berada di antara 0 dan 100.',
-            ]);
-        $this->assertDatabaseMissing('mata_pelajaran', ['kode' => 'IPA']);
+        $response->assertRedirectToRoute('admin.mata-pelajaran.index');
+        $this->assertDatabaseHas('mata_pelajaran', ['kode' => 'IPA', 'kkm' => null]);
     }
 
     public function test_admin_can_open_edit_form_with_existing_data(): void
@@ -154,7 +151,9 @@ class MataPelajaranControllerTest extends TestCase
             ->assertSee('Edit Mata Pelajaran')
             ->assertSee('IPS')
             ->assertSee('Ilmu Pengetahuan Sosial')
-            ->assertSee('76.00');
+            ->assertSee('TP dan KKTP diatur guru melalui ruang kelas pada tugas mengajarnya.')
+            ->assertDontSee('name="kkm"', false)
+            ->assertDontSee('76.00');
     }
 
     public function test_admin_can_update_mata_pelajaran_without_self_duplicate_error(): void
@@ -169,7 +168,6 @@ class MataPelajaranControllerTest extends TestCase
         $response = $this->actingAs($admin)->put(route('admin.mata-pelajaran.update', $mataPelajaran), [
             'kode' => 'IPA',
             'nama' => 'Ilmu Pengetahuan Alam',
-            'kkm' => 80,
         ]);
 
         $response->assertRedirectToRoute('admin.mata-pelajaran.index')
@@ -178,7 +176,26 @@ class MataPelajaranControllerTest extends TestCase
             'id' => $mataPelajaran->id,
             'kode' => 'IPA',
             'nama' => 'Ilmu Pengetahuan Alam',
-            'kkm' => 80,
+            'kkm' => 75,
+        ]);
+    }
+
+    public function test_admin_cannot_change_historical_kkm_with_a_manually_submitted_field(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $mataPelajaran = MataPelajaran::factory()->create(['kkm' => 75]);
+
+        $response = $this->actingAs($admin)->put(route('admin.mata-pelajaran.update', $mataPelajaran), [
+            'kode' => $mataPelajaran->kode,
+            'nama' => 'Nama diperbarui',
+            'kkm' => 88,
+        ]);
+
+        $response->assertRedirectToRoute('admin.mata-pelajaran.index');
+        $this->assertDatabaseHas('mata_pelajaran', [
+            'id' => $mataPelajaran->id,
+            'nama' => 'Nama diperbarui',
+            'kkm' => 75,
         ]);
     }
 
@@ -231,7 +248,6 @@ class MataPelajaranControllerTest extends TestCase
         return [
             'kode' => 'IPA',
             'nama' => 'Ilmu Pengetahuan Alam',
-            'kkm' => 77.5,
         ];
     }
 }

@@ -27,6 +27,11 @@ class Siswa extends Model
         return $this->hasMany(Nilai::class);
     }
 
+    public function riwayatPenempatan(): HasMany
+    {
+        return $this->hasMany(RiwayatPenempatanSiswa::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

@@ -24,7 +24,7 @@ class AnalisisNilaiController extends Controller
         $guru = $user->guru()->firstOrFail();
         $assignments = Pengampu::query()
             ->where('guru_id', $guru->id)
-            ->with(['kelas:id,nama,tingkat', 'mataPelajaran:id,kode,nama,kkm', 'tahunAjaran:id,tahun,semester,aktif'])
+            ->with(['kelas:id,nama,tingkat', 'mataPelajaran:id,kode,nama', 'tahunAjaran:id,tahun,semester,aktif'])
             ->orderByDesc('tahun_ajaran_id')
             ->orderBy('kelas_id')
             ->orderBy('mata_pelajaran_id')

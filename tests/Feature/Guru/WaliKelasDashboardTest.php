@@ -80,6 +80,8 @@ class WaliKelasDashboardTest extends TestCase
 
         $response->assertOk()
             ->assertSee('2026/2027')
+            ->assertSee('Periode Akademik Aktif')
+            ->assertSee('Semester Ganjil')
             ->assertViewHas('metrics', fn (array $metrics): bool => $metrics['teacherAssignmentCount'] === 1 && $metrics['subjectCount'] === 1);
     }
 

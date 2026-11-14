@@ -8,6 +8,7 @@ use App\Models\MataPelajaran;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Models\TujuanPembelajaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -37,6 +38,7 @@ class KelasMataPelajaranControllerTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Matematika Saya')
+            ->assertSee('Buka Ruang Kelas')
             ->assertDontSee('IPA Guru Lain');
     }
 
@@ -71,6 +73,52 @@ class KelasMataPelajaranControllerTest extends TestCase
             ->assertSee('Alya Putri')
             ->assertSee('Bima Sakti')
             ->assertSee('Tugas Pertama')
-            ->assertSee('Jumlah Siswa');
+            ->assertSee('Lihat Penilaian')
+            ->assertSee('Jumlah Siswa')
+            ->assertSee('Belum ada TP')
+            ->assertSee('Mulai dengan menyiapkan TP dan KKTP. Buat penilaian setelah TP tersedia.')
+            ->assertDontSee('>KKM</p>', false)
+            ->assertSee(route('guru.tujuan-pembelajaran.index', $assignment), false)
+            ->assertSee(route('guru.penilaian.create', ['pengampu_id' => $assignment->id]), false)
+            ->assertSee(route('guru.nilai.index', [
+                'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+                'mata_pelajaran_id' => $assignment->mata_pelajaran_id,
+                'kelas_id' => $assignment->kelas_id,
+            ]));
+    }
+
+    public function test_detail_counts_tp_with_kktp_and_emphasizes_assessment_when_tp_exist(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+        TujuanPembelajaran::factory()->count(3)->for($assignment)->sequence(
+            ['urutan' => 1, 'kktp' => 70],
+            ['urutan' => 2, 'kktp' => 75],
+            ['urutan' => 3, 'kktp' => 80],
+        )->create();
+
+        $response = $this->actingAs($user)->get(route('guru.kelas-mapel.show', $assignment));
+
+        $response->assertOk()
+            ->assertSee('TP dengan KKTP')
+            ->assertSee('3 dari 3 TP')
+            ->assertSee('TP tersedia. Langkah berikutnya: buat penilaian.')
+            ->assertSee('class="rk-button rk-button-primary">+ Buat Penilaian</a>', false);
+    }
+
+    public function test_detail_emphasizes_input_when_an_assessment_exists(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+        TujuanPembelajaran::factory()->for($assignment)->create();
+        Penilaian::factory()->for($assignment)->create();
+
+        $response = $this->actingAs($user)->get(route('guru.kelas-mapel.show', $assignment));
+
+        $response->assertOk()
+            ->assertSee('Penilaian tersedia. Lanjutkan dengan menginput atau melengkapi nilai.')
+            ->assertSee('class="rk-button rk-button-primary">Input Nilai</a>', false);
     }
 }

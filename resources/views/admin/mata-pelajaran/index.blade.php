@@ -8,7 +8,7 @@
             <div>
                 <p class="text-sm font-semibold text-emerald-600">Master Data</p>
                 <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#102d4b]">Data Mata Pelajaran</h1>
-                <p class="mt-2 text-sm leading-6 text-slate-500">Kelola kode, nama, dan KKM mata pelajaran di RaporKu.</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Kelola kode dan nama mata pelajaran. TP dan KKTP dikelola guru pada tugas mengajarnya.</p>
             </div>
             <a href="{{ route('admin.mata-pelajaran.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20">
                 <span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Mata Pelajaran
@@ -38,7 +38,6 @@
                             <th class="w-16 px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">No</th>
                             <th class="px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Kode</th>
                             <th class="px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Nama Mata Pelajaran</th>
-                            <th class="px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500">KKM</th>
                             <th class="px-5 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">Aksi</th>
                         </tr>
                     </thead>
@@ -48,7 +47,6 @@
                                 <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-500">{{ $mataPelajaran->firstItem() + $loop->index }}</td>
                                 <td class="whitespace-nowrap px-5 py-4 text-sm font-semibold text-slate-700">{{ $item->kode }}</td>
                                 <td class="px-5 py-4 text-sm font-bold text-[#102d4b]">{{ $item->nama }}</td>
-                                <td class="whitespace-nowrap px-5 py-4 text-sm text-slate-600">{{ $item->kkm }}</td>
                                 <td class="whitespace-nowrap px-5 py-4 text-right">
                                     <div class="inline-flex items-center gap-2">
                                         <a href="{{ route('admin.mata-pelajaran.edit', $item) }}" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">Edit</a>
@@ -62,7 +60,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-5 py-16 text-center">
+                                <td colspan="4" class="px-5 py-16 text-center">
                                     <span class="mx-auto grid size-12 place-items-center rounded-full bg-slate-100 text-lg font-bold text-slate-400">M</span>
                                     <p class="mt-4 font-bold text-slate-700">Data mata pelajaran tidak ditemukan</p>
                                     <p class="mt-1 text-sm text-slate-500">Tambahkan mata pelajaran baru atau sesuaikan pencarian.</p>

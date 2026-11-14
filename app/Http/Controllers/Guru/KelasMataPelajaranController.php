@@ -24,7 +24,7 @@ class KelasMataPelajaranController extends Controller
             ->select(['id', 'guru_id', 'kelas_id', 'mata_pelajaran_id', 'tahun_ajaran_id'])
             ->with([
                 'kelas' => fn ($query) => $query->select(['id', 'nama', 'tingkat'])->withCount('siswa'),
-                'mataPelajaran:id,kode,nama,kkm',
+                'mataPelajaran:id,kode,nama',
                 'tahunAjaran:id,tahun,semester,aktif',
             ])
             ->withCount('penilaian')
@@ -51,8 +51,9 @@ class KelasMataPelajaranController extends Controller
         $pengampu->load([
             'kelas:id,nama,tingkat',
             'kelas.siswa' => fn ($query) => $query->select(['id', 'kelas_id', 'nis', 'nisn', 'nama', 'jenis_kelamin'])->orderBy('nama')->orderBy('id'),
-            'mataPelajaran:id,kode,nama,kkm',
+            'mataPelajaran:id,kode,nama',
             'tahunAjaran:id,tahun,semester,aktif',
+            'tujuanPembelajaran:id,pengampu_id,kktp',
             'penilaian' => fn ($query) => $query
                 ->with('tujuanPembelajaran:id,urutan,tujuan')
                 ->withCount('nilai')
@@ -67,6 +68,13 @@ class KelasMataPelajaranController extends Controller
             ->where('penilaian.pengampu_id', $pengampu->id)
             ->where('siswa.kelas_id', $pengampu->kelas_id)
             ->avg('nilai.nilai');
+        $tujuanPembelajaranCount = $pengampu->tujuanPembelajaran->count();
+        $tujuanPembelajaranWithKktpCount = $pengampu->tujuanPembelajaran
+            ->filter(fn ($tujuanPembelajaran): bool => is_numeric($tujuanPembelajaran->kktp))
+            ->count();
+        $nextAction = $tujuanPembelajaranCount === 0
+            ? 'tujuan-pembelajaran'
+            : ($pengampu->penilaian->isEmpty() ? 'penilaian' : 'nilai');
 
         return view('guru.kelas-mata-pelajaran.show', [
             'user' => $user,
@@ -74,6 +82,9 @@ class KelasMataPelajaranController extends Controller
             'workspace' => 'mapel',
             'assignment' => $pengampu,
             'classAverage' => $classAverage === null ? null : round((float) $classAverage, 2),
+            'tujuanPembelajaranCount' => $tujuanPembelajaranCount,
+            'tujuanPembelajaranWithKktpCount' => $tujuanPembelajaranWithKktpCount,
+            'nextAction' => $nextAction,
             ...$this->dashboardService->capabilities($guru),
         ]);
     }

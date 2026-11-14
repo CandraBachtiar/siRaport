@@ -30,7 +30,7 @@ class GuruAnalysisService
     {
         $assignment->loadMissing([
             'kelas:id,nama,tingkat',
-            'mataPelajaran:id,kode,nama,kkm',
+            'mataPelajaran:id,kode,nama',
             'tahunAjaran:id,tahun,semester,aktif',
             'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
         ]);
@@ -141,7 +141,7 @@ class GuruAnalysisService
                     ->select(['id', 'kelas_id', 'nis', 'nisn', 'nama'])
                     ->orderBy('nama')
                     ->orderBy('id'),
-                'mataPelajaran:id,kode,nama,kkm',
+                'mataPelajaran:id,kode,nama',
                 'tahunAjaran:id,tahun,semester,aktif',
                 'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
                 'penilaian' => fn ($query) => $query
@@ -204,27 +204,45 @@ class GuruAnalysisService
                 $unclassifiedCount = $studentOutcomes->sum(fn (array $goal): int => $goal['unclassifiedAssessments']->count());
 
                 if ($incompleteOutcomeCount > 0) {
-                    $reasons->push($incompleteOutcomeCount.' TP memiliki kategori sumatif yang belum lengkap atau metodenya belum dipilih ('.$incompleteCategoryCount.' temuan kategori); periksa kemungkinan susulan.');
+                    $reasons->push([
+                        'label' => $incompleteOutcomeCount.' hasil TP belum lengkap ('.$incompleteCategoryCount.' kategori).',
+                        'guidance' => 'Periksa nilai sumatif yang belum diisi atau metode rekap TP yang belum ditentukan.',
+                    ]);
                 }
 
                 if ($belowThresholdCount > 0) {
-                    $reasons->push($belowThresholdCount.' TP memiliki hasil kategori sumatif di bawah KKTP ('.$belowCategoryCount.' temuan kategori).');
+                    $reasons->push([
+                        'label' => $belowThresholdCount.' hasil TP di bawah KKTP ('.$belowCategoryCount.' kategori).',
+                        'guidance' => 'Tinjau capaian TP dan tentukan tindak lanjut pembelajaran.',
+                    ]);
                 }
 
                 if ($unclassifiedCount > 0) {
-                    $reasons->push($unclassifiedCount.' penilaian belum diklasifikasikan.');
+                    $reasons->push([
+                        'label' => $unclassifiedCount.' penilaian belum memiliki kategori asesmen.',
+                        'guidance' => 'Periksa kategori asesmen pada penilaian terkait.',
+                    ]);
                 }
 
                 if ($trend['label'] === 'Menurun') {
-                    $reasons->push('Tren nilai menurun');
+                    $reasons->push([
+                        'label' => 'Tren nilai menurun.',
+                        'guidance' => 'Periksa perkembangan nilai pada beberapa penilaian.',
+                    ]);
                 }
 
                 if ($missingCount > 0) {
-                    $reasons->push($missingCount.' nilai tugas belum diisi.');
+                    $reasons->push([
+                        'label' => $missingCount.' nilai tugas belum diisi.',
+                        'guidance' => 'Periksa dan lengkapi nilai pada penilaian terkait.',
+                    ]);
                 }
 
                 if ($reasons->isNotEmpty() && in_array($trend['label'], ['Belum ada data', 'Belum cukup data'], true)) {
-                    $reasons->push('Data belum cukup untuk menentukan tren');
+                    $reasons->push([
+                        'label' => 'Data belum cukup untuk melihat tren.',
+                        'guidance' => 'Analisis tren memerlukan sedikitnya empat nilai.',
+                    ]);
                 }
 
                 if ($reasons->isEmpty()) {

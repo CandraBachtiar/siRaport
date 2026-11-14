@@ -11,8 +11,8 @@
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Pantau perkembangan lintas mata pelajaran dan kesiapan rapor kelas Anda.</p>
             </div>
             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p class="text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-slate-400">Tahun Ajaran Aktif</p>
-                <p class="mt-1 text-sm font-bold text-[#102d4b]">{{ $selectedSchoolYear ? $selectedSchoolYear->tahun.' · '.$selectedSchoolYear->semester : 'Belum tersedia' }}</p>
+                <p class="text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-slate-400">Periode Akademik Aktif</p>
+                <p class="mt-1 text-sm font-bold text-[#102d4b]">{{ $selectedSchoolYear ? $selectedSchoolYear->tahun.' — Semester '.$selectedSchoolYear->semester : 'Belum tersedia' }}</p>
             </div>
         </div>
 

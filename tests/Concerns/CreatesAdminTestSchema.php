@@ -151,8 +151,21 @@ trait CreatesAdminTestSchema
             $table->id();
             $table->string('kode')->unique();
             $table->string('nama');
-            $table->decimal('kkm', 5, 2)->default(75);
+            $table->decimal('kkm', 5, 2)->nullable();
             $table->timestamps();
+        });
+
+        Schema::create('riwayat_penempatan_siswa', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('siswa_id')->constrained('siswa')->restrictOnDelete();
+            $table->foreignId('kelas_id')->constrained('kelas')->restrictOnDelete();
+            $table->foreignId('tahun_ajaran_id')->constrained('tahun_ajaran')->restrictOnDelete();
+            $table->date('mulai_pada');
+            $table->date('berakhir_pada')->nullable();
+            $table->timestamps();
+            $table->index(['siswa_id', 'tahun_ajaran_id', 'mulai_pada'], 'rps_siswa_tahun_mulai_idx');
+            $table->index(['siswa_id', 'mulai_pada', 'berakhir_pada'], 'rps_siswa_rentang_idx');
+            $table->index(['kelas_id', 'tahun_ajaran_id'], 'rps_kelas_periode_idx');
         });
     }
 }

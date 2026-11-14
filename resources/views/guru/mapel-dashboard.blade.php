@@ -11,8 +11,8 @@
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Pantau tugas mengajar dan kelengkapan nilai dalam satu ruang kerja. NIP: {{ $guru->nip ?: 'Belum tersedia' }}</p>
             </div>
             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p class="text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-slate-400">Tahun Ajaran Aktif</p>
-                <p class="mt-1 text-sm font-bold text-[#102d4b]">{{ $activeSchoolYear ? $activeSchoolYear->tahun.' · '.$activeSchoolYear->semester : 'Belum ditetapkan' }}</p>
+                <p class="text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-slate-400">Periode Akademik Aktif</p>
+                <p class="mt-1 text-sm font-bold text-[#102d4b]">{{ $activeSchoolYear ? $activeSchoolYear->tahun.' — Semester '.$activeSchoolYear->semester : 'Belum ditetapkan' }}</p>
             </div>
         </div>
 
@@ -53,12 +53,12 @@
                                         <h3 class="font-bold text-slate-800">{{ $assignment->mataPelajaran?->nama ?? 'Mata pelajaran tidak tersedia' }}</h3>
                                         <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[0.65rem] font-bold text-emerald-700">{{ $assignment->mataPelajaran?->kode ?? 'Tanpa kode' }}</span>
                                     </div>
-                                    <p class="mt-2 text-sm text-slate-500">{{ $assignment->kelas ? $assignment->kelas->tingkat.' '.$assignment->kelas->nama : 'Kelas tidak tersedia' }} &middot; {{ $assignment->tahunAjaran ? $assignment->tahunAjaran->tahun.' '.$assignment->tahunAjaran->semester : 'Periode tidak tersedia' }}</p>
+                                    <p class="mt-2 text-sm text-slate-500">{{ $assignment->kelas ? $assignment->kelas->tingkat.' '.$assignment->kelas->nama : 'Kelas tidak tersedia' }} &middot; {{ $assignment->tahunAjaran ? $assignment->tahunAjaran->tahun.' — Semester '.$assignment->tahunAjaran->semester : 'Periode tidak tersedia' }}</p>
                                 </div>
                                 <div class="flex gap-2 text-center">
                                     <span class="min-w-20 rounded-xl bg-slate-50 px-3 py-2"><strong class="block text-sm text-slate-800">{{ $assignment->student_count }}</strong><small class="text-[0.65rem] font-semibold text-slate-500">Siswa</small></span>
                                     <span class="min-w-20 rounded-xl bg-slate-50 px-3 py-2"><strong class="block text-sm text-slate-800">{{ $assignment->penilaian_count }}</strong><small class="text-[0.65rem] font-semibold text-slate-500">Penilaian</small></span>
-                                    <a href="{{ route('guru.kelas-mapel.show', $assignment) }}" class="inline-flex min-h-11 items-center rounded-xl border border-emerald-200 px-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-50">Kelola Penilaian</a>
+                                    <a href="{{ route('guru.kelas-mapel.show', $assignment) }}" class="inline-flex min-h-11 items-center rounded-xl border border-emerald-200 px-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-50">Buka Ruang Kelas</a>
                                 </div>
                             </div>
                         @endforeach
@@ -82,7 +82,19 @@
                     <div class="mt-4 grid gap-3">
                         <div class="flex items-center justify-between rounded-xl bg-rose-50 px-4 py-3"><span class="text-sm font-semibold text-rose-800">Nilai belum diisi</span><strong class="text-rose-800">{{ $metrics['missingScoreCount'] }}</strong></div>
                         <div class="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3"><span class="text-sm font-semibold text-amber-800">Penilaian belum lengkap</span><strong class="text-amber-800">{{ $metrics['incompleteAssessmentCount'] }}</strong></div>
-                        <div class="flex items-center justify-between rounded-xl bg-blue-50 px-4 py-3"><span class="text-sm font-semibold text-blue-800">Siswa di bawah KKM</span><strong class="text-blue-800">{{ $metrics['belowKkmStudentCount'] }}</strong></div>
+                        <a href="{{ route('guru.perhatian.index', $activeSchoolYear ? ['tahun_ajaran_id' => $activeSchoolYear->id] : []) }}" class="flex items-start justify-between gap-3 rounded-xl bg-blue-50 px-4 py-3 transition hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                            <span class="min-w-0">
+                                <strong class="block text-sm font-semibold text-blue-800">Siswa Perlu Perhatian</strong>
+                                @if ($metrics['assessmentCount'] > 0 && $metrics['studentCount'] > 0)
+                                    <small class="mt-1 block text-xs leading-5 text-blue-700">Siswa yang memerlukan tindak lanjut berdasarkan hasil TP, kelengkapan penilaian, atau perkembangan nilainya.</small>
+                                @else
+                                    <small class="mt-1 block text-xs leading-5 text-blue-700">Belum ada penilaian atau data siswa untuk dianalisis.</small>
+                                @endif
+                            </span>
+                            @if ($metrics['assessmentCount'] > 0 && $metrics['studentCount'] > 0)
+                                <strong class="shrink-0 text-blue-800">{{ $metrics['attentionStudentCount'] }}</strong>
+                            @endif
+                        </a>
                     </div>
                 </article>
             </div>

@@ -211,7 +211,7 @@ class WaliKelasControllerTest extends TestCase
 
         $response->assertOk()
             ->assertSee('1 TP memiliki hasil kategori sumatif di bawah KKTP (2 temuan kategori)')
-            ->assertSee('Pasangan siswa-TP unik di bawah KKTP')
+            ->assertSee('Jumlah hasil TP siswa di bawah KKTP')
             ->assertSee('Temuan kategori di bawah KKTP')
             ->assertViewHas('attentionRows', fn ($rows): bool => $rows->firstWhere('student.id', $student->id)['belowKktpCount'] === 1
                 && $rows->firstWhere('student.id', $student->id)['belowKktpCategoryCount'] === 2);

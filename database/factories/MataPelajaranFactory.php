@@ -20,7 +20,6 @@ class MataPelajaranFactory extends Factory
         return [
             'kode' => fake()->unique()->bothify('MP-###'),
             'nama' => fake()->unique()->words(2, true),
-            'kkm' => fake()->randomFloat(2, 70, 85),
         ];
     }
 }

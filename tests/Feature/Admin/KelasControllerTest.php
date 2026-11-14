@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
+use App\Models\RiwayatPenempatanSiswa;
 use App\Models\Siswa;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -282,6 +283,25 @@ class KelasControllerTest extends TestCase
         $response->assertRedirectToRoute('admin.kelas.index')
             ->assertSessionHas('error', 'Kelas tidak dapat dihapus karena masih digunakan pada data pengampu.');
         $this->assertModelExists($kelas);
+    }
+
+    public function test_class_with_placement_history_cannot_be_deleted_after_student_moves(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $historicalClass = Kelas::factory()->create(['nama' => 'A']);
+        $currentClass = Kelas::factory()->create(['nama' => 'B']);
+        $student = Siswa::factory()->for($currentClass)->create();
+        RiwayatPenempatanSiswa::factory()->create([
+            'siswa_id' => $student->id,
+            'kelas_id' => $historicalClass->id,
+        ]);
+
+        $this->actingAs($admin)->delete(route('admin.kelas.destroy', $historicalClass))
+            ->assertRedirectToRoute('admin.kelas.index')
+            ->assertSessionHas('error', 'Kelas tidak dapat dihapus karena tercatat dalam riwayat penempatan siswa.');
+
+        $this->assertModelExists($historicalClass);
+        $this->assertDatabaseHas('riwayat_penempatan_siswa', ['kelas_id' => $historicalClass->id]);
     }
 
     public function test_class_list_escapes_user_data(): void

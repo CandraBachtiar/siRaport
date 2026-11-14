@@ -8,10 +8,10 @@
         </select>
     </div>
     <div>
-        <label for="tahun_ajaran_id" class="text-xs font-bold text-slate-600">Tahun ajaran & semester</label>
+        <label for="tahun_ajaran_id" class="text-xs font-bold text-slate-600">Periode Akademik</label>
         <select id="tahun_ajaran_id" name="tahun_ajaran_id" class="rk-field mt-2" data-wali-year-filter>
             @foreach ($schoolYears as $yearOption)
-                <option value="{{ $yearOption->id }}" @selected($selectedSchoolYear?->id === $yearOption->id)>{{ $yearOption->tahun }} · {{ $yearOption->semester }}{{ $yearOption->aktif ? ' (Aktif)' : '' }}</option>
+                <option value="{{ $yearOption->id }}" @selected($selectedSchoolYear?->id === $yearOption->id)>{{ $yearOption->tahun }} — Semester {{ $yearOption->semester }}{{ $yearOption->aktif ? ' (Aktif)' : '' }}</option>
             @endforeach
         </select>
     </div>

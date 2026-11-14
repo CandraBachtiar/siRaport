@@ -17,11 +17,11 @@
 
         <form method="GET" action="{{ route('guru.rekap-nilai.index') }}" class="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end print:hidden">
             <div class="grid gap-2">
-                <label for="pengampu_id" class="text-sm font-bold text-slate-700">Kelas dan Mata Pelajaran</label>
+                <label for="pengampu_id" class="text-sm font-bold text-slate-700">Tugas Mengajar dan Periode</label>
                 <select id="pengampu_id" name="pengampu_id" class="rk-field">
                     <option value="">Pilih tugas mengajar</option>
                     @foreach ($assignments as $assignment)
-                        <option value="{{ $assignment->id }}" @selected($selectedAssignment?->id === $assignment->id)>{{ $assignment->mataPelajaran->nama }} · {{ $assignment->kelas->tingkat }} {{ $assignment->kelas->nama }} · {{ $assignment->tahunAjaran->tahun }} {{ $assignment->tahunAjaran->semester }}</option>
+                        <option value="{{ $assignment->id }}" @selected($selectedAssignment?->id === $assignment->id)>{{ $assignment->mataPelajaran->nama }} · {{ $assignment->kelas->tingkat }} {{ $assignment->kelas->nama }} · {{ $assignment->tahunAjaran->tahun }} — Semester {{ $assignment->tahunAjaran->semester }}</option>
                     @endforeach
                 </select>
             </div>
@@ -37,14 +37,14 @@
             <div class="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-900 print:border-slate-300 print:bg-white">
                 <p class="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">Rekap per TP</p>
                 <h2 class="mt-1 text-lg font-extrabold">{{ $selectedAssignment->mataPelajaran->nama }} · {{ $selectedAssignment->kelas->tingkat }} {{ $selectedAssignment->kelas->nama }}</h2>
-                <p class="mt-1 text-xs">{{ $selectedAssignment->tahunAjaran->tahun }} · {{ $selectedAssignment->tahunAjaran->semester }}</p>
+                <p class="mt-1 text-xs">Periode Akademik: {{ $selectedAssignment->tahunAjaran->tahun }} — Semester {{ $selectedAssignment->tahunAjaran->semester }}</p>
                 <p class="mt-3 leading-6">Nilai akhir mata pelajaran belum dihitung. Sistem menampilkan hasil TP menurut metode rekap TP yang dipilih; bobot penilaian tidak dianggap sebagai bobot nilai akhir.</p>
             </div>
 
             @if ($assessments->whereNull('kategori_asesmen')->isNotEmpty())
                 <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900" role="status">
                     <strong>{{ $assessments->whereNull('kategori_asesmen')->count() }} penilaian belum diklasifikasikan.</strong>
-                    Jenis lama seperti tugas, ulangan harian, UTS, atau UAS tidak dipetakan otomatis. Klasifikasikan setelah memastikan kategorinya.
+                    Periksa kategorinya di <a class="font-bold underline" href="{{ route('guru.penilaian.index', ['pengampu_id' => $selectedAssignment->id]) }}">daftar penilaian</a> agar hasil TP dapat diolah.
                 </div>
             @endif
 
@@ -55,6 +55,131 @@
                     <a href="{{ route('guru.penilaian.create', ['pengampu_id' => $selectedAssignment->id]) }}" class="rk-button rk-button-primary mt-5 print:hidden">+ Buat Penilaian</a>
                 </div>
             @else
+                @php
+                    $simulationBlockers = $simulations->flatMap(fn (array $simulation) => $simulation['reasons'])->unique()->values();
+                    $simulationReady = $goalSummaries->isNotEmpty()
+                        && $students->isNotEmpty()
+                        && $simulations->every(fn (array $simulation): bool => $simulation['reasons']->isEmpty());
+                @endphp
+                <section class="mt-5 rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm print:hidden" aria-labelledby="course-score-simulation-title">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">Pratinjau pengolahan</p>
+                        <h2 id="course-score-simulation-title" class="mt-1 text-lg font-extrabold text-[#102d4b]">Simulasi nilai akhir mata pelajaran</h2>
+                        <p class="mt-2 text-sm leading-6 text-slate-600">Simulasi ini hanya pratinjau untuk tugas mengajar dan periode ini, tidak disimpan, serta bukan nilai resmi. Rata-rata cocok untuk TP mandiri; pembobotan atau persentase untuk TP progresif.</p>
+                    </div>
+
+                    @unless ($simulationReady)
+                        <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">
+                            <strong>Simulasi belum dapat dijalankan.</strong>
+                            @if ($simulationBlockers->isNotEmpty())
+                                <ul class="mt-2 list-inside list-disc leading-6">
+                                    @foreach ($simulationBlockers as $reason)
+                                        <li>{{ $reason }}</li>
+                                    @endforeach
+                                </ul>
+                            @elseif ($goalSummaries->isEmpty())
+                                <p class="mt-1">Siapkan TP terlebih dahulu agar hasil TP memiliki dasar pengolahan.</p>
+                            @else
+                                <p class="mt-1">Belum ada siswa yang dapat dianalisis pada tugas mengajar ini.</p>
+                            @endif
+                            @if ($goalSummaries->isEmpty())
+                                <a href="{{ route('guru.tujuan-pembelajaran.create', $selectedAssignment) }}" class="mt-2 inline-flex font-bold underline">Siapkan TP</a>
+                            @elseif ($students->isNotEmpty())
+                                <a href="{{ route('guru.penilaian.index', ['pengampu_id' => $selectedAssignment->id]) }}" class="mt-2 inline-flex font-bold underline">Periksa penilaian dan lengkapi nilai</a>
+                            @endif
+                        </div>
+                    @endunless
+
+                    <form method="GET" action="{{ route('guru.rekap-nilai.index') }}" class="mt-5 grid gap-4 rounded-xl bg-slate-50 p-4">
+                        <input type="hidden" name="pengampu_id" value="{{ $selectedAssignment->id }}">
+                        <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                            <div class="grid gap-2">
+                                <label for="metode_simulasi" class="text-sm font-bold text-slate-700">Metode simulasi</label>
+                                <select id="metode_simulasi" name="metode_simulasi" class="rk-field" @disabled(! $simulationReady)>
+                                    <option value="">Belum memilih simulasi</option>
+                                    @foreach ($simulationMethods as $method => $label)
+                                        <option value="{{ $method }}" @selected($simulationMethod === $method)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button type="submit" class="rk-button rk-button-primary" @disabled(! $simulationReady)>Hitung Simulasi</button>
+                        </div>
+
+                        @if ($simulationMethod === \App\Services\NilaiAkhirSimulasiService::METODE_PEMBOBOTAN)
+                            <fieldset class="grid gap-3 border-t border-slate-200 pt-4">
+                                <legend class="text-sm font-bold text-slate-700">Bobot setiap TP</legend>
+                                <p class="text-xs leading-5 text-slate-500">Masukkan bobot simulasi untuk semua TP. Jumlah harus 100%. Tidak ada bobot bawaan.</p>
+                                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    @foreach ($goalSummaries as $summary)
+                                        <div class="grid gap-2">
+                                            <label for="bobot-tp-{{ $summary['goal']->id }}" class="text-sm font-semibold text-slate-700">TP {{ $summary['goal']->urutan }} · {{ str($summary['goal']->tujuan)->limit(55) }}</label>
+                                            <div class="relative">
+                                                <input id="bobot-tp-{{ $summary['goal']->id }}" name="bobot_tp[{{ $summary['goal']->id }}]" type="number" min="0" max="100" step="0.01" value="{{ $simulationWeights[$summary['goal']->id] ?? '' }}" class="rk-field pr-12" aria-label="Bobot simulasi TP {{ $summary['goal']->urutan }}">
+                                                <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-slate-500">%</span>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </fieldset>
+                        @endif
+                    </form>
+
+                    @if ($goalSummaries->isNotEmpty())
+                    <div class="mt-5 overflow-x-auto">
+                        <table class="min-w-full text-left text-sm">
+                            <thead class="border-b border-slate-200 text-xs font-bold uppercase text-slate-500"><tr><th class="min-w-48 px-3 py-3">Siswa</th><th class="min-w-80 px-3 py-3">Sumber hasil TP</th><th class="min-w-64 px-3 py-3">Hasil simulasi mata pelajaran</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @foreach ($students as $student)
+                                    @php($simulation = $simulations->get($student->id))
+                                    <tr class="align-top">
+                                        <th scope="row" class="px-3 py-4 font-semibold text-slate-700">{{ $student->nama }}<span class="block text-xs font-normal text-slate-400">NIS {{ $student->nis }}</span></th>
+                                        <td class="px-3 py-4">
+                                            @forelse ($simulation['components'] as $component)
+                                                <div class="mb-2 last:mb-0">
+                                                    <p class="font-semibold text-slate-700">TP {{ $component['goalOrder'] }} · {{ $component['category'] }}:
+                                                        @if ($component['score'] === null)
+                                                            Belum lengkap
+                                                        @else
+                                                            {{ number_format($component['score'], 2, ',', '.') }}
+                                                        @endif
+                                                    </p>
+                                                    @if ($simulationMethod === \App\Services\NilaiAkhirSimulasiService::METODE_PEMBOBOTAN && $component['weight'] !== null)
+                                                        <p class="text-xs text-slate-500">Bobot simulasi {{ number_format($component['weight'], 2, ',', '.') }}%</p>
+                                                    @endif
+                                                    <details class="mt-1 text-xs text-slate-500">
+                                                        <summary class="cursor-pointer font-semibold">Rincian sumber</summary>
+                                                        <ul class="mt-1 list-inside list-disc">
+                                                            @foreach ($component['assessmentScores'] as $source)
+                                                                <li>{{ $source['name'] }}: {{ $source['score'] === null ? 'Belum diisi' : number_format($source['score'], 2, ',', '.') }}</li>
+                                                            @endforeach
+                                                        </ul>
+                                                        <p class="mt-1">Metode rekap TP: {{ \App\Models\TujuanPembelajaran::METODE_REKAP_LABELS[$component['method']] ?? 'Belum dipilih' }} · KKTP {{ number_format($component['kktp'], 2, ',', '.') }}</p>
+                                                    </details>
+                                                </div>
+                                            @empty
+                                                <span class="text-slate-500">Belum ada sumber hasil TP.</span>
+                                            @endforelse
+                                        </td>
+                                        <td class="px-3 py-4">
+                                            @if ($simulation['status'] === 'simulasi')
+                                                <strong class="block text-lg tabular-nums text-[#102d4b]">{{ number_format($simulation['nilai'], 2, ',', '.') }}</strong>
+                                                <span class="mt-1 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">SIMULASI · Bukan nilai resmi</span>
+                                                <p class="mt-2 text-xs leading-5 text-slate-600">{{ $simulation['metodeLabel'] }}</p>
+                                            @elseif ($simulation['status'] === 'belum_ditetapkan')
+                                                <span class="text-slate-500">Belum dihitung</span>
+                                            @else
+                                                <strong class="text-amber-800">{{ $simulationReady ? 'Simulasi belum tersedia' : 'Belum siap' }}</strong>
+                                                <p class="mt-1 text-xs leading-5 text-slate-600">{{ $simulationReady ? $simulation['message'] : 'Periksa alasan di atas.' }}</p>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @endif
+                </section>
+
                 @forelse ($goalSummaries as $summary)
                     <article class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm print:shadow-none">
                         <header class="border-b border-slate-200 bg-slate-50 p-5">
@@ -73,7 +198,7 @@
                                 <div class="mt-4 overflow-x-auto">
                                     <table class="min-w-full text-left text-sm">
                                         <caption class="sr-only">{{ $category['label'] }} untuk TP {{ $summary['goal']->urutan }}</caption>
-                                        <thead class="border-b border-slate-200 text-xs font-bold text-slate-500"><tr><th class="min-w-44 px-3 py-3">Siswa</th>@foreach ($category['assessments'] as $assessment)<th class="min-w-28 px-3 py-3 text-center">{{ $assessment->nama }}</th>@endforeach<th class="min-w-28 px-3 py-3 text-center">{{ $category['isFormative'] ? 'Ringkasan' : 'Hasil TP' }}</th><th class="min-w-44 px-3 py-3">Keterangan</th></tr></thead>
+                                        <thead class="border-b border-slate-200 text-xs font-bold text-slate-500"><tr><th class="min-w-44 px-3 py-3">Siswa</th>@foreach ($category['assessments'] as $assessment)<th class="min-w-28 px-3 py-3 text-center">{{ $assessment->nama }}</th>@endforeach<th class="min-w-28 px-3 py-3 text-center">{{ $category['isFormative'] ? 'Ringkasan' : 'Hasil kategori' }}</th><th class="min-w-44 px-3 py-3">Keterangan</th></tr></thead>
                                         <tbody class="divide-y divide-slate-100">
                                             @forelse ($students as $student)
                                                 @php($result = $category['rows']->get($student->id))
@@ -108,7 +233,11 @@
                         @endforelse
                     </article>
                 @empty
-                    <div class="mt-5 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Belum ada TP yang terkait penilaian. Hubungkan penilaian ke TP setelah kesesuaiannya diperiksa.</div>
+                    <div class="mt-5 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+                        <strong class="text-slate-800">Belum ada TP untuk rekap.</strong>
+                        <p class="mt-1">Siapkan TP terlebih dahulu. Tabel hasil TP akan muncul setelah TP dan penilaiannya tersedia.</p>
+                        <a href="{{ route('guru.tujuan-pembelajaran.create', $selectedAssignment) }}" class="mt-3 inline-flex font-bold text-emerald-700 underline print:hidden">Siapkan TP</a>
+                    </div>
                 @endforelse
             @endif
         @endif

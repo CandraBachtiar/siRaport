@@ -43,6 +43,7 @@ class InputNilaiControllerTest extends TestCase
         ]));
 
         $response->assertOk()
+            ->assertSee('Periode Akademik')
             ->assertSee('Tugas Tampilan')
             ->assertSee('Siswa Tampilan')
             ->assertSee('65.00')
@@ -78,7 +79,13 @@ class InputNilaiControllerTest extends TestCase
         $guru = Guru::factory()->for($user)->create();
         $class = Kelas::factory()->create();
         $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
-        $assessment = Penilaian::factory()->for($assignment)->create();
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create([
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
+        ]);
+        $assessment = Penilaian::factory()->for($assignment)->create([
+            'tujuan_pembelajaran_id' => $goal->id,
+            'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
+        ]);
         $students = Siswa::factory()->count(2)->for($class)->create();
         Nilai::factory()->create(['siswa_id' => $students[0]->id, 'penilaian_id' => $assessment->id, 'nilai' => 85]);
         Nilai::factory()->create(['siswa_id' => $students[1]->id, 'penilaian_id' => $assessment->id, 'nilai' => 70]);
@@ -91,6 +98,15 @@ class InputNilaiControllerTest extends TestCase
             ->assertSessionHas('success', 'Nilai berhasil disimpan.');
         $this->assertDatabaseHas('nilai', ['siswa_id' => $students[0]->id, 'penilaian_id' => $assessment->id, 'nilai' => 90]);
         $this->assertDatabaseHas('nilai', ['siswa_id' => $students[1]->id, 'penilaian_id' => $assessment->id, 'nilai' => 70]);
+
+        $recap = $this->actingAs($user)->get(route('guru.rekap-nilai.index', [
+            'pengampu_id' => $assignment->id,
+            'metode_simulasi' => 'rata_rata',
+        ]));
+
+        $recap->assertOk()
+            ->assertViewHas('simulations', fn ($simulations): bool => $simulations[$students[0]->id]['nilai'] === 90.0
+                && $simulations[$students[1]->id]['nilai'] === 70.0);
     }
 
     public function test_clearing_a_score_removes_it_from_recap_and_keeps_other_scores(): void

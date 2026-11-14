@@ -13,7 +13,7 @@
     <form method="POST" action="{{ route('admin.keputusan-kenaikan.store') }}" class="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6">
         <h2 class="font-bold">Catat Keputusan Kenaikan Kelas (Semester Genap)</h2><p class="text-sm text-slate-500">Keputusan diisi admin berdasarkan pengesahan pihak sekolah, bukan dihitung dari nilai.</p>
         @csrf<label class="grid gap-2 text-sm">Siswa<select name="siswa_id" class="rk-field" required>@foreach ($students as $student)<option value="{{ $student->id }}">{{ $student->nama }} · kelas ID {{ $student->kelas_id }}</option>@endforeach</select></label>
-        <label class="grid gap-2 text-sm">Tahun ajaran<select name="tahun_ajaran_id" class="rk-field" required>@foreach ($schoolYears as $year)<option value="{{ $year->id }}">{{ $year->tahun }} · Genap</option>@endforeach</select></label>
+        <label class="grid gap-2 text-sm">Periode Akademik (Semester Genap)<select name="tahun_ajaran_id" class="rk-field" required>@foreach ($schoolYears as $year)<option value="{{ $year->id }}">{{ $year->tahun }} — Semester Genap</option>@endforeach</select></label>
         <label class="grid gap-2 text-sm">Keputusan<select name="keputusan_kenaikan" class="rk-field" required><option value="naik">Naik</option><option value="tidak_naik">Tidak naik</option></select></label>
         <button class="rk-button rk-button-primary">Simpan Keputusan</button>
     </form>

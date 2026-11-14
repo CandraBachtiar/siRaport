@@ -8,7 +8,7 @@
 
         <div class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-                <p class="text-sm font-semibold text-emerald-600">{{ $assignment->mataPelajaran->nama }} · {{ $assignment->kelas->tingkat }} {{ $assignment->kelas->nama }} · {{ $assignment->tahunAjaran->tahun }} {{ $assignment->tahunAjaran->semester }}</p>
+                <p class="text-sm font-semibold text-emerald-600">{{ $assignment->mataPelajaran->nama }} · {{ $assignment->kelas->tingkat }} {{ $assignment->kelas->nama }} · {{ $assignment->tahunAjaran->tahun }} — Semester {{ $assignment->tahunAjaran->semester }}</p>
                 <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#102d4b]">Tujuan Pembelajaran &amp; KKTP</h1>
                 <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Kelola TP untuk tugas mengajar ini. Setiap TP memakai satu ambang KKTP angka yang ditetapkan guru sesuai kesepakatan sekolah.</p>
             </div>

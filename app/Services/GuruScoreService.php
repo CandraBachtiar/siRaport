@@ -86,7 +86,7 @@ class GuruScoreService
     {
         $assignment->loadMissing([
             'kelas:id,nama,tingkat',
-            'mataPelajaran:id,kode,nama,kkm',
+            'mataPelajaran:id,kode,nama',
             'tahunAjaran:id,tahun,semester',
             'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
         ]);

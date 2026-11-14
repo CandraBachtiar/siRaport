@@ -60,10 +60,30 @@ class SiswaPerluPerhatianControllerTest extends TestCase
             ->assertSee('Alya Menurun')
             ->assertSee('Bima Belum Lengkap')
             ->assertDontSee('Citra Stabil')
-            ->assertSee('TP memiliki hasil kategori sumatif di bawah KKTP')
-            ->assertSee('Tren nilai menurun')
+            ->assertSee('Siswa Perlu Perhatian')
+            ->assertSee('Siswa dengan Nilai Belum Lengkap')
+            ->assertSee('Siswa dengan Tren Menurun')
+            ->assertSee('Siswa dengan TP di Bawah KKTP')
+            ->assertSee('Rincian hasil TP dan kategori')
+            ->assertSee('Jumlah hasil TP di bawah KKTP')
+            ->assertSee('Jumlah hasil kategori sumatif di bawah KKTP')
+            ->assertSee('Jumlah hasil TP belum lengkap')
+            ->assertSee('1 hasil TP belum lengkap (1 kategori).')
+            ->assertSee('Periksa nilai sumatif yang belum diisi atau metode rekap TP yang belum ditentukan.')
+            ->assertSee('1 hasil TP di bawah KKTP (1 kategori).')
+            ->assertSee('Tinjau capaian TP dan tentukan tindak lanjut pembelajaran.')
+            ->assertSee('Periksa perkembangan nilai pada beberapa penilaian.')
             ->assertSee('2 nilai tugas belum diisi')
-            ->assertViewHas('rows', fn ($rows): bool => $rows->count() === 2);
+            ->assertSee('Periksa dan lengkapi nilai pada penilaian terkait.')
+            ->assertSee('Rata-rata Nilai Tugas')
+            ->assertSee('Bukan nilai akhir')
+            ->assertSee(route('guru.analisis.index', ['pengampu_id' => $assignment->id, 'siswa_id' => $decliningStudent->id]))
+            ->assertSee('Geser tabel ke samping untuk melihat kolom lainnya.')
+            ->assertViewHas('rows', fn ($rows): bool => $rows->count() === 2)
+            ->assertViewHas('summary', fn (array $summary): bool => $summary['studentCount'] === 2
+                && $summary['belowKktpCount'] === 1
+                && $summary['incompleteCount'] === 1
+                && $summary['decliningCount'] === 1);
     }
 
     public function test_attention_counts_a_tp_once_and_reports_below_threshold_categories_separately(): void
@@ -97,7 +117,8 @@ class SiswaPerluPerhatianControllerTest extends TestCase
         $response = $this->actingAs($user)->get(route('guru.perhatian.index', ['pengampu_id' => $assignment->id]));
 
         $response->assertOk()
-            ->assertSee('1 TP memiliki hasil kategori sumatif di bawah KKTP (2 temuan kategori).')
+            ->assertSee('1 hasil TP di bawah KKTP (2 kategori).')
+            ->assertSee('Tinjau capaian TP dan tentukan tindak lanjut pembelajaran.')
             ->assertViewHas('rows', function ($rows) use ($student): bool {
                 $row = $rows->firstWhere('student.id', $student->id);
 
@@ -106,6 +127,31 @@ class SiswaPerluPerhatianControllerTest extends TestCase
             })
             ->assertViewHas('summary', fn (array $summary): bool => $summary['belowTpStudentCount'] === 1
                 && $summary['belowCategoryCount'] === 2);
+    }
+
+    public function test_unclassified_assessment_has_a_clear_follow_up_hint(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create();
+        $student = Siswa::factory()->for($class)->create(['nama' => 'Siswa Kategori Belum Diatur']);
+        $assessment = Penilaian::factory()->for($assignment)->create([
+            'tujuan_pembelajaran_id' => $goal->id,
+            'kategori_asesmen' => null,
+        ]);
+        Nilai::factory()->create([
+            'siswa_id' => $student->id,
+            'penilaian_id' => $assessment->id,
+            'nilai' => 80,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('guru.perhatian.index', ['pengampu_id' => $assignment->id]));
+
+        $response->assertOk()
+            ->assertSee('1 penilaian belum memiliki kategori asesmen.')
+            ->assertSee('Periksa kategori asesmen pada penilaian terkait.');
     }
 
     public function test_page_does_not_display_students_from_another_guru(): void
@@ -240,7 +286,7 @@ class SiswaPerluPerhatianControllerTest extends TestCase
         $response->assertOk()
             ->assertSee('Dina Data Terbatas')
             ->assertSee('1 nilai tugas belum diisi')
-            ->assertSee('Data belum cukup untuk menentukan tren')
+            ->assertSee('Data belum cukup untuk melihat tren.')
             ->assertViewHas('rows', function ($rows) use ($student): bool {
                 $studentRows = $rows->where('student.id', $student->id);
 
@@ -271,5 +317,29 @@ class SiswaPerluPerhatianControllerTest extends TestCase
         $response->assertOk()
             ->assertSee('2026/2027')
             ->assertDontSee('2025/2026');
+    }
+
+    public function test_student_search_filters_the_list_while_statistics_keep_the_selected_assignment_scope(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $firstStudent = Siswa::factory()->for($class)->create(['nama' => 'Alya Dicari']);
+        Siswa::factory()->for($class)->create(['nama' => 'Bima Lain']);
+        Penilaian::factory()->for($assignment)->create();
+
+        $response = $this->actingAs($user)->get(route('guru.perhatian.index', [
+            'pengampu_id' => $assignment->id,
+            'search' => 'Alya',
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Alya Dicari')
+            ->assertDontSee('Bima Lain')
+            ->assertSee('Statistik mengikuti tugas mengajar dan periode; pencarian hanya menyaring daftar siswa.')
+            ->assertViewHas('summary', fn (array $summary): bool => $summary['studentCount'] === 2)
+            ->assertViewHas('rows', fn ($rows): bool => $rows->count() === 1
+                && $rows->first()['student']->id === $firstStudent->id);
     }
 }

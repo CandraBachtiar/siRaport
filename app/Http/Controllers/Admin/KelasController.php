@@ -85,6 +85,10 @@ class KelasController extends Controller
                 return 'pengampu';
             }
 
+            if (DB::table('riwayat_penempatan_siswa')->where('kelas_id', $lockedKelas->getKey())->exists()) {
+                return 'riwayat';
+            }
+
             $lockedKelas->delete();
 
             return 'deleted';
@@ -100,6 +104,12 @@ class KelasController extends Controller
             return redirect()
                 ->route('admin.kelas.index')
                 ->with('error', 'Kelas tidak dapat dihapus karena masih digunakan pada data pengampu.');
+        }
+
+        if ($result === 'riwayat') {
+            return redirect()
+                ->route('admin.kelas.index')
+                ->with('error', 'Kelas tidak dapat dihapus karena tercatat dalam riwayat penempatan siswa.');
         }
 
         return redirect()

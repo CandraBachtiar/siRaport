@@ -69,7 +69,7 @@
                     <x-nav-icon name="calendar" class="size-5 text-emerald-600" />
                 </div>
                 <dl class="mt-5 grid gap-4">
-                    <div class="rounded-xl bg-slate-50 p-4"><dt class="text-xs font-semibold text-slate-400">Tahun ajaran aktif</dt><dd class="mt-1 text-sm font-bold text-[#102d4b]">{{ $statistics['active_school_year'] ? $statistics['active_school_year']->tahun.' · '.$statistics['active_school_year']->semester : 'Belum ditetapkan' }}</dd></div>
+                    <div class="rounded-xl bg-slate-50 p-4"><dt class="text-xs font-semibold text-slate-400">Periode akademik aktif</dt><dd class="mt-1 text-sm font-bold text-[#102d4b]">{{ $statistics['active_school_year'] ? $statistics['active_school_year']->tahun.' — Semester '.$statistics['active_school_year']->semester : 'Belum ditetapkan' }}</dd></div>
                     <div class="rounded-xl bg-slate-50 p-4"><dt class="text-xs font-semibold text-slate-400">Pengampu terdaftar</dt><dd class="mt-1 text-2xl font-extrabold text-[#102d4b]">{{ number_format($statistics['pengampu'], 0, ',', '.') }}</dd></div>
                 </dl>
                 <p class="mt-5 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-500">Data diambil langsung dari master akademik RaporKu.</p>

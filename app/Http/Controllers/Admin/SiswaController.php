@@ -138,24 +138,34 @@ class SiswaController extends Controller
 
     public function destroy(Siswa $siswa): RedirectResponse
     {
-        $deleted = DB::transaction(function () use ($siswa): bool {
+        $result = DB::transaction(function () use ($siswa): string {
             $lockedSiswa = Siswa::query()
                 ->lockForUpdate()
                 ->findOrFail($siswa->getKey());
 
             if (DB::table('nilai')->where('siswa_id', $lockedSiswa->getKey())->exists()) {
-                return false;
+                return 'nilai';
+            }
+
+            if (DB::table('riwayat_penempatan_siswa')->where('siswa_id', $lockedSiswa->getKey())->exists()) {
+                return 'riwayat';
             }
 
             $lockedSiswa->delete();
 
-            return true;
+            return 'deleted';
         });
 
-        if (! $deleted) {
+        if ($result === 'nilai') {
             return redirect()
                 ->route('admin.siswa.index')
                 ->with('error', 'Siswa tidak dapat dihapus karena masih memiliki data nilai.');
+        }
+
+        if ($result === 'riwayat') {
+            return redirect()
+                ->route('admin.siswa.index')
+                ->with('error', 'Siswa tidak dapat dihapus karena masih memiliki riwayat penempatan kelas.');
         }
 
         return redirect()

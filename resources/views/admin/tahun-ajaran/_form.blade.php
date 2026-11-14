@@ -25,7 +25,7 @@
 
     <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
         <input id="aktif" name="aktif" type="checkbox" value="1" @checked(old('aktif', $tahunAjaran?->aktif)) class="mt-0.5 size-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" @if ($errors->has('aktif')) aria-invalid="true" aria-describedby="aktif-error" @endif>
-        <span><strong class="block text-sm font-bold text-slate-700">Jadikan tahun ajaran aktif</strong><small class="mt-1 block text-xs leading-5 text-slate-500">Mengaktifkan periode ini akan menonaktifkan periode aktif sebelumnya.</small></span>
+        <span><strong class="block text-sm font-bold text-slate-700">Jadikan periode akademik aktif</strong><small class="mt-1 block text-xs leading-5 text-slate-500">Periode terdiri dari tahun ajaran dan semester. Mengaktifkan periode ini akan menonaktifkan periode aktif sebelumnya.</small></span>
     </label>
     @error('aktif')<p id="aktif-error" class="text-sm font-medium text-red-600" role="alert">{{ $message }}</p>@enderror
 

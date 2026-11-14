@@ -101,6 +101,10 @@ class TahunAjaranController extends Controller
                 return 'digunakan';
             }
 
+            if (DB::table('riwayat_penempatan_siswa')->where('tahun_ajaran_id', $lockedTahunAjaran->getKey())->exists()) {
+                return 'riwayat';
+            }
+
             $lockedTahunAjaran->delete();
 
             return 'deleted';
@@ -112,6 +116,10 @@ class TahunAjaranController extends Controller
 
         if ($result === 'digunakan') {
             return redirect()->route('admin.tahun-ajaran.index')->with('error', 'Tahun ajaran tidak dapat dihapus karena masih digunakan pada data lain.');
+        }
+
+        if ($result === 'riwayat') {
+            return redirect()->route('admin.tahun-ajaran.index')->with('error', 'Tahun ajaran tidak dapat dihapus karena tercatat dalam riwayat penempatan siswa.');
         }
 
         return redirect()->route('admin.tahun-ajaran.index')->with('success', 'Data tahun ajaran berhasil dihapus.');

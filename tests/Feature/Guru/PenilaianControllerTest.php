@@ -77,6 +77,52 @@ class PenilaianControllerTest extends TestCase
         ]);
     }
 
+    public function test_assessment_form_explains_activity_function_and_informational_weight(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+        TujuanPembelajaran::factory()->for($assignment)->create();
+
+        $response = $this->actingAs($user)->get(route('guru.penilaian.create', ['pengampu_id' => $assignment->id]));
+
+        $response->assertOk()
+            ->assertSee('Bentuk kegiatan')
+            ->assertSee('tidak otomatis menentukan fungsi asesmen')
+            ->assertSee('Fungsi asesmen')
+            ->assertSee('UAS dengan kategori formatif')
+            ->assertSee('Bobot penilaian')
+            ->assertSee('informasi saja, opsional')
+            ->assertSee('tidak memengaruhi rekap hasil TP maupun simulasi nilai akhir');
+    }
+
+    public function test_unusual_activity_and_category_pair_is_not_rejected_without_school_policy(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create();
+
+        $response = $this->actingAs($user)->post(route('guru.penilaian.store'), [
+            'pengampu_id' => $assignment->id,
+            'tujuan_pembelajaran_id' => $goal->id,
+            'nama' => 'UAS untuk Umpan Balik',
+            'jenis' => 'uas',
+            'kategori_asesmen' => Penilaian::KATEGORI_FORMATIF,
+            'tanggal' => '2026-11-05',
+            'urutan' => 1,
+        ]);
+
+        $response->assertRedirectToRoute('guru.penilaian.index', ['pengampu_id' => $assignment->id])
+            ->assertSessionHas('success', 'Penilaian berhasil ditambahkan.');
+        $this->assertDatabaseHas('penilaian', [
+            'pengampu_id' => $assignment->id,
+            'tujuan_pembelajaran_id' => $goal->id,
+            'jenis' => 'uas',
+            'kategori_asesmen' => Penilaian::KATEGORI_FORMATIF,
+        ]);
+    }
+
     public function test_guru_cannot_create_an_assessment_for_another_gurus_assignment(): void
     {
         $user = User::factory()->guru()->create();
@@ -122,6 +168,33 @@ class PenilaianControllerTest extends TestCase
             ]);
 
         $this->assertDatabaseMissing('penilaian', ['nama' => 'Penilaian pada TP yang salah']);
+    }
+
+    public function test_assessment_mapping_accepts_only_one_goal_in_the_current_data_model(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+        $goals = TujuanPembelajaran::factory()->count(2)->for($assignment)->sequence(
+            ['urutan' => 1],
+            ['urutan' => 2],
+        )->create();
+
+        $response = $this->actingAs($user)
+            ->from(route('guru.penilaian.create', ['pengampu_id' => $assignment->id]))
+            ->post(route('guru.penilaian.store'), [
+                'pengampu_id' => $assignment->id,
+                'tujuan_pembelajaran_id' => $goals->pluck('id')->all(),
+                'nama' => 'Asesmen Terpadu Dua TP',
+                'jenis' => 'ulangan_harian',
+                'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
+                'tanggal' => '2026-11-05',
+                'urutan' => 1,
+            ]);
+
+        $response->assertRedirect(route('guru.penilaian.create', ['pengampu_id' => $assignment->id]))
+            ->assertSessionHasErrors('tujuan_pembelajaran_id');
+        $this->assertDatabaseMissing('penilaian', ['nama' => 'Asesmen Terpadu Dua TP']);
     }
 
     public function test_invalid_assessment_payload_returns_specific_validation_errors(): void

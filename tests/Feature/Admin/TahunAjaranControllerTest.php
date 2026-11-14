@@ -8,6 +8,7 @@ use App\Models\MataPelajaran;
 use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
+use App\Models\RiwayatPenempatanSiswa;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
@@ -42,13 +43,16 @@ class TahunAjaranControllerTest extends TestCase
         TahunAjaran::factory()->create(['tahun' => '2025/2026', 'semester' => 'Ganjil', 'aktif' => true]);
 
         $this->actingAs($admin)->get(route('admin.tahun-ajaran.index'))
-            ->assertOk()->assertSee('2025/2026')->assertSee('Ganjil')->assertSee('Aktif');
+            ->assertOk()->assertSee('2025/2026')->assertSee('Ganjil')->assertSee('Aktif')
+            ->assertSee('Satu periode akademik terdiri dari tahun ajaran dan semester');
     }
 
     public function test_admin_can_open_create_form(): void
     {
         $this->actingAs(User::factory()->admin()->create())->get(route('admin.tahun-ajaran.create'))
-            ->assertOk()->assertSee('Tambah Tahun Ajaran')->assertSee('Semester');
+            ->assertOk()->assertSee('Tambah Tahun Ajaran')->assertSee('Semester')
+            ->assertSee('Jadikan periode akademik aktif')
+            ->assertSee('menonaktifkan periode aktif sebelumnya');
     }
 
     public function test_admin_can_create_tahun_ajaran(): void
@@ -239,5 +243,24 @@ class TahunAjaranControllerTest extends TestCase
             ->assertSessionHas('error', 'Tahun ajaran tidak dapat dihapus karena masih digunakan pada data lain.');
 
         $this->assertModelExists($tahunAjaran);
+    }
+
+    public function test_tahun_ajaran_with_placement_history_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $schoolYear = TahunAjaran::factory()->create(['aktif' => false]);
+        $student = Siswa::factory()->create();
+        RiwayatPenempatanSiswa::factory()->create([
+            'siswa_id' => $student->id,
+            'kelas_id' => $student->kelas_id,
+            'tahun_ajaran_id' => $schoolYear->id,
+        ]);
+
+        $this->actingAs($admin)->delete(route('admin.tahun-ajaran.destroy', $schoolYear))
+            ->assertRedirectToRoute('admin.tahun-ajaran.index')
+            ->assertSessionHas('error', 'Tahun ajaran tidak dapat dihapus karena tercatat dalam riwayat penempatan siswa.');
+
+        $this->assertModelExists($schoolYear);
+        $this->assertDatabaseHas('riwayat_penempatan_siswa', ['tahun_ajaran_id' => $schoolYear->id]);
     }
 }

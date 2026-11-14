@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
+use App\Models\RiwayatPenempatanSiswa;
 use App\Models\Siswa;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -421,6 +422,23 @@ class SiswaControllerTest extends TestCase
         $response->assertRedirectToRoute('admin.siswa.index')
             ->assertSessionHas('error', 'Siswa tidak dapat dihapus karena masih memiliki data nilai.');
         $this->assertModelExists($siswa);
+    }
+
+    public function test_student_with_class_placement_history_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $student = Siswa::factory()->create();
+        RiwayatPenempatanSiswa::factory()->create([
+            'siswa_id' => $student->id,
+            'kelas_id' => $student->kelas_id,
+        ]);
+
+        $this->actingAs($admin)->delete(route('admin.siswa.destroy', $student))
+            ->assertRedirectToRoute('admin.siswa.index')
+            ->assertSessionHas('error', 'Siswa tidak dapat dihapus karena masih memiliki riwayat penempatan kelas.');
+
+        $this->assertModelExists($student);
+        $this->assertDatabaseHas('riwayat_penempatan_siswa', ['siswa_id' => $student->id]);
     }
 
     public function test_database_restricts_deleting_a_student_referenced_by_a_score(): void

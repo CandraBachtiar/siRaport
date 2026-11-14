@@ -27,7 +27,7 @@ class InputNilaiController extends Controller
         $guru = $user->guru()->firstOrFail();
         $assignments = Pengampu::query()
             ->where('guru_id', $guru->id)
-            ->with(['kelas:id,nama,tingkat', 'mataPelajaran:id,kode,nama,kkm', 'tahunAjaran:id,tahun,semester,aktif'])
+            ->with(['kelas:id,nama,tingkat', 'mataPelajaran:id,kode,nama', 'tahunAjaran:id,tahun,semester,aktif'])
             ->orderByDesc('tahun_ajaran_id')
             ->orderBy('kelas_id')
             ->orderBy('mata_pelajaran_id')
@@ -43,7 +43,7 @@ class InputNilaiController extends Controller
             ->when($filters['classId'] > 0, fn (Collection $items): Collection => $items->where('kelas_id', $filters['classId']));
         $assessments = Penilaian::query()
             ->whereIn('pengampu_id', $filteredAssignments->pluck('id'))
-            ->with(['pengampu.kelas:id,nama,tingkat', 'pengampu.mataPelajaran:id,kode,nama,kkm'])
+            ->with(['pengampu.kelas:id,nama,tingkat', 'pengampu.mataPelajaran:id,kode,nama'])
             ->orderBy('urutan')
             ->orderBy('tanggal')
             ->orderBy('id')

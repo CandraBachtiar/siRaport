@@ -49,6 +49,20 @@ class TujuanPembelajaranTest extends TestCase
         ]);
     }
 
+    public function test_goal_form_explains_goal_and_threshold_in_plain_language(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+
+        $this->actingAs($user)
+            ->get(route('guru.tujuan-pembelajaran.create', $assignment))
+            ->assertOk()
+            ->assertSee('kemampuan yang diharapkan dikuasai siswa setelah mengikuti pembelajaran')
+            ->assertSee('batas untuk menilai ketercapaian TP ini')
+            ->assertSee('bukan bobot atau nilai akhir mata pelajaran');
+    }
+
     public function test_guru_can_manage_goals_for_multiple_semester_assignments_independently(): void
     {
         $user = User::factory()->guru()->create();

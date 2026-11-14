@@ -49,6 +49,7 @@ class AnalisisNilaiControllerTest extends TestCase
         ]));
 
         $response->assertOk()
+            ->assertSee('Periode Akademik')
             ->assertSee('Matematika Analisis')
             ->assertSee('Penilaian Satu')
             ->assertSee('Penilaian Dua')

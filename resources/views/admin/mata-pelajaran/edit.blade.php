@@ -9,7 +9,7 @@
             <div class="border-b border-slate-200 pb-6">
                 <p class="text-sm font-semibold text-emerald-600">Data Mata Pelajaran</p>
                 <h1 class="mt-2 text-2xl font-extrabold tracking-tight text-[#102d4b]">Edit Mata Pelajaran</h1>
-                <p class="mt-2 text-sm leading-6 text-slate-500">Perbarui kode, nama, atau KKM mata pelajaran.</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Admin mengelola kode dan nama. TP dan KKTP diatur guru melalui ruang kelas pada tugas mengajarnya.</p>
             </div>
 
             <div class="pt-6">

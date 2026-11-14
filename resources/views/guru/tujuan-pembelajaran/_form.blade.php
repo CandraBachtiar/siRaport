@@ -25,7 +25,8 @@
         </div>
         <div class="grid gap-2">
             <label for="tujuan" class="text-base font-semibold text-slate-700">Rumusan Tujuan Pembelajaran</label>
-            <textarea id="tujuan" name="tujuan" rows="5" maxlength="5000" required class="rk-field min-h-36" @if ($errors->has('tujuan')) aria-invalid="true" aria-describedby="tujuan-error" @endif>{{ old('tujuan', $tujuan?->tujuan) }}</textarea>
+            <textarea id="tujuan" name="tujuan" rows="5" maxlength="5000" required class="rk-field min-h-36" aria-describedby="tujuan-help @if ($errors->has('tujuan')) tujuan-error @endif" @if ($errors->has('tujuan')) aria-invalid="true" @endif>{{ old('tujuan', $tujuan?->tujuan) }}</textarea>
+            <p id="tujuan-help" class="text-sm leading-6 text-slate-500">Tuliskan kemampuan yang diharapkan dikuasai siswa setelah mengikuti pembelajaran.</p>
             @error('tujuan')<p id="tujuan-error" class="text-sm font-medium text-red-700" role="alert">{{ $message }}</p>@enderror
         </div>
     </div>
@@ -36,7 +37,7 @@
             <input id="kktp" name="kktp" type="number" min="0" max="100" step="0.01" required value="{{ old('kktp', $tujuan?->kktp) }}" class="rk-field pr-14" @if ($errors->has('kktp')) aria-invalid="true" aria-describedby="kktp-help kktp-error" @endif>
             <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm font-bold text-slate-500">dari 100</span>
         </div>
-        <p id="kktp-help" class="text-sm leading-6 text-slate-500">Isi ambang ketercapaian yang disepakati untuk TP ini. KKTP berbeda dari bobot penilaian.</p>
+        <p id="kktp-help" class="text-sm leading-6 text-slate-500">KKTP adalah batas untuk menilai ketercapaian TP ini, bukan bobot atau nilai akhir mata pelajaran.</p>
         @error('kktp')<p id="kktp-error" class="text-sm font-medium text-red-700" role="alert">{{ $message }}</p>@enderror
     </div>
 

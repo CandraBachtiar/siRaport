@@ -19,7 +19,7 @@ class MataPelajaranController extends Controller
         $search = $request->string('search')->trim()->toString();
 
         $mataPelajaran = MataPelajaran::query()
-            ->select(['id', 'kode', 'nama', 'kkm'])
+            ->select(['id', 'kode', 'nama'])
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $query->where(function (Builder $query) use ($search): void {
                     $query->where('kode', 'like', "%{$search}%")

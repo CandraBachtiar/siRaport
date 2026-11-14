@@ -8,7 +8,7 @@
             <div>
                 <p class="text-sm font-semibold text-emerald-600">Master Data</p>
                 <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#102d4b]">Data Tahun Ajaran</h1>
-                <p class="mt-2 text-sm leading-6 text-slate-500">Kelola periode tahun ajaran dan semester aktif.</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Satu periode akademik terdiri dari tahun ajaran dan semester. Periode aktif menjadi acuan dashboard dan pilihan awal pada beberapa filter.</p>
             </div>
             <a href="{{ route('admin.tahun-ajaran.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20">
                 <span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Tahun Ajaran

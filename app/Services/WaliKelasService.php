@@ -126,7 +126,7 @@ class WaliKelasService
     public function subjectSummary(Pengampu $assignment, Siswa $student): array
     {
         $assignment->load([
-            'mataPelajaran:id,kode,nama,kkm',
+            'mataPelajaran:id,kode,nama',
             'tahunAjaran:id,tahun,semester,aktif',
             'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
             'penilaian' => fn ($query) => $query
@@ -180,7 +180,7 @@ class WaliKelasService
             ->where('tahun_ajaran_id', $schoolYear->id)
             ->with([
                 'guru:id,nama',
-                'mataPelajaran:id,kode,nama,kkm',
+                'mataPelajaran:id,kode,nama',
                 'tahunAjaran:id,tahun,semester,aktif',
                 'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
                 'penilaian' => fn ($query) => $query

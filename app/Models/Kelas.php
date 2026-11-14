@@ -31,4 +31,9 @@ class Kelas extends Model
     {
         return $this->hasMany(Pengampu::class);
     }
+
+    public function riwayatPenempatanSiswa(): HasMany
+    {
+        return $this->hasMany(RiwayatPenempatanSiswa::class);
+    }
 }

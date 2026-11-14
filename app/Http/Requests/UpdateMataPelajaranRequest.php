@@ -30,7 +30,6 @@ class UpdateMataPelajaranRequest extends FormRequest
         return [
             'kode' => ['required', 'string', 'max:255', Rule::unique(MataPelajaran::class, 'kode')->ignore($mataPelajaran)],
             'nama' => ['required', 'string', 'max:255'],
-            'kkm' => ['required', 'numeric', 'decimal:0,2', 'between:0,100'],
         ];
     }
 
@@ -45,10 +44,6 @@ class UpdateMataPelajaranRequest extends FormRequest
             'kode.required' => 'Kode mata pelajaran wajib diisi.',
             'kode.unique' => 'Kode mata pelajaran sudah digunakan.',
             'nama.required' => 'Nama mata pelajaran wajib diisi.',
-            'kkm.required' => 'KKM wajib diisi.',
-            'kkm.numeric' => 'KKM harus berupa angka.',
-            'kkm.decimal' => 'KKM maksimal menggunakan dua angka desimal.',
-            'kkm.between' => 'KKM harus berada di antara 0 dan 100.',
         ];
     }
 }
