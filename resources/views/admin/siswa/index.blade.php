@@ -190,6 +190,7 @@
                                     <td class="whitespace-nowrap px-5 py-4 text-right">
                                         <div class="inline-flex items-center gap-2">
                                             <a href="{{ route('admin.siswa.edit', $item) }}" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">Edit</a>
+                                            <a href="{{ route('admin.siswa.riwayat.index', $item) }}" class="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50">Riwayat Kelas</a>
                                             <form method="POST" action="{{ route('admin.siswa.destroy', $item) }}" onsubmit="return confirm('Yakin ingin menghapus data siswa ini?')">
                                                 @csrf
                                                 @method('DELETE')

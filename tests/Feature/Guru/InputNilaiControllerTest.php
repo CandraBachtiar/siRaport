@@ -8,6 +8,7 @@ use App\Models\Kelas;
 use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
+use App\Models\RiwayatPenempatanSiswa;
 use App\Models\Siswa;
 use App\Models\TujuanPembelajaran;
 use App\Models\User;
@@ -48,7 +49,37 @@ class InputNilaiControllerTest extends TestCase
             ->assertSee('Siswa Tampilan')
             ->assertSee('65.00')
             ->assertSee('Nilai tersimpan')
+            ->assertSee('Riwayat Belum Tersedia')
+            ->assertSee('Ringkasan pemeriksaan penempatan berdasarkan tanggal penilaian.')
             ->assertDontSee('KKM');
+    }
+
+    public function test_input_page_shows_verified_placement_without_changing_roster_or_score(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $assessment = Penilaian::factory()->for($assignment)->create(['tanggal' => '2026-03-15']);
+        $student = Siswa::factory()->for($class)->create();
+        RiwayatPenempatanSiswa::factory()->create([
+            'siswa_id' => $student->id,
+            'kelas_id' => $class->id,
+            'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+            'mulai_pada' => '2026-03-15',
+            'berakhir_pada' => '2026-03-15',
+        ]);
+        $score = Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => 71]);
+
+        $this->actingAs($user)->get(route('guru.nilai.index', [
+            'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+            'mata_pelajaran_id' => $assignment->mata_pelajaran_id,
+            'kelas_id' => $assignment->kelas_id,
+            'penilaian_id' => $assessment->id,
+        ]))->assertOk()->assertSee('Sesuai Penempatan')->assertSee($student->nama);
+
+        $this->assertSame($class->id, $student->fresh()->kelas_id);
+        $this->assertSame(71.0, (float) $score->fresh()->nilai);
     }
 
     public function test_guru_can_save_scores_for_students_in_own_assignment_class(): void

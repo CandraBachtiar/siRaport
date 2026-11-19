@@ -7,6 +7,7 @@ use App\Http\Requests\SaveNilaiRequest;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Services\AssessmentPlacementChecker;
 use App\Services\GuruDashboardService;
 use App\Services\GuruScoreService;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +20,7 @@ class InputNilaiController extends Controller
     public function __construct(
         private GuruDashboardService $dashboardService,
         private GuruScoreService $scoreService,
+        private AssessmentPlacementChecker $placementChecker,
     ) {}
 
     public function index(Request $request): View
@@ -52,6 +54,7 @@ class InputNilaiController extends Controller
         $students = collect();
         $scores = collect();
         $importPreview = null;
+        $placementStatuses = collect();
 
         if ($filters['assessmentId'] > 0) {
             $selectedAssessment = $assessments->firstWhere('id', $filters['assessmentId']);
@@ -69,6 +72,7 @@ class InputNilaiController extends Controller
                 ->whereIn('siswa_id', $students->pluck('id'))
                 ->get()
                 ->keyBy('siswa_id');
+            $placementStatuses = $this->placementChecker->check($user, $selectedAssessment->pengampu, $selectedAssessment, $students->modelKeys());
             $previewKey = 'guru.nilai_import_preview.'.$selectedAssessment->id;
             $storedPreview = $request->session()->get($previewKey);
 
@@ -92,6 +96,8 @@ class InputNilaiController extends Controller
             'selectedAssessment' => $selectedAssessment,
             'students' => $students,
             'scores' => $scores,
+            'placementStatuses' => $placementStatuses,
+            'placementSummary' => $placementStatuses->countBy(fn ($status): string => $status->name),
             'importPreview' => $importPreview,
             'importHeaderError' => $request->session()->get('nilai_import_header_error'),
             ...$filters,

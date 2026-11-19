@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\IdentitasSekolahController;
 use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\MataPelajaranController;
 use App\Http\Controllers\Admin\PengampuController;
+use App\Http\Controllers\Admin\RiwayatPenempatanSiswaController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\SiswaImportController;
 use App\Http\Controllers\Admin\TahunAjaranController;
@@ -66,6 +67,10 @@ Route::middleware(['auth', 'admin', 'cache.headers:no_store;no_cache;must_revali
         Route::get('/siswa/import/template', [SiswaImportController::class, 'template'])->name('siswa.import.template');
         Route::post('/siswa/import/preview', [SiswaImportController::class, 'preview'])->name('siswa.import.preview');
         Route::post('/siswa/import', [SiswaImportController::class, 'import'])->name('siswa.import.store');
+        Route::get('/siswa/{siswa}/riwayat-penempatan', [RiwayatPenempatanSiswaController::class, 'index'])->name('siswa.riwayat.index');
+        Route::post('/siswa/{siswa}/riwayat-penempatan', [RiwayatPenempatanSiswaController::class, 'store'])->name('siswa.riwayat.store');
+        Route::post('/siswa/{siswa}/riwayat-penempatan/{placement}/tutup', [RiwayatPenempatanSiswaController::class, 'close'])->name('siswa.riwayat.close');
+        Route::put('/siswa/{siswa}/riwayat-penempatan/{placement}', [RiwayatPenempatanSiswaController::class, 'correct'])->name('siswa.riwayat.correct');
         Route::resource('guru', GuruController::class)->except('show');
         Route::resource('siswa', SiswaController::class)->except('show');
         Route::resource('kelas', KelasController::class)

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use LogicException;
 
 #[Fillable(['siswa_id', 'kelas_id', 'tahun_ajaran_id', 'mulai_pada', 'berakhir_pada'])]
 class RiwayatPenempatanSiswa extends Model
@@ -15,6 +17,13 @@ class RiwayatPenempatanSiswa extends Model
     use HasFactory;
 
     protected $table = 'riwayat_penempatan_siswa';
+
+    protected static function booted(): void
+    {
+        static::deleting(function (): never {
+            throw new LogicException('Riwayat penempatan tidak dapat dihapus. Catat koreksi agar perubahan tetap terlacak.');
+        });
+    }
 
     public function siswa(): BelongsTo
     {
@@ -29,6 +38,11 @@ class RiwayatPenempatanSiswa extends Model
     public function tahunAjaran(): BelongsTo
     {
         return $this->belongsTo(TahunAjaran::class);
+    }
+
+    public function audit(): HasMany
+    {
+        return $this->hasMany(RiwayatPenempatanSiswaAudit::class, 'riwayat_penempatan_siswa_id');
     }
 
     /** @return array<string, string> */
