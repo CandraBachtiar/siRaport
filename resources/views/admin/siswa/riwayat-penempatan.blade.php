@@ -5,13 +5,13 @@
 @section('content')
     <section class="mx-auto grid max-w-7xl gap-6">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+            <div class="min-w-0">
                 <a href="{{ route('admin.siswa.index', ['search' => $siswa->nis]) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-emerald-700">&larr; Kembali ke daftar siswa</a>
                 <p class="mt-5 text-sm font-semibold text-emerald-600">Data Siswa</p>
                 <h1 class="mt-1 text-2xl font-extrabold tracking-tight text-[#102d4b] sm:text-3xl">Riwayat Kelas</h1>
                 <p class="mt-2 text-sm leading-6 text-slate-500">Lihat dan catat penempatan kelas berdasarkan bukti sekolah.</p>
             </div>
-            <a href="{{ route('admin.siswa.edit', $siswa) }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50">Edit data siswa</a>
+            <a href="{{ route('admin.siswa.edit', $siswa) }}" class="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 sm:text-sm">Edit data siswa</a>
         </div>
 
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.65fr)]">
@@ -202,7 +202,7 @@
 
                 <form method="POST" action="{{ route('admin.siswa.riwayat.store', $siswa) }}" class="mt-5 grid gap-5">
                     @csrf
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-4 md:grid-cols-2">
                         <div class="grid gap-2">
                             <label for="new-class" class="text-sm font-semibold text-slate-700">Kelas yang Ditempati</label>
                             <select id="new-class" name="kelas_id" required class="h-12 rounded-xl border border-slate-300 bg-white px-4 text-sm focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10">
@@ -244,9 +244,9 @@
                             @error('referensi_bukti')<p class="text-sm font-medium text-red-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
-                    <div class="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex flex-col gap-3 border-t border-slate-200 pt-5 lg:flex-row lg:items-center lg:justify-between">
                         <p class="text-xs leading-5 text-slate-500">Tanggal mulai dan akhir termasuk dalam masa penempatan. Tanggal akhir boleh dikosongkan jika belum diketahui; rentang yang bertabrakan akan ditolak.</p>
-                        <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20">Catat riwayat</button>
+                        <button type="submit" class="inline-flex min-h-11 w-full shrink-0 items-center justify-center whitespace-nowrap rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 lg:w-auto lg:px-5">Catat riwayat</button>
                     </div>
                 </form>
             </section>

@@ -6,7 +6,7 @@
     <section class="mx-auto max-w-7xl">
         @php($selectedClassLabel = isset($selectedClass) ? trim($selectedClass->tingkat.' '.$selectedClass->nama) : null)
 
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div>
                 <p class="text-sm font-semibold text-emerald-600">Master Data</p>
                 <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#102d4b]">
@@ -32,7 +32,7 @@
                     @endif
                 </p>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-col gap-2 sm:ml-auto sm:w-fit sm:shrink-0">
                 <a href="{{ route('admin.siswa.import.create') }}" class="rk-button rk-button-secondary"><x-nav-icon name="upload" class="size-4 text-emerald-700" /> Import Excel</a>
                 <a href="{{ route('admin.siswa.create') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20">
                     <span class="text-lg leading-none" aria-hidden="true">+</span> Tambah Siswa
@@ -65,7 +65,7 @@
             </nav>
         @endif
 
-        <form method="GET" action="{{ route('admin.siswa.index') }}" class="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <form method="GET" action="{{ route('admin.siswa.index') }}" class="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
             @if ($page === 'students' && $selectedClass)
                 <input type="hidden" name="kelas_id" value="{{ $selectedClass->id }}">
             @endif
@@ -78,7 +78,7 @@
                     <p class="text-xs text-slate-500">Pencarian mencakup seluruh kelas.</p>
                 @endif
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 sm:pt-7">
                 <button type="submit" class="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#102d4b] px-5 text-sm font-bold text-white transition hover:bg-[#0b2945] sm:flex-none">Cari</button>
                 @if ($search !== '')
                     @if ($page === 'students' && $selectedClass)
