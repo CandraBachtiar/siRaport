@@ -68,12 +68,6 @@
                     <span class="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-100 text-sm font-extrabold text-emerald-800">{{ mb_strtoupper(mb_substr($admin->name, 0, 1)) }}</span>
                     <span class="min-w-0"><strong class="block truncate text-sm">{{ $admin->name }}</strong><small class="block truncate text-xs text-slate-400">{{ $admin->email }}</small></span>
                 </div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-red-300/20 hover:bg-red-400/10 hover:text-red-200">
-                        <x-nav-icon name="logout" /> Keluar
-                    </button>
-                </form>
             </div>
         </aside>
 
@@ -85,7 +79,15 @@
                     </button>
                     <div><p class="text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-600">Workspace Administrator</p><p class="mt-1 hidden text-sm text-slate-500 sm:block">Kelola data akademik RaporKu</p></div>
                 </div>
-                <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">Administrator</span>
+                <div class="flex shrink-0 items-center gap-2">
+                    <span class="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 sm:inline-flex">Administrator</span>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 sm:px-4" aria-label="Keluar dari akun">
+                            <x-nav-icon name="logout" /> <span>Keluar</span>
+                        </button>
+                    </form>
+                </div>
             </header>
 
             <main id="main-content" tabindex="-1" class="p-5 sm:p-8 lg:p-10">

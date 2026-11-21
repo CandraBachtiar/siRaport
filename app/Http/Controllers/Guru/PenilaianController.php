@@ -43,8 +43,9 @@ class PenilaianController extends Controller
                 'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp',
             ])
             ->withCount('nilai')
-            ->orderByDesc('tanggal')
+            ->orderBy('pengampu_id')
             ->orderBy('urutan')
+            ->orderBy('created_at')
             ->orderBy('id')
             ->paginate(12)
             ->withQueryString();

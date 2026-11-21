@@ -49,6 +49,35 @@ class PenilaianControllerTest extends TestCase
         $response->assertNotFound();
     }
 
+    public function test_index_orders_assessments_by_manual_sequence_within_each_assignment(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+        $otherAssignment = Pengampu::factory()->for($guru)->create();
+        $assessments = collect([
+            Penilaian::factory()->for($assignment)->create(['nama' => 'Nomor Satu', 'urutan' => 1, 'tanggal' => '2026-10-01']),
+            Penilaian::factory()->for($assignment)->create(['nama' => 'Nomor Dua', 'urutan' => 2, 'tanggal' => '2026-11-01']),
+            Penilaian::factory()->for($assignment)->create(['nama' => 'Nomor Tiga', 'urutan' => 3, 'tanggal' => '2026-12-01']),
+            Penilaian::factory()->for($assignment)->create(['nama' => 'Nomor Empat', 'urutan' => 4, 'tanggal' => '2027-01-01']),
+        ]);
+        Penilaian::factory()->for($otherAssignment)->create(['nama' => 'Nomor Satu Pengampu Lain', 'urutan' => 1]);
+
+        $response = $this->actingAs($user)->get(route('guru.penilaian.index'));
+
+        $response->assertOk()->assertViewHas('assessments', function ($page) use ($assessments, $otherAssignment): bool {
+            $expectedIds = $assessments->pluck('id')
+                ->concat(Penilaian::query()->where('pengampu_id', $otherAssignment->id)->pluck('id'))
+                ->all();
+
+            return $page->getCollection()->pluck('id')->all() === $expectedIds;
+        });
+
+        $filtered = $this->actingAs($user)->get(route('guru.penilaian.index', ['pengampu_id' => $assignment->id]));
+
+        $filtered->assertOk()->assertViewHas('assessments', fn ($page): bool => $page->getCollection()->pluck('id')->all() === $assessments->pluck('id')->all());
+    }
+
     public function test_guru_can_create_an_assessment_for_own_assignment(): void
     {
         $user = User::factory()->guru()->create();

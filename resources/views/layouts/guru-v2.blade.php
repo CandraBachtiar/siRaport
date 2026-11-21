@@ -27,13 +27,20 @@
             </nav>
             <div class="mt-5 shrink-0 border-t border-white/10 pt-5">
                 <div class="mb-4 flex items-center gap-3 rounded-xl bg-white/[0.04] p-3"><span class="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-100 text-sm font-extrabold text-emerald-800">{{ mb_strtoupper(mb_substr($guru->nama, 0, 1)) }}</span><span class="min-w-0"><strong class="block truncate text-sm">{{ $guru->nama }}</strong><small class="block truncate text-xs text-slate-400">{{ $user->email }}</small></span></div>
-                <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-red-300/20 hover:bg-red-400/10 hover:text-red-200"><x-nav-icon name="logout" /> Keluar</button></form>
             </div>
         </aside>
         <div class="min-w-0">
             <header class="sticky top-0 z-30 flex min-h-20 items-center justify-between border-b border-slate-200 bg-white/95 px-5 shadow-sm backdrop-blur-md sm:px-8">
                 <div class="flex items-center gap-3"><button type="button" class="grid size-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 lg:hidden" aria-label="Buka navigasi" aria-expanded="false" aria-controls="dashboard-sidebar" data-sidebar-open><svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div><p class="text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-600">Workspace Guru</p><p class="mt-1 hidden text-sm text-slate-500 sm:block">Lihat tugas mengajar Anda</p></div></div>
-                <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">Guru</span>
+                <div class="flex shrink-0 items-center gap-2">
+                    <span class="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 sm:inline-flex">Guru</span>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 sm:px-4" aria-label="Keluar dari akun">
+                            <x-nav-icon name="logout" /> <span>Keluar</span>
+                        </button>
+                    </form>
+                </div>
             </header>
             <main id="main-content" tabindex="-1" class="p-5 sm:p-8 lg:p-10">@yield('content')</main>
         </div>
