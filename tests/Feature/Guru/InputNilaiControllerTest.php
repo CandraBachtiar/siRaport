@@ -82,6 +82,78 @@ class InputNilaiControllerTest extends TestCase
         $this->assertSame(71.0, (float) $score->fresh()->nilai);
     }
 
+    public function test_verified_historical_student_and_existing_score_remain_editable_after_transfer(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $formerClass = Kelas::factory()->create();
+        $currentClass = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $formerClass->id]);
+        $assessment = Penilaian::factory()->for($assignment)->create(['tanggal' => '2026-11-10']);
+        $student = Siswa::factory()->for($currentClass)->create();
+        RiwayatPenempatanSiswa::factory()->create([
+            'siswa_id' => $student->id,
+            'kelas_id' => $formerClass->id,
+            'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+            'mulai_pada' => '2026-07-01',
+            'berakhir_pada' => '2026-12-31',
+        ]);
+        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => 71]);
+
+        $this->actingAs($user)->get(route('guru.nilai.index', [
+            'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+            'mata_pelajaran_id' => $assignment->mata_pelajaran_id,
+            'kelas_id' => $assignment->kelas_id,
+            'penilaian_id' => $assessment->id,
+        ]))->assertOk()->assertSee($student->nama)->assertSee('71.00');
+
+        $this->actingAs($user)->put(route('guru.nilai.update', $assessment), ['nilai' => [$student->id => 82]])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Nilai berhasil disimpan.');
+
+        $this->assertDatabaseHas('nilai', ['siswa_id' => $student->id, 'penilaian_id' => $assessment->id, 'nilai' => 82]);
+
+        $this->actingAs($user)->get(route('guru.rekap-nilai.index', ['pengampu_id' => $assignment->id]))
+            ->assertOk()
+            ->assertViewHas('simulations', fn ($simulations): bool => $simulations->has($student->id));
+    }
+
+    public function test_conflicting_history_cannot_be_used_to_save_a_score(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $class = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $class->id]);
+        $assessment = Penilaian::factory()->for($assignment)->create(['tanggal' => '2026-11-10']);
+        $student = Siswa::factory()->for($class)->create();
+
+        foreach ([['2026-01-01', '2026-11-10'], ['2026-06-01', null]] as [$start, $end]) {
+            RiwayatPenempatanSiswa::factory()->create([
+                'siswa_id' => $student->id,
+                'kelas_id' => $class->id,
+                'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+                'mulai_pada' => $start,
+                'berakhir_pada' => $end,
+            ]);
+        }
+
+        $this->actingAs($user)->put(route('guru.nilai.update', $assessment), ['nilai' => [$student->id => 82]])
+            ->assertSessionHasErrors(['nilai.'.$student->id => 'Siswa tidak termasuk dalam kelas pengampu penilaian ini.']);
+
+        $this->assertDatabaseMissing('nilai', ['siswa_id' => $student->id, 'penilaian_id' => $assessment->id]);
+    }
+
+    public function test_non_integer_student_key_is_rejected(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $assignment = Pengampu::factory()->for($guru)->create();
+        $assessment = Penilaian::factory()->for($assignment)->create();
+
+        $this->actingAs($user)->put(route('guru.nilai.update', $assessment), ['nilai' => ['01' => 80]])
+            ->assertSessionHasErrors(['nilai.01' => 'ID siswa tidak valid.']);
+    }
+
     public function test_guru_can_save_scores_for_students_in_own_assignment_class(): void
     {
         $user = User::factory()->guru()->create();

@@ -47,7 +47,7 @@ class RekapNilaiController extends Controller
 
         $recap = $selectedAssignment === null
             ? ['students' => collect(), 'assessments' => collect(), 'goalSummaries' => collect(), 'calculationMode' => 'Rekap terpisah per TP dan kategori asesmen']
-            : $this->scoreService->recap($selectedAssignment);
+            : $this->scoreService->recap($user, $selectedAssignment);
         $simulationMethod = $simulationOptions['metode_simulasi'] ?? null;
         $simulationWeights = $simulationOptions['bobot_tp'] ?? [];
         $simulations = $recap['students']->mapWithKeys(fn (Siswa $student): array => [

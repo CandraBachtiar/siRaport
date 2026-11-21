@@ -6,6 +6,7 @@ use App\Imports\NilaiRowsImport;
 use App\Models\Nilai;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -15,14 +16,18 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class NilaiImportService
 {
-    public function __construct(private GuruScoreService $scoreService) {}
+    public function __construct(
+        private GuruScoreService $scoreService,
+        private AssessmentRosterService $rosterService,
+    ) {}
 
     /**
      * @return array{headerError: ?string, rows: list<array<string, mixed>>}
      */
-    public function preview(UploadedFile $file, Penilaian $assessment): array
+    public function preview(User $actor, UploadedFile $file, Penilaian $assessment): array
     {
-        $assessment->loadMissing('pengampu:id,kelas_id');
+        $assessment->loadMissing('pengampu:id,kelas_id,tahun_ajaran_id');
+        $rosterIds = $this->rosterService->studentIds($actor, $assessment);
         $sheets = Excel::toArray(new NilaiRowsImport, $file);
         $sheetRows = $sheets[0] ?? [];
 
@@ -77,8 +82,7 @@ class NilaiImportService
         $students = $studentIds === []
             ? collect()
             : Siswa::query()
-                ->where('kelas_id', $assessment->pengampu->kelas_id)
-                ->whereIn('id', $studentIds)
+                ->whereIn('id', $rosterIds->intersect($studentIds))
                 ->get(['id', 'nis', 'nama'])
                 ->keyBy('id');
         $existingScores = $studentIds === []
@@ -153,7 +157,7 @@ class NilaiImportService
     }
 
     /** @param list<array<string, mixed>> $rows */
-    public function import(Penilaian $assessment, array $rows): int
+    public function import(User $actor, Penilaian $assessment, array $rows): int
     {
         if ($rows === [] || collect($rows)->contains(fn (array $row): bool => ! ($row['valid'] ?? false))) {
             throw ValidationException::withMessages(['import' => 'Periksa semua baris pada pratinjau sebelum menyimpan.']);
@@ -168,19 +172,19 @@ class NilaiImportService
             throw ValidationException::withMessages(['import' => 'Tidak ada nilai terisi untuk disimpan. Sel kosong tidak mengubah nilai lama.']);
         }
 
-        return DB::transaction(function () use ($assessment, $rows, $scores): int {
-            $assessment->loadMissing('pengampu:id,kelas_id');
+        return DB::transaction(function () use ($actor, $assessment, $rows, $scores): int {
+            $assessment->loadMissing('pengampu:id,kelas_id,tahun_ajaran_id');
             $studentIds = array_keys($scores);
-            $currentClassStudentIds = Siswa::query()
-                ->where('kelas_id', $assessment->pengampu->kelas_id)
-                ->whereIn('id', $studentIds)
+            $authorizedRosterIds = $this->rosterService->studentIds($actor, $assessment);
+            $lockedStudentIds = Siswa::query()
+                ->whereIn('id', $authorizedRosterIds->intersect($studentIds))
                 ->lockForUpdate()
                 ->pluck('id')
                 ->map(fn (int|string $studentId): int => (int) $studentId)
                 ->all();
 
-            if (count($currentClassStudentIds) !== count($scores)) {
-                throw ValidationException::withMessages(['import' => 'Keanggotaan kelas berubah sejak pratinjau. Periksa ulang file dan buat pratinjau kembali.']);
+            if (count($lockedStudentIds) !== count($scores)) {
+                throw ValidationException::withMessages(['import' => 'Roster penilaian berubah sejak pratinjau. Periksa ulang file dan buat pratinjau kembali.']);
             }
 
             foreach ($rows as $row) {
@@ -189,7 +193,7 @@ class NilaiImportService
                 }
             }
 
-            return $this->scoreService->save($assessment, $scores);
+            return $this->scoreService->save($actor, $assessment, $scores);
         });
     }
 

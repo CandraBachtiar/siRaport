@@ -8,6 +8,7 @@ use App\Http\Requests\PreviewNilaiImportRequest;
 use App\Models\Nilai;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Services\AssessmentRosterService;
 use App\Services\NilaiImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,9 +19,12 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class NilaiImportController extends Controller
 {
-    public function __construct(private NilaiImportService $importService) {}
+    public function __construct(
+        private NilaiImportService $importService,
+        private AssessmentRosterService $rosterService,
+    ) {}
 
-    public function template(Penilaian $penilaian): BinaryFileResponse
+    public function template(Request $request, Penilaian $penilaian): BinaryFileResponse
     {
         Gate::authorize('update', $penilaian);
         $penilaian->loadMissing([
@@ -30,7 +34,7 @@ class NilaiImportController extends Controller
             'tujuanPembelajaran:id,tujuan',
         ]);
         $students = Siswa::query()
-            ->where('kelas_id', $penilaian->pengampu->kelas_id)
+            ->whereIn('id', $this->rosterService->studentIds($request->user(), $penilaian))
             ->orderBy('nama')
             ->orderBy('id')
             ->get(['id', 'nis', 'nama']);
@@ -58,7 +62,7 @@ class NilaiImportController extends Controller
 
     public function preview(PreviewNilaiImportRequest $request, Penilaian $penilaian): RedirectResponse
     {
-        $result = $this->importService->preview($request->file('file'), $penilaian);
+        $result = $this->importService->preview($request->user(), $request->file('file'), $penilaian);
         $sessionKey = $this->previewSessionKey($penilaian);
 
         if ($result['headerError'] !== null) {
@@ -94,7 +98,7 @@ class NilaiImportController extends Controller
         }
 
         try {
-            $savedCount = $this->importService->import($penilaian, $preview['rows']);
+            $savedCount = $this->importService->import($request->user(), $penilaian, $preview['rows']);
         } catch (ValidationException $exception) {
             return $this->inputRedirect($penilaian)->withErrors($exception->errors());
         }

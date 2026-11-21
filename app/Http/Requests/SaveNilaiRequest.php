@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\AssessmentPlacementStatus;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Services\AssessmentPlacementChecker;
+use App\Services\AssessmentRosterService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -43,15 +46,38 @@ class SaveNilaiRequest extends FormRequest
                 return;
             }
 
-            $assessment->loadMissing('pengampu:id,kelas_id');
-            $allowedStudentIds = Siswa::query()
+            $studentKeys = array_keys($submittedScores);
+
+            foreach ($studentKeys as $studentId) {
+                if (! is_string($studentId) && ! is_int($studentId) || ! preg_match('/^[1-9][0-9]*$/', (string) $studentId)) {
+                    $validator->errors()->add('nilai.'.$studentId, 'ID siswa tidak valid.');
+                }
+            }
+
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $actor = $this->user();
+
+            if ($actor === null) {
+                return;
+            }
+
+            $candidateIds = app(AssessmentRosterService::class)->studentIds($actor, $assessment);
+            $statuses = app(AssessmentPlacementChecker::class)->check($actor, $assessment->pengampu, $assessment, $candidateIds);
+            $currentClassStudentIds = Siswa::query()
                 ->where('kelas_id', $assessment->pengampu->kelas_id)
-                ->whereIn('id', array_map('intval', array_keys($submittedScores)))
                 ->pluck('id')
                 ->all();
 
-            foreach (array_keys($submittedScores) as $studentId) {
-                if (in_array((int) $studentId, $allowedStudentIds, true)) {
+            foreach ($studentKeys as $studentId) {
+                $numericStudentId = (int) $studentId;
+                $status = $statuses->get($numericStudentId);
+                $isLegacyCurrentStudent = in_array($numericStudentId, $currentClassStudentIds, true)
+                    && in_array($status, [AssessmentPlacementStatus::Unknown, AssessmentPlacementStatus::DateUnavailable], true);
+
+                if ($status === AssessmentPlacementStatus::MatchesAssignment || $isLegacyCurrentStudent) {
                     continue;
                 }
 

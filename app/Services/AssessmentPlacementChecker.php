@@ -23,29 +23,34 @@ class AssessmentPlacementChecker
      */
     public function check(User $actor, Pengampu $assignment, Penilaian $assessment, iterable $authorizedStudentIds): Collection
     {
-        Gate::forUser($actor)->authorize('view', $assignment);
+        Gate::forUser($actor)->authorize('view', $assessment);
 
         if ((int) $assessment->pengampu_id !== (int) $assignment->id) {
             throw ValidationException::withMessages(['penilaian' => 'Penilaian tidak terkait dengan Pengampu yang dipilih.']);
         }
 
         $studentIds = collect($authorizedStudentIds)->map(fn ($id): int => (int) $id)->filter(fn (int $id): bool => $id > 0)->unique()->values();
-        $authorizedIds = Siswa::query()
-            ->where('kelas_id', $assignment->kelas_id)
+        $students = Siswa::query()
             ->whereIn('id', $studentIds)
-            ->pluck('id');
+            ->get(['id', 'kelas_id']);
+        $currentClassIds = $students
+            ->where('kelas_id', $assignment->kelas_id)
+            ->modelKeys();
 
         if ($assessment->tanggal === null) {
-            return $authorizedIds->mapWithKeys(fn (int $id): array => [$id => AssessmentPlacementStatus::DateUnavailable]);
+            return collect($currentClassIds)->mapWithKeys(fn (int $id): array => [$id => AssessmentPlacementStatus::DateUnavailable]);
         }
 
-        $lookups = $this->historyLookup->forAssignmentDate($authorizedIds, $assignment, $assessment->tanggal->toDateString());
+        $lookups = $this->historyLookup->forAssignmentDate($students->modelKeys(), $assignment, $assessment->tanggal->toDateString());
 
-        return $lookups->map(fn (PlacementHistoryLookup $lookup): AssessmentPlacementStatus|PlacementHistoryLookup => match ($lookup->status) {
-            PlacementHistoryStatus::Verified => AssessmentPlacementStatus::MatchesAssignment,
-            PlacementHistoryStatus::DifferentClass => AssessmentPlacementStatus::DifferentClass,
-            PlacementHistoryStatus::Unknown => AssessmentPlacementStatus::Unknown,
-            PlacementHistoryStatus::Conflict => AssessmentPlacementStatus::Conflict,
-        });
+        return $lookups
+            ->map(fn (PlacementHistoryLookup $lookup): AssessmentPlacementStatus|PlacementHistoryLookup => match ($lookup->status) {
+                PlacementHistoryStatus::Verified => AssessmentPlacementStatus::MatchesAssignment,
+                PlacementHistoryStatus::DifferentClass => AssessmentPlacementStatus::DifferentClass,
+                PlacementHistoryStatus::Unknown => AssessmentPlacementStatus::Unknown,
+                PlacementHistoryStatus::Conflict => AssessmentPlacementStatus::Conflict,
+            })
+            ->filter(fn (AssessmentPlacementStatus|PlacementHistoryLookup $status, int $studentId): bool => in_array($studentId, $currentClassIds, true)
+                || $status === AssessmentPlacementStatus::MatchesAssignment);
     }
 }

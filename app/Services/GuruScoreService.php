@@ -2,29 +2,51 @@
 
 namespace App\Services;
 
+use App\Enums\AssessmentPlacementStatus;
 use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class GuruScoreService
 {
-    public function __construct(private TujuanPembelajaranScoreService $outcomeService) {}
+    public function __construct(
+        private TujuanPembelajaranScoreService $outcomeService,
+        private AssessmentRosterService $rosterService,
+        private AssessmentPlacementChecker $placementChecker,
+    ) {}
 
     /** @param array<int|string, mixed> $scores */
-    public function save(Penilaian $assessment, array $scores): int
+    public function save(User $actor, Penilaian $assessment, array $scores): int
     {
-        $assessment->loadMissing('pengampu:id,kelas_id');
-        $studentIds = Siswa::query()
+        $assessment->loadMissing('pengampu:id,kelas_id,tahun_ajaran_id');
+        $candidateIds = $this->rosterService->studentIds($actor, $assessment);
+        $statuses = $this->placementChecker->check($actor, $assessment->pengampu, $assessment, $candidateIds);
+        $currentStudentIds = Siswa::query()
             ->where('kelas_id', $assessment->pengampu->kelas_id)
             ->pluck('id');
+        $allowedIds = $statuses
+            ->filter(fn ($status, int $studentId): bool => $status === AssessmentPlacementStatus::MatchesAssignment
+                || ($currentStudentIds->contains($studentId)
+                    && in_array($status, [AssessmentPlacementStatus::Unknown, AssessmentPlacementStatus::DateUnavailable], true)))
+            ->keys()
+            ->map(fn ($id): int => (int) $id);
+
+        foreach (array_keys($scores) as $studentId) {
+            if (! is_string($studentId) && ! is_int($studentId) || ! preg_match('/^[1-9][0-9]*$/', (string) $studentId)
+                || ! $allowedIds->contains((int) $studentId)) {
+                throw ValidationException::withMessages(['nilai.'.$studentId => 'Siswa tidak termasuk dalam roster penilaian ini.']);
+            }
+        }
         $now = now();
         $rows = [];
         $clearedStudentIds = [];
 
-        foreach ($studentIds as $studentId) {
+        foreach ($allowedIds as $studentId) {
             $scoreKey = array_key_exists($studentId, $scores)
                 ? $studentId
                 : (string) $studentId;
@@ -82,7 +104,7 @@ class GuruScoreService
      *     calculationMode: string
      * }
      */
-    public function recap(Pengampu $assignment): array
+    public function recap(User $actor, Pengampu $assignment): array
     {
         $assignment->loadMissing([
             'kelas:id,nama,tingkat',
@@ -90,8 +112,24 @@ class GuruScoreService
             'tahunAjaran:id,tahun,semester',
             'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
         ]);
+        $assessments = Penilaian::query()
+            ->where('pengampu_id', $assignment->id)
+            ->orderBy('urutan')
+            ->orderBy('tanggal')
+            ->orderBy('id')
+            ->get();
+        $rosterIds = $assessments
+            ->flatMap(fn (Penilaian $assessment): Collection => $assessment->tanggal === null
+                ? collect()
+                : $this->rosterService->verifiedStudentIds($actor, $assessment))
+            ->concat(Siswa::query()->where('kelas_id', $assignment->kelas_id)->pluck('id'))
+            ->concat(Nilai::query()
+                ->whereIn('penilaian_id', $assessments->modelKeys())
+                ->pluck('siswa_id'))
+            ->unique()
+            ->values();
         $students = Siswa::query()
-            ->where('kelas_id', $assignment->kelas_id)
+            ->whereIn('id', $rosterIds)
             ->orderBy('nama')
             ->orderBy('id')
             ->get();

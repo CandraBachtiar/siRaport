@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Guru;
 
+use App\Enums\AssessmentPlacementStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SaveNilaiRequest;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
 use App\Services\AssessmentPlacementChecker;
+use App\Services\AssessmentRosterService;
 use App\Services\GuruDashboardService;
 use App\Services\GuruScoreService;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +23,7 @@ class InputNilaiController extends Controller
         private GuruDashboardService $dashboardService,
         private GuruScoreService $scoreService,
         private AssessmentPlacementChecker $placementChecker,
+        private AssessmentRosterService $rosterService,
     ) {}
 
     public function index(Request $request): View
@@ -55,6 +58,7 @@ class InputNilaiController extends Controller
         $scores = collect();
         $importPreview = null;
         $placementStatuses = collect();
+        $editableStudentIds = collect();
 
         if ($filters['assessmentId'] > 0) {
             $selectedAssessment = $assessments->firstWhere('id', $filters['assessmentId']);
@@ -63,8 +67,10 @@ class InputNilaiController extends Controller
                 abort(404);
             }
 
+            $rosterIds = $this->rosterService->studentIds($user, $selectedAssessment);
+            $existingScoreIds = $selectedAssessment->nilai()->pluck('siswa_id');
             $students = Siswa::query()
-                ->where('kelas_id', $selectedAssessment->pengampu->kelas_id)
+                ->whereIn('id', $rosterIds->concat($existingScoreIds)->unique())
                 ->orderBy('nama')
                 ->orderBy('id')
                 ->get();
@@ -73,6 +79,14 @@ class InputNilaiController extends Controller
                 ->get()
                 ->keyBy('siswa_id');
             $placementStatuses = $this->placementChecker->check($user, $selectedAssessment->pengampu, $selectedAssessment, $students->modelKeys());
+            $currentClassStudentIds = Siswa::query()
+                ->where('kelas_id', $selectedAssessment->pengampu->kelas_id)
+                ->pluck('id');
+            $editableStudentIds = $placementStatuses
+                ->filter(fn ($status, int $studentId): bool => $status === AssessmentPlacementStatus::MatchesAssignment
+                    || ($currentClassStudentIds->contains($studentId)
+                        && in_array($status, [AssessmentPlacementStatus::Unknown, AssessmentPlacementStatus::DateUnavailable], true)))
+                ->keys();
             $previewKey = 'guru.nilai_import_preview.'.$selectedAssessment->id;
             $storedPreview = $request->session()->get($previewKey);
 
@@ -97,6 +111,7 @@ class InputNilaiController extends Controller
             'students' => $students,
             'scores' => $scores,
             'placementStatuses' => $placementStatuses,
+            'editableStudentIds' => $editableStudentIds,
             'placementSummary' => $placementStatuses->countBy(fn ($status): string => $status->name),
             'importPreview' => $importPreview,
             'importHeaderError' => $request->session()->get('nilai_import_header_error'),
@@ -107,7 +122,7 @@ class InputNilaiController extends Controller
 
     public function update(SaveNilaiRequest $request, Penilaian $penilaian): RedirectResponse
     {
-        $savedCount = $this->scoreService->save($penilaian, $request->validated('nilai'));
+        $savedCount = $this->scoreService->save($request->user(), $penilaian, $request->validated('nilai'));
         $penilaian->loadMissing('pengampu:id,kelas_id,mata_pelajaran_id,tahun_ajaran_id');
 
         return redirect()->route('guru.nilai.index', [
