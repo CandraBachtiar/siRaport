@@ -8,6 +8,7 @@ use App\Models\MataPelajaran;
 use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
+use App\Models\RiwayatPenempatanSiswa;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\TujuanPembelajaran;
@@ -127,6 +128,56 @@ class SiswaPerluPerhatianControllerTest extends TestCase
             })
             ->assertViewHas('summary', fn (array $summary): bool => $summary['belowTpStudentCount'] === 1
                 && $summary['belowCategoryCount'] === 2);
+    }
+
+    public function test_attention_uses_verified_historical_roster_and_ignores_conflicted_and_unverified_scores(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $formerClass = Kelas::factory()->create();
+        $currentClass = Kelas::factory()->create();
+        $otherClass = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $formerClass->id]);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create([
+            'kktp' => 75,
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
+        ]);
+        $movedStudent = Siswa::factory()->for($currentClass)->create(['nama' => 'Andi Historis']);
+        $unknownStudent = Siswa::factory()->for($otherClass)->create(['nama' => 'Siswa Tanpa Riwayat']);
+        $conflictStudent = Siswa::factory()->for($otherClass)->create(['nama' => 'Siswa Konflik']);
+        $assessment = Penilaian::factory()->for($assignment)->create([
+            'tujuan_pembelajaran_id' => $goal->id,
+            'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
+            'tanggal' => '2026-10-10',
+        ]);
+        RiwayatPenempatanSiswa::factory()->create([
+            'siswa_id' => $movedStudent->id,
+            'kelas_id' => $formerClass->id,
+            'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+            'mulai_pada' => '2026-07-01',
+            'berakhir_pada' => '2026-10-10',
+        ]);
+        foreach ([['2026-07-01', '2026-10-10'], ['2026-10-01', '2026-10-10']] as [$start, $end]) {
+            RiwayatPenempatanSiswa::factory()->create([
+                'siswa_id' => $conflictStudent->id,
+                'kelas_id' => $formerClass->id,
+                'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+                'mulai_pada' => $start,
+                'berakhir_pada' => $end,
+            ]);
+        }
+        Nilai::factory()->create(['siswa_id' => $movedStudent->id, 'penilaian_id' => $assessment->id, 'nilai' => 60]);
+        Nilai::factory()->create(['siswa_id' => $unknownStudent->id, 'penilaian_id' => $assessment->id, 'nilai' => 10]);
+        Nilai::factory()->create(['siswa_id' => $conflictStudent->id, 'penilaian_id' => $assessment->id, 'nilai' => 0]);
+
+        $this->actingAs($user)->get(route('guru.perhatian.index', ['pengampu_id' => $assignment->id]))
+            ->assertOk()
+            ->assertSee('Andi Historis')
+            ->assertDontSee('Siswa Tanpa Riwayat')
+            ->assertDontSee('Siswa Konflik')
+            ->assertViewHas('rows', fn ($rows): bool => $rows->count() === 1
+                && $rows->first()['student']->id === $movedStudent->id
+                && $rows->first()['belowThresholdCount'] === 1);
     }
 
     public function test_unclassified_assessment_has_a_clear_follow_up_hint(): void

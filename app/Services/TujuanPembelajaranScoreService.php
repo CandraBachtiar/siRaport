@@ -15,9 +15,13 @@ class TujuanPembelajaranScoreService
      * @param  Collection<int, Penilaian>  $assessments
      * @return Collection<int, array<string, mixed>>
      */
-    public function summarize(Collection $goals, Collection $students, Collection $assessments): Collection
-    {
-        return $goals->map(function (TujuanPembelajaran $goal) use ($students, $assessments): array {
+    public function summarize(
+        Collection $goals,
+        Collection $students,
+        Collection $assessments,
+        ?Collection $studentIdsByAssessment = null,
+    ): Collection {
+        return $goals->map(function (TujuanPembelajaran $goal) use ($students, $assessments, $studentIdsByAssessment): array {
             $goalAssessments = $assessments
                 ->where('tujuan_pembelajaran_id', $goal->id)
                 ->values();
@@ -30,7 +34,7 @@ class TujuanPembelajaranScoreService
                     'isFormative' => $category === Penilaian::KATEGORI_FORMATIF,
                     'assessments' => $categoryAssessments->values(),
                     'rows' => $students->mapWithKeys(fn (Siswa $student): array => [
-                        $student->id => $this->studentResult($goal, $category, $categoryAssessments, $student->id),
+                        $student->id => $this->studentResult($goal, $category, $categoryAssessments, $student->id, $studentIdsByAssessment),
                     ]),
                 ]);
 
@@ -46,21 +50,31 @@ class TujuanPembelajaranScoreService
     /** @param Collection<int, Penilaian> $assessments
      * @return array<string, mixed>
      */
-    private function studentResult(TujuanPembelajaran $goal, string $category, Collection $assessments, int $studentId): array
-    {
-        $scores = $assessments->mapWithKeys(function (Penilaian $assessment) use ($studentId): array {
+    private function studentResult(
+        TujuanPembelajaran $goal,
+        string $category,
+        Collection $assessments,
+        int $studentId,
+        ?Collection $studentIdsByAssessment,
+    ): array {
+        $participatingAssessments = $assessments
+            ->filter(fn (Penilaian $assessment): bool => $studentIdsByAssessment === null
+                || $studentIdsByAssessment->get($assessment->id, collect())->contains($studentId));
+        $scores = $participatingAssessments->mapWithKeys(function (Penilaian $assessment) use ($studentId): array {
             $score = $assessment->nilai->firstWhere('siswa_id', $studentId);
 
             return [$assessment->id => $score === null ? null : (float) $score->nilai];
         });
         $filledScores = $scores->filter(fn (?float $score): bool => $score !== null)->values();
-        $missingCount = $assessments->count() - $filledScores->count();
+        $missingCount = $participatingAssessments->count() - $filledScores->count();
         $score = $this->aggregate($filledScores, $goal->metode_rekap);
         $isFormative = $category === Penilaian::KATEGORI_FORMATIF;
-        $isComplete = $assessments->isNotEmpty() && $missingCount === 0;
+        $isComplete = $participatingAssessments->isNotEmpty() && $missingCount === 0;
         $attainment = null;
 
-        if ($isFormative) {
+        if ($participatingAssessments->isEmpty()) {
+            $status = 'Tidak termasuk roster penilaian';
+        } elseif ($isFormative) {
             $status = $missingCount > 0
                 ? 'Nilai belum lengkap · umpan balik pembelajaran'
                 : 'Umpan balik pembelajaran';
@@ -79,7 +93,7 @@ class TujuanPembelajaranScoreService
             'scores' => $scores,
             'score' => $score,
             'filledCount' => $filledScores->count(),
-            'totalCount' => $assessments->count(),
+            'totalCount' => $participatingAssessments->count(),
             'missingCount' => $missingCount,
             'isComplete' => $isComplete,
             'attainment' => $attainment,

@@ -118,22 +118,14 @@ class GuruScoreService
             ->orderBy('tanggal')
             ->orderBy('id')
             ->get();
-        $rosterIds = $assessments
-            ->flatMap(fn (Penilaian $assessment): Collection => $assessment->tanggal === null
-                ? collect()
-                : $this->rosterService->verifiedStudentIds($actor, $assessment))
-            ->concat(Siswa::query()->where('kelas_id', $assignment->kelas_id)->pluck('id'))
-            ->concat(Nilai::query()
-                ->whereIn('penilaian_id', $assessments->modelKeys())
-                ->pluck('siswa_id'))
-            ->unique()
-            ->values();
-        $students = Siswa::query()
-            ->whereIn('id', $rosterIds)
-            ->orderBy('nama')
-            ->orderBy('id')
-            ->get();
+        $roster = $this->rosterService->analysisRoster($actor, $assignment, $assessments);
+        $students = $roster['students'];
         $studentIds = $students->pluck('id');
+        $scoresByAssessment = Nilai::query()
+            ->whereIn('penilaian_id', $assessments->modelKeys())
+            ->whereIn('siswa_id', $studentIds)
+            ->get(['id', 'siswa_id', 'penilaian_id', 'nilai'])
+            ->groupBy('penilaian_id');
         $assessments = Penilaian::query()
             ->where('pengampu_id', $assignment->id)
             ->with(['nilai' => fn ($query) => $query->whereIn('siswa_id', $studentIds)->select(['id', 'siswa_id', 'penilaian_id', 'nilai'])])
@@ -142,13 +134,27 @@ class GuruScoreService
             ->orderBy('id')
             ->get();
 
-        $goalSummaries = $this->outcomeService->summarize($assignment->tujuanPembelajaran, $students, $assessments);
+        foreach ($assessments as $assessment) {
+            $eligibleStudentIds = $roster['studentIdsByAssessment']->get($assessment->id, collect());
+            $assessment->setRelation('nilai', $scoresByAssessment
+                ->get($assessment->id, collect())
+                ->filter(fn (Nilai $score): bool => $eligibleStudentIds->contains((int) $score->siswa_id))
+                ->values());
+        }
+
+        $goalSummaries = $this->outcomeService->summarize(
+            $assignment->tujuanPembelajaran,
+            $students,
+            $assessments,
+            $roster['studentIdsByAssessment'],
+        );
 
         return [
             'students' => $students,
             'assessments' => $assessments,
             'goalSummaries' => $goalSummaries,
             'calculationMode' => 'Rekap terpisah per TP dan kategori asesmen',
+            'excludedScoreCount' => $roster['excludedScoreCount'],
         ];
     }
 }

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pengampu;
-use App\Models\Siswa;
 use App\Services\GuruAnalysisService;
 use App\Services\GuruDashboardService;
 use Illuminate\Http\Request;
@@ -53,17 +52,12 @@ class AnalisisNilaiController extends Controller
                 && $assignment->kelas_id === $classId);
         }
 
-        $student = null;
         $studentId = $request->integer('siswa_id');
 
         if ($studentId > 0) {
             if ($selectedAssignment === null) {
                 abort(404);
             }
-
-            $student = Siswa::query()
-                ->where('kelas_id', $selectedAssignment->kelas_id)
-                ->findOrFail($studentId);
         }
 
         $analysis = $selectedAssignment === null
@@ -75,13 +69,13 @@ class AnalisisNilaiController extends Controller
                 'students' => collect(),
                 'assessments' => collect(),
             ]
-            : $this->analysisService->analyze($selectedAssignment, $student);
+            : $this->analysisService->analyze($user, $selectedAssignment, $studentId > 0 ? $studentId : null);
 
         if ($selectedAssignment !== null) {
             $analysis['classSeries'] = $analysis['classSeries']->map(fn (array $point): array => [
                 ...$point,
                 'valueLabel' => 'Rata-rata Kelas',
-                'studentCount' => $analysis['classStats']['studentCount'],
+                'studentCount' => $point['eligibleStudentCount'],
                 'url' => route('guru.nilai.index', [
                     'tahun_ajaran_id' => $selectedAssignment->tahun_ajaran_id,
                     'mata_pelajaran_id' => $selectedAssignment->mata_pelajaran_id,

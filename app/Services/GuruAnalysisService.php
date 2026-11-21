@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Guru;
+use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
 use App\Models\Siswa;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
@@ -14,6 +16,7 @@ class GuruAnalysisService
     public function __construct(
         private ScoreTrendService $trendService,
         private TujuanPembelajaranScoreService $outcomeService,
+        private AssessmentRosterService $rosterService,
     ) {}
 
     /**
@@ -23,10 +26,11 @@ class GuruAnalysisService
      *     classStats: array<string, int|float|null>,
      *     studentAnalysis: array<string, mixed>|null,
      *     students: EloquentCollection<int, Siswa>,
-     *     assessments: EloquentCollection<int, Penilaian>
+     *     assessments: EloquentCollection<int, Penilaian>,
+     *     excludedScoreCount: int
      * }
      */
-    public function analyze(Pengampu $assignment, ?Siswa $student = null): array
+    public function analyze(User $actor, Pengampu $assignment, ?int $studentId = null): array
     {
         $assignment->loadMissing([
             'kelas:id,nama,tingkat',
@@ -34,20 +38,33 @@ class GuruAnalysisService
             'tahunAjaran:id,tahun,semester,aktif',
             'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
         ]);
-        $students = Siswa::query()
-            ->where('kelas_id', $assignment->kelas_id)
-            ->orderBy('nama')
-            ->orderBy('id')
-            ->get();
         $assessments = Penilaian::query()
             ->where('pengampu_id', $assignment->id)
-            ->with(['nilai' => fn ($query) => $query
-                ->whereIn('siswa_id', $students->pluck('id'))
-                ->select(['id', 'siswa_id', 'penilaian_id', 'nilai'])])
             ->orderBy('tanggal')
             ->orderBy('urutan')
             ->orderBy('id')
             ->get();
+        $roster = $this->rosterService->analysisRoster($actor, $assignment, $assessments);
+        $students = $roster['students'];
+        $selectedStudent = $studentId === null ? null : $students->firstWhere('id', $studentId);
+
+        if ($studentId !== null && $selectedStudent === null) {
+            abort(404);
+        }
+
+        $scoreRows = Nilai::query()
+            ->whereIn('penilaian_id', $assessments->modelKeys())
+            ->whereIn('siswa_id', $students->modelKeys())
+            ->get(['id', 'siswa_id', 'penilaian_id', 'nilai'])
+            ->groupBy('penilaian_id');
+
+        foreach ($assessments as $assessment) {
+            $eligibleStudentIds = $roster['studentIdsByAssessment']->get($assessment->id, collect());
+            $assessment->setRelation('nilai', $scoreRows
+                ->get($assessment->id, collect())
+                ->filter(fn (Nilai $score): bool => $eligibleStudentIds->contains((int) $score->siswa_id))
+                ->values());
+        }
         $allScores = $assessments
             ->flatMap(fn (Penilaian $assessment): Collection => $assessment->nilai->pluck('nilai')->map(fn ($score): float => (float) $score));
         $studentAverages = $students
@@ -57,9 +74,14 @@ class GuruAnalysisService
                 return [$classStudent->id => $scores->isEmpty() ? null : round((float) $scores->average(), 2)];
             });
         $filledStudentAverages = $studentAverages->filter(fn (?float $average): bool => $average !== null);
-        $goalSummaries = $this->outcomeService->summarize($assignment->tujuanPembelajaran, $students, $assessments);
+        $goalSummaries = $this->outcomeService->summarize(
+            $assignment->tujuanPembelajaran,
+            $students,
+            $assessments,
+            $roster['studentIdsByAssessment'],
+        );
 
-        $classSeries = $assessments->map(function (Penilaian $assessment) use ($assignment): array {
+        $classSeries = $assessments->map(function (Penilaian $assessment) use ($assignment, $roster): array {
             $scores = $assessment->nilai->pluck('nilai')->map(fn ($score): float => (float) $score);
 
             return [
@@ -68,10 +90,11 @@ class GuruAnalysisService
                 'subjectName' => $assignment->mataPelajaran->nama,
                 'assessmentName' => $assessment->nama,
                 'shortLabel' => 'P'.$assessment->urutan,
-                'dateLabel' => $assessment->tanggal->format('d/m'),
-                'detailDateLabel' => $assessment->tanggal->locale('id')->translatedFormat('j F Y'),
+                'dateLabel' => $assessment->tanggal?->format('d/m') ?? 'Tanggal tidak tersedia',
+                'detailDateLabel' => $assessment->tanggal?->locale('id')->translatedFormat('j F Y') ?? 'Tanggal tidak tersedia',
                 'value' => $scores->isEmpty() ? null : round((float) $scores->average(), 2),
                 'filledCount' => $scores->count(),
+                'eligibleStudentCount' => $roster['studentIdsByAssessment']->get($assessment->id, collect())->count(),
             ];
         });
         $distribution = collect([
@@ -100,12 +123,13 @@ class GuruAnalysisService
                 'studentCount' => $students->count(),
                 'assessmentCount' => $assessments->count(),
             ],
-            'studentAnalysis' => $student === null
+            'studentAnalysis' => $selectedStudent === null
                 ? null
-                : $this->studentAnalysis($student, $assignment->mataPelajaran->nama, $assessments, $goalSummaries),
+                : $this->studentAnalysis($selectedStudent, $assignment->mataPelajaran->nama, $assessments, $goalSummaries, $roster['studentIdsByAssessment']),
             'goalSummaries' => $goalSummaries,
             'students' => $students,
             'assessments' => $assessments,
+            'excludedScoreCount' => $roster['excludedScoreCount'],
         ];
     }
 
@@ -126,6 +150,7 @@ class GuruAnalysisService
      *         rosterCount: int,
      *         insufficientTrendCount: int,
      *         trendCount: int
+     *         excludedScoreCount: int
      *     }
      * }
      */
@@ -137,10 +162,6 @@ class GuruAnalysisService
             ->when($schoolYearId !== null, fn ($query) => $query->where('tahun_ajaran_id', $schoolYearId))
             ->with([
                 'kelas:id,nama,tingkat',
-                'kelas.siswa' => fn ($query) => $query
-                    ->select(['id', 'kelas_id', 'nis', 'nisn', 'nama'])
-                    ->orderBy('nama')
-                    ->orderBy('id'),
                 'mataPelajaran:id,kode,nama',
                 'tahunAjaran:id,tahun,semester,aktif',
                 'tujuanPembelajaran:id,pengampu_id,urutan,tujuan,kktp,metode_rekap',
@@ -155,26 +176,52 @@ class GuruAnalysisService
             ->orderBy('mata_pelajaran_id')
             ->get();
 
-        $rows = $assignments->flatMap(function (Pengampu $assignment): Collection {
-            $assessmentCount = $assignment->penilaian->count();
-            $classStudentIds = $assignment->kelas->siswa->pluck('id');
+        $actor = $guru->user()->firstOrFail();
+        $rosters = $assignments->mapWithKeys(function (Pengampu $assignment) use ($actor): array {
+            return [$assignment->id => $this->rosterService->analysisRoster($actor, $assignment, $assignment->penilaian)];
+        });
 
-            $outcomes = $this->outcomeService->summarize($assignment->tujuanPembelajaran, $assignment->kelas->siswa, $assignment->penilaian);
+        foreach ($assignments as $assignment) {
+            $studentIdsByAssessment = $rosters->get($assignment->id)['studentIdsByAssessment'];
 
-            return $assignment->kelas->siswa->map(function (Siswa $student) use ($assignment, $assessmentCount, $classStudentIds, $outcomes): ?array {
+            foreach ($assignment->penilaian as $assessment) {
+                $eligibleStudentIds = $studentIdsByAssessment->get($assessment->id, collect());
+                $assessment->setRelation('nilai', $assessment->nilai
+                    ->filter(fn (Nilai $score): bool => $eligibleStudentIds->contains((int) $score->siswa_id))
+                    ->values());
+            }
+        }
+
+        $rows = $assignments->flatMap(function (Pengampu $assignment) use ($rosters): Collection {
+            $roster = $rosters->get($assignment->id);
+            $students = $roster['students'];
+            $studentIdsByAssessment = $roster['studentIdsByAssessment'];
+            $outcomes = $this->outcomeService->summarize(
+                $assignment->tujuanPembelajaran,
+                $students,
+                $assignment->penilaian,
+                $studentIdsByAssessment,
+            );
+
+            return $students->map(function (Siswa $student) use ($assignment, $studentIdsByAssessment, $outcomes): ?array {
+                $participatingAssessmentCount = $assignment->penilaian
+                    ->filter(fn (Penilaian $assessment): bool => $studentIdsByAssessment->get($assessment->id, collect())->contains($student->id))
+                    ->count();
                 $scores = $assignment->penilaian
                     ->flatMap(fn (Penilaian $assessment): Collection => $assessment->nilai
-                        ->whereIn('siswa_id', $classStudentIds)
                         ->where('siswa_id', $student->id)
                         ->pluck('nilai')
                         ->map(fn ($score): float => (float) $score));
                 $average = $scores->isEmpty() ? null : round((float) $scores->average(), 2);
-                $missingCount = max($assessmentCount - $scores->count(), 0);
+                $missingCount = max($participatingAssessmentCount - $scores->count(), 0);
                 $trend = $this->trendService->summarize($scores);
                 $reasons = collect();
-                $studentOutcomes = $outcomes->map(function (array $goal) use ($student): array {
+                $studentOutcomes = $outcomes->map(function (array $goal) use ($student, $studentIdsByAssessment): array {
                     return [
                         ...$goal,
+                        'unclassifiedAssessments' => $goal['unclassifiedAssessments']
+                            ->filter(fn (Penilaian $assessment): bool => $studentIdsByAssessment->get($assessment->id, collect())->contains($student->id))
+                            ->values(),
                         'categories' => $goal['categories']->map(fn (array $category): array => [
                             ...$category,
                             'result' => $category['rows']->get($student->id),
@@ -273,15 +320,17 @@ class GuruAnalysisService
             ['belowThresholdCount', 'desc'],
         ])->values();
 
-        $studentTrendAnalyses = $assignments->flatMap(function (Pengampu $assignment): Collection {
-            $classStudentIds = $assignment->kelas->siswa->pluck('id');
+        $studentTrendAnalyses = $assignments->flatMap(function (Pengampu $assignment) use ($rosters): Collection {
+            $students = $rosters->get($assignment->id)['students'];
 
-            return $assignment->kelas->siswa->map(function (Siswa $student) use ($assignment, $classStudentIds): array {
+            return $students->map(function (Siswa $student) use ($assignment, $rosters): array {
+                $studentIdsByAssessment = $rosters->get($assignment->id)['studentIdsByAssessment'];
                 $scores = $assignment->penilaian
-                    ->flatMap(fn (Penilaian $assessment): Collection => $assessment->nilai
-                        ->whereIn('siswa_id', $classStudentIds)
-                        ->where('siswa_id', $student->id)
-                        ->pluck('nilai'));
+                    ->flatMap(fn (Penilaian $assessment): Collection => $studentIdsByAssessment->get($assessment->id, collect())->contains($student->id)
+                        ? $assessment->nilai
+                            ->where('siswa_id', $student->id)
+                            ->pluck('nilai')
+                        : collect());
 
                 return $this->trendService->summarize($scores);
             });
@@ -308,9 +357,10 @@ class GuruAnalysisService
                     ->count(),
                 'assignmentCount' => $assignments->count(),
                 'assessmentCount' => $assignments->sum(fn (Pengampu $assignment): int => $assignment->penilaian->count()),
-                'rosterCount' => $assignments->flatMap(fn (Pengampu $assignment): Collection => $assignment->kelas->siswa->pluck('id'))
+                'rosterCount' => $rosters->flatMap(fn (array $roster): Collection => $roster['studentIds'])
                     ->unique()
                     ->count(),
+                'excludedScoreCount' => $rosters->sum('excludedScoreCount'),
                 'insufficientTrendCount' => $studentTrendAnalyses
                     ->filter(fn (array $trend): bool => in_array($trend['label'], ['Belum ada data', 'Belum cukup data'], true))
                     ->count(),
@@ -323,10 +373,16 @@ class GuruAnalysisService
      * @param  EloquentCollection<int, Penilaian>  $assessments
      * @return array<string, mixed>
      */
-    private function studentAnalysis(Siswa $student, string $subjectName, EloquentCollection $assessments, Collection $goalSummaries): array
-    {
-        $series = $assessments->map(function (Penilaian $assessment) use ($student, $subjectName): array {
-            $score = $assessment->nilai->firstWhere('siswa_id', $student->id);
+    private function studentAnalysis(
+        Siswa $student,
+        string $subjectName,
+        EloquentCollection $assessments,
+        Collection $goalSummaries,
+        Collection $studentIdsByAssessment,
+    ): array {
+        $series = $assessments->map(function (Penilaian $assessment) use ($student, $subjectName, $studentIdsByAssessment): array {
+            $isInRoster = $studentIdsByAssessment->get($assessment->id, collect())->contains($student->id);
+            $score = $isInRoster ? $assessment->nilai->firstWhere('siswa_id', $student->id) : null;
 
             return [
                 'label' => $assessment->nama,
@@ -334,9 +390,10 @@ class GuruAnalysisService
                 'assessmentName' => $assessment->nama,
                 'shortLabel' => 'P'.$assessment->urutan,
                 'dateLabel' => $assessment->tanggal->format('d/m'),
-                'detailDateLabel' => $assessment->tanggal->locale('id')->translatedFormat('j F Y'),
+                'detailDateLabel' => $assessment->tanggal?->locale('id')->translatedFormat('j F Y') ?? 'Tanggal tidak tersedia',
                 'valueLabel' => 'Nilai Siswa',
                 'value' => $score === null ? null : (float) $score->nilai,
+                'inRoster' => $isInRoster,
             ];
         });
         $scores = $series->pluck('value')->filter(fn (?float $score): bool => $score !== null)->values();
@@ -350,7 +407,7 @@ class GuruAnalysisService
             'latest' => $scores->isEmpty() ? null : (float) $scores->last(),
             'highest' => $scores->isEmpty() ? null : (float) $scores->max(),
             'lowest' => $scores->isEmpty() ? null : (float) $scores->min(),
-            'missingCount' => max($assessments->count() - $scores->count(), 0),
+            'missingCount' => max($series->where('inRoster', true)->count() - $scores->count(), 0),
             'goalSummaries' => $goalSummaries->map(function (array $goal) use ($student): array {
                 return [
                     ...$goal,

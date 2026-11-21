@@ -8,7 +8,10 @@ use App\Models\MataPelajaran;
 use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
+use App\Models\RiwayatPenempatanSiswa;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
+use App\Models\TujuanPembelajaran;
 use App\Models\User;
 use Tests\Concerns\CreatesAdminTestSchema;
 use Tests\TestCase;
@@ -89,6 +92,101 @@ class AnalisisNilaiControllerTest extends TestCase
             ->assertSee('60.00')
             ->assertSee('Nilai tersimpan')
             ->assertDontSee('KKM');
+    }
+
+    public function test_analysis_and_recap_use_historical_roster_per_assessment_date(): void
+    {
+        $user = User::factory()->guru()->create();
+        $guru = Guru::factory()->for($user)->create();
+        $formerClass = Kelas::factory()->create();
+        $currentClass = Kelas::factory()->create();
+        $unrelatedClass = Kelas::factory()->create();
+        $assignment = Pengampu::factory()->for($guru)->create(['kelas_id' => $formerClass->id]);
+        $student = Siswa::factory()->for($currentClass)->create(['nama' => 'Andi Pindahan']);
+        $unverifiedStudent = Siswa::factory()->for($unrelatedClass)->create(['nama' => 'Siswa Tanpa Riwayat']);
+        $conflictStudent = Siswa::factory()->for($unrelatedClass)->create(['nama' => 'Siswa Riwayat Konflik']);
+        $goal = TujuanPembelajaran::factory()->for($assignment)->create([
+            'metode_rekap' => TujuanPembelajaran::METODE_RATA_RATA,
+        ]);
+        $beforeTransfer = Penilaian::factory()->for($assignment)->create([
+            'nama' => 'Sebelum Pindah',
+            'tujuan_pembelajaran_id' => $goal->id,
+            'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
+            'tanggal' => '2026-10-10',
+            'urutan' => 1,
+        ]);
+        $afterTransfer = Penilaian::factory()->for($assignment)->create([
+            'nama' => 'Sesudah Pindah',
+            'tujuan_pembelajaran_id' => $goal->id,
+            'kategori_asesmen' => Penilaian::KATEGORI_LINGKUP_MATERI,
+            'tanggal' => '2026-10-11',
+            'urutan' => 2,
+        ]);
+        RiwayatPenempatanSiswa::factory()->create([
+            'siswa_id' => $student->id,
+            'kelas_id' => $formerClass->id,
+            'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+            'mulai_pada' => '2026-07-01',
+            'berakhir_pada' => '2026-10-10',
+        ]);
+        RiwayatPenempatanSiswa::factory()->create([
+            'siswa_id' => $student->id,
+            'kelas_id' => $currentClass->id,
+            'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+            'mulai_pada' => '2026-10-11',
+            'berakhir_pada' => null,
+        ]);
+        RiwayatPenempatanSiswa::factory()->create([
+            'siswa_id' => $unverifiedStudent->id,
+            'kelas_id' => $formerClass->id,
+            'tahun_ajaran_id' => TahunAjaran::factory()->create()->id,
+            'mulai_pada' => '2026-07-01',
+            'berakhir_pada' => '2026-10-10',
+        ]);
+        foreach ([['2026-07-01', '2026-10-10'], ['2026-10-01', '2026-10-10']] as [$start, $end]) {
+            RiwayatPenempatanSiswa::factory()->create([
+                'siswa_id' => $conflictStudent->id,
+                'kelas_id' => $formerClass->id,
+                'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
+                'mulai_pada' => $start,
+                'berakhir_pada' => $end,
+            ]);
+        }
+        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $beforeTransfer->id, 'nilai' => 80]);
+        Nilai::factory()->create(['siswa_id' => $student->id, 'penilaian_id' => $afterTransfer->id, 'nilai' => 90]);
+        Nilai::factory()->create(['siswa_id' => $unverifiedStudent->id, 'penilaian_id' => $beforeTransfer->id, 'nilai' => 40]);
+        Nilai::factory()->create(['siswa_id' => $conflictStudent->id, 'penilaian_id' => $beforeTransfer->id, 'nilai' => 20]);
+
+        $analysis = $this->actingAs($user)->get(route('guru.analisis.index', [
+            'pengampu_id' => $assignment->id,
+            'siswa_id' => $student->id,
+        ]));
+
+        $analysis->assertOk()
+            ->assertSee('Andi Pindahan')
+            ->assertDontSee('Siswa Tanpa Riwayat')
+            ->assertDontSee('Siswa Riwayat Konflik')
+            ->assertSee('3 nilai tersimpan tidak disertakan dalam analisis.')
+            ->assertViewHas('classSeries', fn ($series): bool => $series->pluck('value')->all() === [80.0, null]
+                && $series->pluck('filledCount')->all() === [1, 0])
+            ->assertViewHas('studentAnalysis', fn (array $detail): bool => $detail['series']->pluck('value')->all() === [80.0, null]
+                && $detail['missingCount'] === 0)
+            ->assertViewHas('excludedScoreCount', 3);
+
+        $recap = $this->actingAs($user)->get(route('guru.rekap-nilai.index', ['pengampu_id' => $assignment->id]));
+
+        $recap->assertOk()
+            ->assertViewHas('students', fn ($students): bool => $students->modelKeys() === [$student->id])
+            ->assertViewHas('assessments', fn ($assessments): bool => $assessments->firstWhere('id', $beforeTransfer->id)->nilai->pluck('siswa_id')->all() === [$student->id]
+                && $assessments->firstWhere('id', $afterTransfer->id)->nilai->isEmpty())
+            ->assertViewHas('goalSummaries', fn ($summaries): bool => $summaries->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows']->get($student->id)['totalCount'] === 1)
+            ->assertViewHas('excludedScoreCount', 3);
+
+        $this->actingAs($user)->put(route('guru.nilai.update', $beforeTransfer), ['nilai' => [$student->id => 70]])
+            ->assertRedirect();
+
+        $this->actingAs($user)->get(route('guru.analisis.index', ['pengampu_id' => $assignment->id]))
+            ->assertViewHas('classSeries', fn ($series): bool => $series->first()['value'] === 70.0);
     }
 
     public function test_class_analysis_shows_unavailable_assessments_with_zero_marked_count_and_detail_link(): void
