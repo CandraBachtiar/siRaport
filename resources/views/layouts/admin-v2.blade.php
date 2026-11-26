@@ -13,7 +13,7 @@
 </head>
 <body class="min-h-screen bg-[linear-gradient(135deg,#f8fafc_0%,#f1f5f9_58%,#e9eef3_100%)] text-slate-800 antialiased">
     <x-skip-link />
-    @php
+       @php
         $adminNavigation = [
             'UTAMA' => [
                 ['label' => 'Dashboard', 'route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard'],
@@ -25,6 +25,9 @@
                 ['label' => 'Mata Pelajaran', 'route' => 'admin.mata-pelajaran.index', 'match' => 'admin.mata-pelajaran.*', 'icon' => 'mapel'],
                 ['label' => 'Tahun Ajaran', 'route' => 'admin.tahun-ajaran.index', 'match' => 'admin.tahun-ajaran.*', 'icon' => 'calendar'],
                 ['label' => 'Pengampu', 'route' => 'admin.pengampu.index', 'match' => 'admin.pengampu.*', 'icon' => 'pengampu'],
+            ],
+            'AKADEMIK' => [
+                ['label' => 'Kenaikan Kelas', 'route' => 'admin.keputusan-kenaikan.index', 'match' => 'admin.keputusan-kenaikan.*', 'icon' => 'kelas'],
             ],
             'AKUN' => [
                 ['label' => 'Pengaturan Akun', 'route' => 'akun.edit', 'match' => 'akun.*', 'icon' => 'profile'],

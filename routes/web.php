@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\GuruImportController;
 use App\Http\Controllers\Admin\IdentitasSekolahController;
 use App\Http\Controllers\Admin\KelasController;
+use App\Http\Controllers\Admin\KenaikanKelasController;
 use App\Http\Controllers\Admin\MataPelajaranController;
 use App\Http\Controllers\Admin\PengampuController;
 use App\Http\Controllers\Admin\RiwayatPenempatanSiswaController;
@@ -34,7 +35,9 @@ Route::view('/panduan', 'pages.panduan')->name('panduan');
 Route::view('/bantuan', 'pages.bantuan')->name('bantuan');
 
 Route::middleware('guest')->group(function (): void {
-    Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::get('/login', [AuthenticatedSessionController::class, 'create'])
+        ->name('login');
+
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])
         ->middleware('throttle:login')
         ->name('login.store');
@@ -44,91 +47,203 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware(['auth', 'cache.headers:no_store;no_cache;must_revalidate'])->group(function (): void {
-    Route::get('/akun', [AccountSettingsController::class, 'edit'])->name('akun.edit');
-    Route::put('/akun/password', [AccountSettingsController::class, 'updatePassword'])
-        ->middleware('throttle:6,1')
-        ->name('akun.password.update');
-});
+Route::middleware(['auth', 'cache.headers:no_store;no_cache;must_revalidate'])
+    ->group(function (): void {
+        Route::get('/akun', [AccountSettingsController::class, 'edit'])
+            ->name('akun.edit');
+
+        Route::put('/akun/password', [AccountSettingsController::class, 'updatePassword'])
+            ->middleware('throttle:6,1')
+            ->name('akun.password.update');
+    });
 
 Route::middleware(['auth', 'admin', 'cache.headers:no_store;no_cache;must_revalidate'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function (): void {
-        Route::get('/dashboard', DashboardController::class)->name('dashboard');
-        Route::get('/identitas-sekolah', [IdentitasSekolahController::class, 'edit'])->name('identitas-sekolah.edit');
-        Route::put('/identitas-sekolah', [IdentitasSekolahController::class, 'update'])->name('identitas-sekolah.update');
-        Route::post('/keputusan-kenaikan', [IdentitasSekolahController::class, 'decidePromotion'])->name('keputusan-kenaikan.store');
-        Route::get('/guru/import', [GuruImportController::class, 'create'])->name('guru.import.create');
-        Route::get('/guru/import/template', [GuruImportController::class, 'template'])->name('guru.template');
-        Route::post('/guru/import/preview', [GuruImportController::class, 'preview'])->name('guru.import.preview');
-        Route::post('/guru/import', [GuruImportController::class, 'import'])->name('guru.import.store');
-        Route::get('/siswa/import', [SiswaImportController::class, 'create'])->name('siswa.import.create');
-        Route::get('/siswa/import/template', [SiswaImportController::class, 'template'])->name('siswa.import.template');
-        Route::post('/siswa/import/preview', [SiswaImportController::class, 'preview'])->name('siswa.import.preview');
-        Route::post('/siswa/import', [SiswaImportController::class, 'import'])->name('siswa.import.store');
-        Route::get('/siswa/{siswa}/riwayat-penempatan', [RiwayatPenempatanSiswaController::class, 'index'])->name('siswa.riwayat.index');
-        Route::post('/siswa/{siswa}/riwayat-penempatan', [RiwayatPenempatanSiswaController::class, 'store'])->name('siswa.riwayat.store');
-        Route::post('/siswa/{siswa}/riwayat-penempatan/{placement}/tutup', [RiwayatPenempatanSiswaController::class, 'close'])->name('siswa.riwayat.close');
-        Route::put('/siswa/{siswa}/riwayat-penempatan/{placement}', [RiwayatPenempatanSiswaController::class, 'correct'])->name('siswa.riwayat.correct');
-        Route::resource('guru', GuruController::class)->except('show');
-        Route::resource('siswa', SiswaController::class)->except('show');
+        Route::get('/dashboard', DashboardController::class)
+            ->name('dashboard');
+
+        Route::get('/identitas-sekolah', [IdentitasSekolahController::class, 'edit'])
+            ->name('identitas-sekolah.edit');
+
+        Route::put('/identitas-sekolah', [IdentitasSekolahController::class, 'update'])
+            ->name('identitas-sekolah.update');
+
+        Route::get('/keputusan-kenaikan', [KenaikanKelasController::class, 'index'])
+            ->name('keputusan-kenaikan.index');
+
+        Route::post('/keputusan-kenaikan', [KenaikanKelasController::class, 'store'])
+            ->name('keputusan-kenaikan.store');
+
+        Route::post('/keputusan-kenaikan/penempatan', [KenaikanKelasController::class, 'place'])
+            ->name('keputusan-kenaikan.place');
+
+        Route::get('/guru/import', [GuruImportController::class, 'create'])
+            ->name('guru.import.create');
+
+        Route::get('/guru/import/template', [GuruImportController::class, 'template'])
+            ->name('guru.template');
+
+        Route::post('/guru/import/preview', [GuruImportController::class, 'preview'])
+            ->name('guru.import.preview');
+
+        Route::post('/guru/import', [GuruImportController::class, 'import'])
+            ->name('guru.import.store');
+
+        Route::get('/siswa/import', [SiswaImportController::class, 'create'])
+            ->name('siswa.import.create');
+
+        Route::get('/siswa/import/template', [SiswaImportController::class, 'template'])
+            ->name('siswa.import.template');
+
+        Route::post('/siswa/import/preview', [SiswaImportController::class, 'preview'])
+            ->name('siswa.import.preview');
+
+        Route::post('/siswa/import', [SiswaImportController::class, 'import'])
+            ->name('siswa.import.store');
+
+        Route::get('/siswa/{siswa}/riwayat-penempatan', [RiwayatPenempatanSiswaController::class, 'index'])
+            ->name('siswa.riwayat.index');
+
+        Route::post('/siswa/{siswa}/riwayat-penempatan', [RiwayatPenempatanSiswaController::class, 'store'])
+            ->name('siswa.riwayat.store');
+
+        Route::post('/siswa/{siswa}/riwayat-penempatan/{placement}/tutup', [RiwayatPenempatanSiswaController::class, 'close'])
+            ->name('siswa.riwayat.close');
+
+        Route::put('/siswa/{siswa}/riwayat-penempatan/{placement}', [RiwayatPenempatanSiswaController::class, 'correct'])
+            ->name('siswa.riwayat.correct');
+
+        Route::resource('guru', GuruController::class)
+            ->except('show');
+
+        Route::resource('siswa', SiswaController::class)
+            ->except('show');
+
         Route::resource('kelas', KelasController::class)
             ->except('show')
             ->parameters(['kelas' => 'kelas']);
+
         Route::resource('mata-pelajaran', MataPelajaranController::class)
             ->except('show')
             ->parameters(['mata-pelajaran' => 'mata_pelajaran']);
+
         Route::resource('tahun-ajaran', TahunAjaranController::class)
             ->except('show')
             ->parameters(['tahun-ajaran' => 'tahun_ajaran']);
-        Route::resource('pengampu', PengampuController::class)->except('show');
+
+        Route::resource('pengampu', PengampuController::class)
+            ->except('show');
     });
 
 Route::middleware(['auth', 'guru', 'cache.headers:no_store;no_cache;must_revalidate'])
     ->prefix('guru')
     ->name('guru.')
     ->group(function (): void {
-        Route::get('/dashboard', GuruDashboardController::class)->name('dashboard');
+        Route::get('/dashboard', GuruDashboardController::class)
+            ->name('dashboard');
+
         Route::get('/mapel/dashboard', GuruDashboardController::class)
             ->middleware('guru.mapel')
             ->name('mapel.dashboard');
+
         Route::get('/wali-kelas/dashboard', WaliKelasDashboardController::class)
             ->middleware('guru.wali')
             ->name('wali.dashboard');
 
-        Route::middleware('guru.wali')->prefix('wali-kelas')->name('wali.')->group(function (): void {
-            Route::get('/siswa/{siswa}/data-rapor', [RaporSiswaController::class, 'edit'])->name('rapor.data.edit');
-            Route::put('/siswa/{siswa}/data-rapor', [RaporSiswaController::class, 'update'])->name('rapor.data.update');
-            Route::get('/siswa', [WaliKelasController::class, 'students'])->name('siswa.index');
-            Route::get('/siswa/{siswa}', [WaliKelasController::class, 'student'])->name('siswa.show');
-            Route::get('/perkembangan', [WaliKelasController::class, 'progress'])->name('perkembangan.index');
-            Route::get('/siswa-perlu-perhatian', [WaliKelasController::class, 'attention'])->name('perhatian.index');
-            Route::get('/deskripsi-rapor', [DeskripsiRaporController::class, 'index'])->name('deskripsi.index');
-            Route::put('/deskripsi-rapor/{pengampu}/{siswa}', [DeskripsiRaporController::class, 'update'])->name('deskripsi.update');
-            Route::get('/rapor', [WaliKelasController::class, 'reports'])->name('rapor.index');
-            Route::get('/rapor/{siswa}', [WaliKelasController::class, 'report'])->name('rapor.show');
-            Route::get('/rapor/{siswa}/cetak', [WaliKelasController::class, 'print'])->name('rapor.print');
-            Route::get('/profil', [WaliKelasController::class, 'profile'])->name('profil.show');
-        });
+        Route::middleware('guru.wali')
+            ->prefix('wali-kelas')
+            ->name('wali.')
+            ->group(function (): void {
+                Route::get('/siswa/{siswa}/data-rapor', [RaporSiswaController::class, 'edit'])
+                    ->name('rapor.data.edit');
 
-        Route::middleware('guru.mapel')->group(function (): void {
-            Route::get('/kelas-mata-pelajaran', [KelasMataPelajaranController::class, 'index'])->name('kelas-mapel.index');
-            Route::get('/kelas-mata-pelajaran/{pengampu}', [KelasMataPelajaranController::class, 'show'])->name('kelas-mapel.show');
-            Route::get('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran', [TujuanPembelajaranController::class, 'index'])->name('tujuan-pembelajaran.index');
-            Route::get('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/create', [TujuanPembelajaranController::class, 'create'])->name('tujuan-pembelajaran.create');
-            Route::post('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran', [TujuanPembelajaranController::class, 'store'])->name('tujuan-pembelajaran.store');
-            Route::get('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/{tujuan_pembelajaran}/edit', [TujuanPembelajaranController::class, 'edit'])->name('tujuan-pembelajaran.edit');
-            Route::put('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/{tujuan_pembelajaran}', [TujuanPembelajaranController::class, 'update'])->name('tujuan-pembelajaran.update');
-            Route::delete('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/{tujuan_pembelajaran}', [TujuanPembelajaranController::class, 'destroy'])->name('tujuan-pembelajaran.destroy');
-            Route::resource('penilaian', PenilaianController::class)->except('show');
-            Route::get('/input-nilai', [InputNilaiController::class, 'index'])->name('nilai.index');
-            Route::put('/input-nilai/{penilaian}', [InputNilaiController::class, 'update'])->name('nilai.update');
-            Route::get('/input-nilai/{penilaian}/template', [NilaiImportController::class, 'template'])->name('nilai.template');
-            Route::post('/input-nilai/{penilaian}/impor/pratinjau', [NilaiImportController::class, 'preview'])->name('nilai.import.preview');
-            Route::post('/input-nilai/{penilaian}/impor', [NilaiImportController::class, 'import'])->name('nilai.import.store');
-            Route::get('/analisis-nilai', AnalisisNilaiController::class)->name('analisis.index');
-            Route::get('/siswa-perlu-perhatian', SiswaPerluPerhatianController::class)->name('perhatian.index');
-            Route::get('/rekap-nilai', RekapNilaiController::class)->name('rekap-nilai.index');
-        });
+                Route::put('/siswa/{siswa}/data-rapor', [RaporSiswaController::class, 'update'])
+                    ->name('rapor.data.update');
+
+                Route::get('/siswa', [WaliKelasController::class, 'students'])
+                    ->name('siswa.index');
+
+                Route::get('/siswa/{siswa}', [WaliKelasController::class, 'student'])
+                    ->name('siswa.show');
+
+                Route::get('/perkembangan', [WaliKelasController::class, 'progress'])
+                    ->name('perkembangan.index');
+
+                Route::get('/siswa-perlu-perhatian', [WaliKelasController::class, 'attention'])
+                    ->name('perhatian.index');
+
+                Route::get('/deskripsi-rapor', [DeskripsiRaporController::class, 'index'])
+                    ->name('deskripsi.index');
+
+                Route::put('/deskripsi-rapor/{pengampu}/{siswa}', [DeskripsiRaporController::class, 'update'])
+                    ->name('deskripsi.update');
+
+                Route::get('/rapor', [WaliKelasController::class, 'reports'])
+                    ->name('rapor.index');
+
+                Route::get('/rapor/{siswa}', [WaliKelasController::class, 'report'])
+                    ->name('rapor.show');
+
+                Route::get('/rapor/{siswa}/cetak', [WaliKelasController::class, 'print'])
+                    ->name('rapor.print');
+
+                Route::get('/profil', [WaliKelasController::class, 'profile'])
+                    ->name('profil.show');
+            });
+
+        Route::middleware('guru.mapel')
+            ->group(function (): void {
+                Route::get('/kelas-mata-pelajaran', [KelasMataPelajaranController::class, 'index'])
+                    ->name('kelas-mapel.index');
+
+                Route::get('/kelas-mata-pelajaran/{pengampu}', [KelasMataPelajaranController::class, 'show'])
+                    ->name('kelas-mapel.show');
+
+                Route::get('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran', [TujuanPembelajaranController::class, 'index'])
+                    ->name('tujuan-pembelajaran.index');
+
+                Route::get('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/create', [TujuanPembelajaranController::class, 'create'])
+                    ->name('tujuan-pembelajaran.create');
+
+                Route::post('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran', [TujuanPembelajaranController::class, 'store'])
+                    ->name('tujuan-pembelajaran.store');
+
+                Route::get('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/{tujuan_pembelajaran}/edit', [TujuanPembelajaranController::class, 'edit'])
+                    ->name('tujuan-pembelajaran.edit');
+
+                Route::put('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/{tujuan_pembelajaran}', [TujuanPembelajaranController::class, 'update'])
+                    ->name('tujuan-pembelajaran.update');
+
+                Route::delete('/kelas-mata-pelajaran/{pengampu}/tujuan-pembelajaran/{tujuan_pembelajaran}', [TujuanPembelajaranController::class, 'destroy'])
+                    ->name('tujuan-pembelajaran.destroy');
+
+                Route::resource('penilaian', PenilaianController::class)
+                    ->except('show');
+
+                Route::get('/input-nilai', [InputNilaiController::class, 'index'])
+                    ->name('nilai.index');
+
+                Route::put('/input-nilai/{penilaian}', [InputNilaiController::class, 'update'])
+                    ->name('nilai.update');
+
+                Route::get('/input-nilai/{penilaian}/template', [NilaiImportController::class, 'template'])
+                    ->name('nilai.template');
+
+                Route::post('/input-nilai/{penilaian}/impor/pratinjau', [NilaiImportController::class, 'preview'])
+                    ->name('nilai.import.preview');
+
+                Route::post('/input-nilai/{penilaian}/impor', [NilaiImportController::class, 'import'])
+                    ->name('nilai.import.store');
+
+                Route::get('/analisis-nilai', AnalisisNilaiController::class)
+                    ->name('analisis.index');
+
+                Route::get('/siswa-perlu-perhatian', SiswaPerluPerhatianController::class)
+                    ->name('perhatian.index');
+
+                Route::get('/rekap-nilai', RekapNilaiController::class)
+                    ->name('rekap-nilai.index');
+            });
     });
