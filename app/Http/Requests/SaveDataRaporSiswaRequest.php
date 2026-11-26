@@ -3,15 +3,11 @@
 namespace App\Http\Requests;
 
 use App\Models\Siswa;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class SaveDataRaporSiswaRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         $student = $this->route('siswa');
@@ -21,11 +17,6 @@ class SaveDataRaporSiswaRequest extends FormRequest
             && $guru->kelasWali()->whereKey($student->kelas_id)->exists();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
@@ -34,15 +25,21 @@ class SaveDataRaporSiswaRequest extends FormRequest
             'izin' => ['nullable', 'integer', 'min:0', 'max:65535'],
             'tanpa_keterangan' => ['nullable', 'integer', 'min:0', 'max:65535'],
             'catatan_wali_kelas' => ['nullable', 'string', 'max:3000'],
+            'kokurikuler' => ['nullable', 'string', 'max:3000'],
+            'keputusan_kenaikan' => ['sometimes', 'nullable', 'in:naik,tidak_naik'],
             'ekstrakurikuler' => ['nullable', 'array', 'max:20'],
             'ekstrakurikuler.*.nama_kegiatan' => ['nullable', 'string', 'max:150'],
             'ekstrakurikuler.*.keterangan' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
-    /**
-     * @return array<int, \Closure(Validator): void>
-     */
+    public function messages(): array
+    {
+        return [
+            'keputusan_kenaikan.in' => 'Keputusan kenaikan kelas harus berupa naik kelas atau tidak naik kelas.',
+        ];
+    }
+
     public function after(): array
     {
         return [function (Validator $validator): void {
@@ -61,7 +58,10 @@ class SaveDataRaporSiswaRequest extends FormRequest
                 $description = trim((string) ($activity['keterangan'] ?? ''));
 
                 if ($name === '' && $description !== '') {
-                    $validator->errors()->add("ekstrakurikuler.{$index}.nama_kegiatan", 'Nama kegiatan wajib diisi jika keterangan dicantumkan.');
+                    $validator->errors()->add(
+                        "ekstrakurikuler.{$index}.nama_kegiatan",
+                        'Nama kegiatan wajib diisi jika keterangan dicantumkan.'
+                    );
                 }
             }
         }];

@@ -73,9 +73,6 @@ Route::middleware(['auth', 'admin', 'cache.headers:no_store;no_cache;must_revali
         Route::get('/keputusan-kenaikan', [KenaikanKelasController::class, 'index'])
             ->name('keputusan-kenaikan.index');
 
-        Route::post('/keputusan-kenaikan', [KenaikanKelasController::class, 'store'])
-            ->name('keputusan-kenaikan.store');
-
         Route::post('/keputusan-kenaikan/penempatan', [KenaikanKelasController::class, 'place'])
             ->name('keputusan-kenaikan.place');
 

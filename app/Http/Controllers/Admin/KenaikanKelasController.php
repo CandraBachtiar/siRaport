@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\Admin;
@@ -20,7 +19,6 @@ use Illuminate\View\View;
 
 class KenaikanKelasController extends Controller
 {
-    // Menampilkan halaman pengelolaan kenaikan kelas
     public function index(Request $request): View
     {
         $data = $request->validate([
@@ -65,7 +63,6 @@ class KenaikanKelasController extends Controller
                 ->where('semester', 'Ganjil')
                 ->first();
 
-            // Mengambil riwayat penempatan berdasarkan tanggal
             $placements = $this->onDate($date)
                 ->get()
                 ->groupBy('siswa_id');
@@ -112,7 +109,6 @@ class KenaikanKelasController extends Controller
 
                 'targets' => $targets
                     ->get($student->id, collect()),
-
             ])->filter(
                 fn ($row) => $status === 'semua'
                     || ($row['decision'] ?? 'belum') === $status
@@ -138,62 +134,6 @@ class KenaikanKelasController extends Controller
         ]);
     }
 
-    // Menyimpan keputusan naik atau tidak naik kelas
-    public function store(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            ...$this->sourceRules(),
-
-            'keputusan_kenaikan' => [
-                'required',
-                'in:naik,tidak_naik'
-            ],
-        ]);
-
-        DB::transaction(function () use ($request, $data): void {
-
-            [$student, $year] = $this->lockSource($data);
-
-            $nextName = $this->nextYearName(
-                $year,
-                $data['tanggal_akhir']
-            );
-
-            DataRaporSiswa::query()
-                ->where('siswa_id', $student->id)
-                ->where('tahun_ajaran_id', $year->id)
-                ->lockForUpdate()
-                ->first();
-
-            // Mencegah perubahan keputusan setelah penempatan
-            if ($this->hasNextPlacement($student->id, $nextName)) {
-                $this->invalid(
-                    'keputusan_kenaikan',
-                    'Penempatan tahun berikutnya sudah tercatat. '
-                    . 'Keputusan tidak dapat diubah melalui halaman ini.'
-                );
-            }
-
-            DataRaporSiswa::query()->updateOrCreate(
-                [
-                    'siswa_id' => $student->id,
-                    'tahun_ajaran_id' => $year->id,
-                ],
-                [
-                    'keputusan_kenaikan' => $data['keputusan_kenaikan'],
-                    'keputusan_oleh' => $request->user()->id,
-                ]
-            );
-        });
-
-        return $this->backToList($data)->with(
-            'success',
-            'Keputusan kenaikan kelas berhasil disimpan. '
-                . 'Kelas aktif belum diubah.'
-        );
-    }
-
-    // Mengelola penempatan siswa pada tahun ajaran berikutnya
     public function place(
         Request $request,
         PlacementHistoryManager $manager
@@ -204,27 +144,26 @@ class KenaikanKelasController extends Controller
             'kelas_tujuan_id' => [
                 'required',
                 'integer',
-                'exists:kelas,id'
+                'exists:kelas,id',
             ],
 
             'mulai_pada' => [
                 'required',
                 'date_format:Y-m-d',
                 'after:tanggal_akhir',
-                'before_or_equal:today'
+                'before_or_equal:today',
             ],
 
             'referensi_bukti' => [
                 'required',
                 'string',
                 'min:3',
-                'max:1000'
+                'max:1000',
             ],
 
             'konfirmasi' => ['accepted'],
         ]);
 
-        // Memastikan tabel audit sudah tersedia
         if (! Schema::hasTable('riwayat_penempatan_siswa_audit')) {
             $this->invalid(
                 'referensi_bukti',
@@ -237,7 +176,6 @@ class KenaikanKelasController extends Controller
             $manager,
             $data
         ): void {
-
             [$student, $year, $source] = $this->lockSource($data);
 
             $nextName = $this->nextYearName(
@@ -251,7 +189,6 @@ class KenaikanKelasController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            // Periode tujuan harus sudah aktif
             if (! $targetYear || ! $targetYear->aktif) {
                 $this->invalid(
                     'mulai_pada',
@@ -271,7 +208,6 @@ class KenaikanKelasController extends Controller
                 );
             }
 
-            // Memastikan kelas aktif masih sesuai kelas asal
             if ((int) $student->kelas_id !== (int) $source->kelas_id) {
                 $this->invalid(
                     'kelas_tujuan_id',
@@ -280,7 +216,6 @@ class KenaikanKelasController extends Controller
                 );
             }
 
-            // Mencegah penempatan ganda
             if (
                 $this->hasNextPlacement($student->id, $nextName)
                 || RiwayatPenempatanSiswa::query()
@@ -306,7 +241,7 @@ class KenaikanKelasController extends Controller
             if (! in_array($decision, ['naik', 'tidak_naik'], true)) {
                 $this->invalid(
                     'keputusan_kenaikan',
-                    'Simpan keputusan kenaikan kelas terlebih dahulu.'
+                    'Keputusan kenaikan kelas belum dicatat oleh wali kelas.'
                 );
             }
 
@@ -327,8 +262,6 @@ class KenaikanKelasController extends Controller
                 );
             }
 
-            // Naik kelas menuju tingkat berikutnya
-            // Tidak naik kelas tetap pada tingkat yang sama
             $expected = $decision === 'naik'
                 ? $fromLevel + 1
                 : $fromLevel;
@@ -341,7 +274,6 @@ class KenaikanKelasController extends Controller
                 );
             }
 
-            // Melindungi riwayat nilai siswa
             if (
                 Nilai::query()
                     ->where('siswa_id', $student->id)
@@ -369,7 +301,6 @@ class KenaikanKelasController extends Controller
                 ? 'Penempatan karena naik kelas'
                 : 'Penempatan karena mengulang kelas';
 
-            // Menutup riwayat penempatan sebelumnya
             if ($source->berakhir_pada === null) {
                 $manager->close(
                     $request->user(),
@@ -389,7 +320,6 @@ class KenaikanKelasController extends Controller
                 );
             }
 
-            // Membuat riwayat penempatan pada periode baru
             $manager->record(
                 $request->user(),
                 $student->id,
@@ -401,7 +331,6 @@ class KenaikanKelasController extends Controller
                 $data['referensi_bukti']
             );
 
-            // Memperbarui kelas aktif tanpa membuat siswa baru
             $student->update([
                 'kelas_id' => $to->id,
             ]);
@@ -414,37 +343,35 @@ class KenaikanKelasController extends Controller
         );
     }
 
-    // Validasi data kelas dan periode asal
     private function sourceRules(): array
     {
         return [
             'siswa_id' => [
                 'required',
                 'integer',
-                'exists:siswa,id'
+                'exists:siswa,id',
             ],
 
             'tahun_ajaran_id' => [
                 'required',
                 'integer',
-                'exists:tahun_ajaran,id'
+                'exists:tahun_ajaran,id',
             ],
 
             'kelas_id' => [
                 'required',
                 'integer',
-                'exists:kelas,id'
+                'exists:kelas,id',
             ],
 
             'tanggal_akhir' => [
                 'required',
                 'date_format:Y-m-d',
-                'before_or_equal:today'
+                'before_or_equal:today',
             ],
         ];
     }
 
-    // Mencari penempatan siswa berdasarkan tanggal
     private function onDate(string $date)
     {
         return RiwayatPenempatanSiswa::query()
@@ -456,7 +383,6 @@ class KenaikanKelasController extends Controller
             );
     }
 
-    // Memastikan riwayat asal siswa valid
     private function lockSource(array $data): array
     {
         $student = Siswa::query()
@@ -491,7 +417,6 @@ class KenaikanKelasController extends Controller
         return [$student, $year, $source];
     }
 
-    // Menentukan tahun ajaran berikutnya
     private function nextYearName(
         TahunAjaran $year,
         string $date
@@ -512,7 +437,6 @@ class KenaikanKelasController extends Controller
         return $m[2] . '/' . ((int) $m[2] + 1);
     }
 
-    // Memeriksa penempatan pada tahun berikutnya
     private function hasNextPlacement(
         int $studentId,
         string $nextName
@@ -526,7 +450,6 @@ class KenaikanKelasController extends Controller
             ->exists();
     }
 
-    // Mengubah tingkat kelas menjadi angka
     private function level(string $value): ?int
     {
         $value = strtoupper(trim($value));
@@ -549,7 +472,6 @@ class KenaikanKelasController extends Controller
         ][$value] ?? null;
     }
 
-    // Kembali ke daftar kenaikan kelas
     private function backToList(array $data): RedirectResponse
     {
         return redirect()->route(
@@ -562,7 +484,6 @@ class KenaikanKelasController extends Controller
         );
     }
 
-    // Menampilkan pesan kesalahan validasi
     private function invalid(
         string $field,
         string $message

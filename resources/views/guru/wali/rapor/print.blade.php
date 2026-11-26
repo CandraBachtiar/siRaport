@@ -1,4 +1,4 @@
-php artisan view:clear<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="utf-8">
@@ -73,6 +73,11 @@ php artisan view:clear<!DOCTYPE html>
             white-space: pre-line;
             text-align: left;
             vertical-align: top;
+            overflow-wrap: anywhere;
+        }
+
+        .rapor-kokurikuler td {
+            height: 22mm;
         }
 
         .rapor-blok {
@@ -142,6 +147,11 @@ php artisan view:clear<!DOCTYPE html>
                 page-break-inside: avoid;
             }
 
+            .rapor-isi .rapor-kokurikuler tr {
+                break-inside: auto;
+                page-break-inside: auto;
+            }
+
             .rapor-isi th {
                 print-color-adjust: exact;
                 -webkit-print-color-adjust: exact;
@@ -152,7 +162,6 @@ php artisan view:clear<!DOCTYPE html>
 
 <body class="bg-slate-100 p-4 text-slate-900 sm:p-8">
 
-    {{-- Tombol navigasi dan cetak rapor --}}
     <div class="no-print mx-auto mb-4 flex max-w-[210mm] items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4">
 
         <a href="{{ route('guru.wali.rapor.show', [
@@ -164,19 +173,18 @@ php artisan view:clear<!DOCTYPE html>
         </a>
 
         <button type="button"
-                class="rk-button rk-button-primary"
-                data-print-page>
+            class="rk-button rk-button-primary"
+            data-print-page>
             <x-nav-icon name="printer" />
             Cetak / Simpan PDF
         </button>
 
     </div>
 
-    {{-- Cover sementara, dipertahankan dari kode sebelumnya --}}
     @if ($printMode === 'lengkap')
 
         <section class="report-sheet report-cover border border-slate-200 bg-white p-10 shadow-sm"
-                 data-report-cover>
+            data-report-cover>
 
             <p class="text-sm font-extrabold uppercase tracking-[0.25em] text-emerald-700">
                 RaporKu
@@ -262,7 +270,6 @@ php artisan view:clear<!DOCTYPE html>
 
     @endif
 
-    {{-- Menyiapkan data identitas dan fase pembelajaran --}}
     @php
         $murid = $studentRow['student'];
 
@@ -274,7 +281,7 @@ php artisan view:clear<!DOCTYPE html>
             'III' => 3,
             'IV' => 4,
             'V' => 5,
-            'VI' => 6
+            'VI' => 6,
         ];
 
         $nomorKelas = $angka[strtoupper($tingkat)]
@@ -298,23 +305,16 @@ php artisan view:clear<!DOCTYPE html>
         };
     @endphp
 
-    {{-- ISI RAPOR --}}
     <main class="rapor-isi" data-report-content>
-
-        {{-- ====================================== --}}
-        {{-- HALAMAN 1: LAPORAN HASIL BELAJAR --}}
-        {{-- ====================================== --}}
 
         <section class="rapor-halaman">
 
-            {{-- Identitas murid dan sekolah --}}
             @include('guru.wali.rapor._identitas-cetak')
 
             <h1 class="rapor-judul">
                 LAPORAN HASIL BELAJAR
             </h1>
 
-            {{-- Tabel nilai dan capaian kompetensi --}}
             <table class="rapor-blok">
 
                 <colgroup>
@@ -350,10 +350,7 @@ php artisan view:clear<!DOCTYPE html>
                                 Belum ditetapkan
                             </td>
 
-                            <td class="narasi">
-                                {{ $subject['description']?->deskripsi_akhir
-                                    ?: 'Deskripsi belum tersedia.' }}
-                            </td>
+                            <td class="narasi">{{ $subject['description']?->deskripsi_akhir ?: 'Deskripsi belum tersedia.' }}</td>
                         </tr>
 
                     @empty
@@ -370,48 +367,39 @@ php artisan view:clear<!DOCTYPE html>
 
             </table>
 
-            {{-- Informasi sementara nilai akhir --}}
             <p class="rapor-blok">
                 Nilai akhir belum ditetapkan karena rumus atau
                 bobot pengolahan belum ditetapkan sekolah.
             </p>
 
-            {{-- Footer halaman pertama --}}
             @include('guru.wali.rapor._footer-cetak', [
                 'halaman' => 1
             ])
 
         </section>
 
-        {{-- ====================================== --}}
-        {{-- HALAMAN 2: DATA PENDUKUNG RAPOR --}}
-        {{-- ====================================== --}}
-
         <section class="rapor-halaman">
 
-            {{-- Identitas murid dan sekolah --}}
             @include('guru.wali.rapor._identitas-cetak')
 
-            {{-- Kokurikuler --}}
-            <table class="rapor-blok">
+            <table class="rapor-kokurikuler rapor-blok">
 
                 <thead>
                     <tr>
-                        <th>Kokurikuler</th>
+                        <th scope="col">
+                            Kokurikuler
+                        </th>
                     </tr>
                 </thead>
 
                 <tbody>
                     <tr>
-                        <td class="narasi" style="height:22mm">
-                            Belum tersedia.
-                        </td>
+                        <td class="narasi">{{ filled($reportRecord?->kokurikuler) ? $reportRecord->kokurikuler : 'Belum diisi.' }}</td>
                     </tr>
                 </tbody>
 
             </table>
 
-            {{-- Ekstrakurikuler --}}
             <table class="rapor-blok">
 
                 <colgroup>
@@ -441,9 +429,7 @@ php artisan view:clear<!DOCTYPE html>
                                 {{ $activity->nama_kegiatan }}
                             </td>
 
-                            <td class="narasi">
-                                {{ $activity->keterangan ?: '—' }}
-                            </td>
+                            <td class="narasi">{{ $activity->keterangan ?: '—' }}</td>
                         </tr>
 
                     @empty
@@ -460,7 +446,6 @@ php artisan view:clear<!DOCTYPE html>
 
             </table>
 
-            {{-- Ketidakhadiran dan catatan wali kelas --}}
             <table class="rapor-dua rapor-blok">
 
                 <colgroup>
@@ -471,7 +456,6 @@ php artisan view:clear<!DOCTYPE html>
                 <tbody>
                     <tr>
 
-                        {{-- Ketidakhadiran --}}
                         <td>
 
                             <table>
@@ -510,7 +494,6 @@ php artisan view:clear<!DOCTYPE html>
 
                         </td>
 
-                        {{-- Catatan wali kelas --}}
                         <td>
 
                             <table>
@@ -525,10 +508,7 @@ php artisan view:clear<!DOCTYPE html>
 
                                 <tbody>
                                     <tr>
-                                        <td class="narasi" style="height:20mm">
-                                            {{ $reportRecord?->catatan_wali_kelas
-                                                ?: 'Belum tersedia.' }}
-                                        </td>
+                                        <td class="narasi" style="height:20mm">{{ $reportRecord?->catatan_wali_kelas ?: 'Belum tersedia.' }}</td>
                                     </tr>
                                 </tbody>
 
@@ -541,8 +521,6 @@ php artisan view:clear<!DOCTYPE html>
 
             </table>
 
-            {{-- Keterangan kenaikan kelas --}}
-            {{-- Hanya ditampilkan pada semester genap --}}
             @if ($selectedSchoolYear->semester === 'Genap')
 
                 <table class="rapor-blok">
@@ -552,7 +530,7 @@ php artisan view:clear<!DOCTYPE html>
                             <td class="tengah">
 
                                 <strong>
-                                    Keterangan Kenaikan Kelas :
+                                    Keterangan Kenaikan Kelas:
 
                                     {{ match ($reportRecord?->keputusan_kenaikan) {
                                         'naik' => 'Naik kelas',
@@ -569,12 +547,11 @@ php artisan view:clear<!DOCTYPE html>
 
             @endif
 
-            {{-- Tanggapan orang tua --}}
             <table class="rapor-blok">
 
                 <thead>
                     <tr>
-                        <th>
+                        <th scope="col">
                             Tanggapan Orang Tua/Wali Murid
                         </th>
                     </tr>
@@ -590,13 +567,11 @@ php artisan view:clear<!DOCTYPE html>
 
             </table>
 
-            {{-- Tanda tangan rapor --}}
             <table class="rapor-ttd rapor-blok"
-                   aria-label="Tanda tangan rapor">
+                aria-label="Tanda tangan rapor">
 
                 <tbody>
 
-                    {{-- Tempat dan tanggal pengesahan sementara --}}
                     <tr>
                         <td></td>
                         <td></td>
@@ -605,20 +580,17 @@ php artisan view:clear<!DOCTYPE html>
                         </td>
                     </tr>
 
-                    {{-- Jabatan penandatangan --}}
                     <tr>
                         <td>Orang Tua/Wali,</td>
                         <td>Kepala Sekolah</td>
                         <td>Wali Kelas</td>
                     </tr>
 
-                    {{-- Ruang tanda tangan --}}
                     <tr>
                         <td colspan="3" class="rapor-ttd-ruang">
                         </td>
                     </tr>
 
-                    {{-- Nama penandatangan --}}
                     <tr>
 
                         <td>
@@ -642,10 +614,10 @@ php artisan view:clear<!DOCTYPE html>
 
                     </tr>
 
-                    {{-- NIP kepala sekolah dan wali kelas --}}
                     <tr>
 
                         <td></td>
+
                         <td>
                             NIP. {{ $school?->nip_kepala_sekolah ?: '—' }}
                         </td>
@@ -655,10 +627,10 @@ php artisan view:clear<!DOCTYPE html>
                         </td>
 
                     </tr>
+
                 </tbody>
             </table>
 
-            {{-- Footer halaman kedua --}}
             @include('guru.wali.rapor._footer-cetak', [
                 'halaman' => 2
             ])

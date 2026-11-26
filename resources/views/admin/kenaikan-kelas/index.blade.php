@@ -39,9 +39,9 @@
             </h1>
 
             <p class="mt-2 text-sm leading-relaxed text-slate-500">
-                Kelola keputusan kenaikan kelas dan penempatan siswa
-                pada tahun ajaran berikutnya tanpa mengubah riwayat
-                akademik sebelumnya.
+                Kelola penempatan siswa pada tahun ajaran berikutnya
+                berdasarkan keputusan kenaikan kelas yang dicatat oleh
+                wali kelas, tanpa mengubah riwayat akademik sebelumnya.
             </p>
         </div>
 
@@ -50,6 +50,7 @@
                 <p class="text-sm font-medium text-slate-500">
                     Siswa Ditampilkan
                 </p>
+
                 <p class="mt-2 text-3xl font-extrabold text-slate-900">
                     {{ $totalSiswa }}
                 </p>
@@ -59,6 +60,7 @@
                 <p class="text-sm font-medium text-slate-500">
                     Naik Kelas
                 </p>
+
                 <p class="mt-2 text-3xl font-extrabold text-emerald-600">
                     {{ $totalNaik }}
                 </p>
@@ -68,6 +70,7 @@
                 <p class="text-sm font-medium text-slate-500">
                     Tidak Naik Kelas
                 </p>
+
                 <p class="mt-2 text-3xl font-extrabold text-red-600">
                     {{ $totalTidakNaik }}
                 </p>
@@ -77,6 +80,7 @@
                 <p class="text-sm font-medium text-slate-500">
                     Belum Ditetapkan
                 </p>
+
                 <p class="mt-2 text-3xl font-extrabold text-amber-600">
                     {{ $totalBelum }}
                 </p>
@@ -167,19 +171,23 @@
                             name="status"
                             class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">
 
-                            <option value="semua" @selected($status === 'semua')>
+                            <option value="semua"
+                                @selected($status === 'semua')>
                                 Semua Status
                             </option>
 
-                            <option value="naik" @selected($status === 'naik')>
+                            <option value="naik"
+                                @selected($status === 'naik')>
                                 Naik Kelas
                             </option>
 
-                            <option value="tidak_naik" @selected($status === 'tidak_naik')>
+                            <option value="tidak_naik"
+                                @selected($status === 'tidak_naik')>
                                 Tidak Naik Kelas
                             </option>
 
-                            <option value="belum" @selected($status === 'belum')>
+                            <option value="belum"
+                                @selected($status === 'belum')>
                                 Belum Ditetapkan
                             </option>
                         </select>
@@ -206,19 +214,21 @@
             </h2>
 
             <p class="mt-2 text-sm leading-relaxed text-blue-800">
-                Tentukan keputusan berdasarkan hasil rapat atau
-                keputusan sekolah. Penyimpanan keputusan tidak langsung
-                mengubah kelas aktif siswa. Konfirmasi penempatan
-                dilakukan setelah semester ganjil tahun ajaran berikutnya
-                diaktifkan. Siswa yang tidak naik kelas tetap menggunakan
-                identitas yang sama dan ditempatkan pada tingkat kelas
-                yang sama.
+                Keputusan kenaikan kelas dicatat oleh wali kelas
+                berdasarkan hasil rapat atau keputusan sekolah.
+                Administrator hanya dapat melihat keputusan tersebut
+                dan mengelola penempatan siswa pada tahun ajaran berikutnya.
+                Konfirmasi penempatan dilakukan setelah semester ganjil
+                tahun ajaran berikutnya diaktifkan. Siswa yang tidak naik
+                kelas tetap menggunakan identitas yang sama dan ditempatkan
+                pada tingkat kelas yang sama.
             </p>
         </div>
 
         @if ($warning)
             <div class="rounded-xl border border-amber-200 bg-amber-50 p-4"
                 role="alert">
+
                 <p class="text-sm font-medium text-amber-800">
                     {{ $warning }}
                 </p>
@@ -268,14 +278,24 @@
                 </div>
             @else
                 <div class="overflow-x-auto">
-                    <table class="w-full min-w-[1050px] text-left text-sm">
+                    <table class="w-full min-w-[850px] text-left text-sm">
                         <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
                             <tr>
-                                <th scope="col" class="px-5 py-4">No.</th>
-                                <th scope="col" class="px-5 py-4">Nama Siswa</th>
-                                <th scope="col" class="px-5 py-4">Status</th>
-                                <th scope="col" class="px-5 py-4">Keputusan</th>
-                                <th scope="col" class="px-5 py-4">Penempatan</th>
+                                <th scope="col" class="px-5 py-4">
+                                    No.
+                                </th>
+
+                                <th scope="col" class="px-5 py-4">
+                                    Nama Siswa
+                                </th>
+
+                                <th scope="col" class="px-5 py-4">
+                                    Keputusan Kenaikan Kelas
+                                </th>
+
+                                <th scope="col" class="px-5 py-4">
+                                    Penempatan
+                                </th>
                             </tr>
                         </thead>
 
@@ -337,60 +357,23 @@
                                                 Belum Ditetapkan
                                             </span>
                                         @endif
-                                    </td>
 
-                                    <td class="px-5 py-5">
-                                        @if ($row['conflict'])
-                                            <p class="text-sm font-medium text-red-600">
+                                        @if ($hasPlacement)
+                                            <p class="mt-2 text-xs text-slate-500">
+                                                Penempatan berikutnya sudah tercatat.
+                                            </p>
+                                        @elseif ($row['conflict'])
+                                            <p class="mt-2 text-xs text-red-600">
                                                 Riwayat penempatan belum valid.
                                             </p>
-                                        @elseif ($hasPlacement)
-                                            <p class="text-sm text-slate-500">
-                                                Keputusan terkunci karena
-                                                penempatan berikutnya sudah tercatat.
+                                        @elseif (! in_array($decision, ['naik', 'tidak_naik'], true))
+                                            <p class="mt-2 text-xs text-slate-500">
+                                                Menunggu keputusan wali kelas.
                                             </p>
                                         @else
-                                            <form method="POST"
-                                                action="{{ route('admin.keputusan-kenaikan.store') }}"
-                                                class="space-y-3">
-
-                                                @csrf
-
-                                                <input type="hidden" name="siswa_id"
-                                                    value="{{ $student->id }}">
-
-                                                <input type="hidden" name="tahun_ajaran_id"
-                                                    value="{{ $year->id }}">
-
-                                                <input type="hidden" name="kelas_id"
-                                                    value="{{ $class->id }}">
-
-                                                <input type="hidden" name="tanggal_akhir"
-                                                    value="{{ $date }}">
-
-                                                <select name="keputusan_kenaikan"
-                                                    aria-label="Keputusan kenaikan kelas {{ $student->nama }}"
-                                                    required
-                                                    class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-
-                                                    <option value="">Pilih keputusan</option>
-
-                                                    <option value="naik"
-                                                        @selected($decision === 'naik')>
-                                                        Naik Kelas
-                                                    </option>
-
-                                                    <option value="tidak_naik"
-                                                        @selected($decision === 'tidak_naik')>
-                                                        Tidak Naik Kelas
-                                                    </option>
-                                                </select>
-
-                                                <button type="submit"
-                                                    class="rounded-lg bg-raporku-navy-deep px-4 py-2 text-xs font-semibold text-white hover:opacity-90">
-                                                    Simpan Keputusan
-                                                </button>
-                                            </form>
+                                            <p class="mt-2 text-xs text-slate-500">
+                                                Keputusan sudah tercatat.
+                                            </p>
                                         @endif
                                     </td>
 
@@ -421,7 +404,9 @@
                                             </p>
                                         @elseif (! in_array($decision, ['naik', 'tidak_naik'], true))
                                             <p class="text-sm text-slate-500">
-                                                Simpan keputusan terlebih dahulu.
+                                                Penempatan belum dapat dilakukan
+                                                karena keputusan wali kelas
+                                                belum tersedia.
                                             </p>
                                         @elseif ($expectedLevel === 7)
                                             <p class="text-sm text-blue-700">
@@ -453,16 +438,20 @@
 
                                                 @csrf
 
-                                                <input type="hidden" name="siswa_id"
+                                                <input type="hidden"
+                                                    name="siswa_id"
                                                     value="{{ $student->id }}">
 
-                                                <input type="hidden" name="tahun_ajaran_id"
+                                                <input type="hidden"
+                                                    name="tahun_ajaran_id"
                                                     value="{{ $year->id }}">
 
-                                                <input type="hidden" name="kelas_id"
+                                                <input type="hidden"
+                                                    name="kelas_id"
                                                     value="{{ $class->id }}">
 
-                                                <input type="hidden" name="tanggal_akhir"
+                                                <input type="hidden"
+                                                    name="tanggal_akhir"
                                                     value="{{ $date }}">
 
                                                 <p class="text-xs font-semibold text-slate-500">
@@ -480,7 +469,9 @@
                                                         required
                                                         class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
 
-                                                        <option value="">Pilih kelas tujuan</option>
+                                                        <option value="">
+                                                            Pilih kelas tujuan
+                                                        </option>
 
                                                         @foreach ($targetClasses as $targetClass)
                                                             <option value="{{ $targetClass->id }}">
@@ -531,7 +522,8 @@
 
                                                     <span>
                                                         Saya telah memeriksa keputusan
-                                                        dan kelas tujuan siswa.
+                                                        kenaikan kelas dan memastikan
+                                                        kelas tujuan siswa sudah sesuai.
                                                     </span>
                                                 </label>
 
