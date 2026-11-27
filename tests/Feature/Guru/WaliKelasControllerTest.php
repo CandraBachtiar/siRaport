@@ -598,11 +598,12 @@ class WaliKelasControllerTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Dina Preview')
-            ->assertSee('VIII C')
             ->assertSee('Bahasa Indonesia')
-            ->assertSee('Rapor belum siap ditinjau.')
-            ->assertSee('Deskripsi rapor belum divalidasi untuk seluruh mata pelajaran.')
+            ->assertSee('Rapor belum siap dicetak.')
+            ->assertSee('Deskripsi rapor belum divalidasi')
             ->assertDontSee('0 nilai belum lengkap.');
+        $this->assertMatchesRegularExpression('/<dd[^>]*>\s*VIII\s+C\s*<\/dd>/s', $response->getContent());
+        $this->assertMatchesRegularExpression('/Deskripsi rapor belum divalidasi untuk\s+seluruh mata pelajaran\./s', $response->getContent());
     }
 
     public function test_profile_displays_the_authenticated_wali_identity(): void

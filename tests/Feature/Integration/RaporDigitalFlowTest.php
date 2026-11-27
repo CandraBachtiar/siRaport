@@ -83,7 +83,6 @@ class RaporDigitalFlowTest extends TestCase
             ->assertSee($student->nis)
             ->assertSee('2025/2026')
             ->assertSee('Semester Ganjil')
-            ->assertSee('V A')
             ->assertSee('Guru Kelas Integrasi')
             ->assertSee($description)
             ->assertSee('Cetak Lengkap')
@@ -91,22 +90,23 @@ class RaporDigitalFlowTest extends TestCase
             ->assertSee('Nilai akhir mata pelajaran belum ditetapkan')
             ->assertViewHas('studentRow', fn (array $row): bool => $row['readyToPrint']
                 && $row['subjects']->first()['average'] === 70.0);
+        $this->assertMatchesRegularExpression('/<dd[^>]*>\s*V\s+A\s*<\/dd>/s', $report->getContent());
 
         $print = $this->actingAs($context['teacherUser'])->get(route('guru.wali.rapor.print', [
             'siswa' => $student,
             'tahun_ajaran_id' => $context['schoolYear']->id,
         ]));
         $print->assertOk()
-            ->assertSee('Laporan Hasil Belajar')
+            ->assertSee('Rapor Hasil Belajar')
             ->assertSee('data-report-cover')
             ->assertSee('Nilai Akhir')
             ->assertSee('Belum ditetapkan')
             ->assertSee('2025/2026')
             ->assertSee('Semester Ganjil')
-            ->assertSee('V A')
             ->assertSee($student->nama)
             ->assertDontSee('70,00')
             ->assertSee($description);
+        $this->assertMatchesRegularExpression('/<dd[^>]*>\s*V\s+A\s*<\/dd>/s', $print->getContent());
     }
 
     public function test_incomplete_scores_remain_empty_and_block_report_validation_and_printing(): void
@@ -122,7 +122,8 @@ class RaporDigitalFlowTest extends TestCase
         $recap->assertOk()
             ->assertSee('Nilai belum lengkap')
             ->assertSee('Hasil sementara: 76,00')
-            ->assertSee('1/2 asesmen terisi')
+            ->assertSee('1/2')
+            ->assertSee('asesmen terisi')
             ->assertViewHas('goalSummaries', function ($goals) use ($student, $secondAssessment): bool {
                 $result = $goals->first()['categories'][Penilaian::KATEGORI_LINGKUP_MATERI]['rows']->get($student->id);
 
@@ -133,6 +134,7 @@ class RaporDigitalFlowTest extends TestCase
                     && $result['scores']->get($secondAssessment->id) === null
                     && ! $result['isComplete'];
             });
+        $this->assertMatchesRegularExpression('/1\/2\s+asesmen terisi/s', $recap->getContent());
 
         $analysis = $this->actingAs($context['teacherUser'])->get(route('guru.analisis.index', [
             'pengampu_id' => $context['assignment']->id,
@@ -140,12 +142,14 @@ class RaporDigitalFlowTest extends TestCase
         ]));
         $analysis->assertOk()
             ->assertSee('Hasil sementara: 76,00')
-            ->assertSee('1/2 asesmen terisi')
+            ->assertSee('1/2')
+            ->assertSee('asesmen terisi')
             ->assertSee('Nilai belum lengkap')
             ->assertViewHas('studentAnalysis', fn (?array $studentAnalysis): bool => $studentAnalysis !== null
                 && $studentAnalysis['average'] === 76.0
                 && $studentAnalysis['missingCount'] === 1
                 && $studentAnalysis['trend']['label'] === 'Belum cukup data');
+        $this->assertMatchesRegularExpression('/1\/2\s+asesmen terisi/s', $analysis->getContent());
 
         $this->actingAs($context['teacherUser'])
             ->put(route('guru.wali.deskripsi.update', [$context['assignment'], $student]), [
@@ -160,14 +164,17 @@ class RaporDigitalFlowTest extends TestCase
             'tahun_ajaran_id' => $context['schoolYear']->id,
         ]));
         $report->assertOk()
-            ->assertSee('Rapor belum siap ditinjau.')
+            ->assertSee('Rapor belum siap dicetak.')
             ->assertSee('Hasil sementara: 76,00')
-            ->assertSee('1/2 asesmen terisi')
+            ->assertSee('1/2')
+            ->assertSee('asesmen terisi')
             ->assertSee('Nilai belum lengkap')
-            ->assertSee('1 nilai tugas belum diisi')
-            ->assertSee('Deskripsi rapor belum divalidasi untuk seluruh mata pelajaran.')
+            ->assertSee('Deskripsi rapor belum divalidasi')
             ->assertSee('Cetak Lengkap Belum Tersedia')
             ->assertSee('Cetak Isi Belum Tersedia');
+        $this->assertMatchesRegularExpression('/1\s+nilai\s+tugas belum diisi/s', $report->getContent());
+        $this->assertMatchesRegularExpression('/1\/2\s+asesmen terisi/s', $report->getContent());
+        $this->assertMatchesRegularExpression('/Deskripsi rapor belum divalidasi untuk\s+seluruh mata pelajaran\./s', $report->getContent());
 
         $this->actingAs($context['teacherUser'])->get(route('guru.wali.rapor.print', [
             'siswa' => $student,

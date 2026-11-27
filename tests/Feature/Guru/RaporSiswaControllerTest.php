@@ -11,6 +11,7 @@ use App\Models\Kelas;
 use App\Models\Nilai;
 use App\Models\Pengampu;
 use App\Models\Penilaian;
+use App\Models\RiwayatPenempatanSiswa;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\TujuanPembelajaran;
@@ -40,47 +41,46 @@ class RaporSiswaControllerTest extends TestCase
         $this->assertDatabaseHas('identitas_sekolah', ['nama_sekolah' => 'SD Diperbarui']);
     }
 
-    public function test_guru_cannot_manage_admin_only_school_identity_or_promotion_decision(): void
+    public function test_guru_cannot_manage_admin_only_school_identity_or_placement(): void
     {
         [$user, $student, $year] = $this->waliContext();
 
         $this->actingAs($user)->put(route('admin.identitas-sekolah.update'), ['nama_sekolah' => 'Tidak Diizinkan'])
             ->assertForbidden();
-        $this->actingAs($user)->post(route('admin.keputusan-kenaikan.store'), [
-            'tahun_ajaran_id' => $year->id,
-            'siswa_id' => $student->id,
-            'keputusan_kenaikan' => 'naik',
-        ])->assertForbidden();
+        $this->actingAs($user)->post(route('admin.keputusan-kenaikan.place'), [])
+            ->assertForbidden();
         $this->assertDatabaseCount('identitas_sekolah', 0);
         $this->assertDatabaseCount('data_rapor_siswa', 0);
     }
 
-    public function test_admin_can_record_promotion_only_for_genap(): void
+    public function test_wali_can_record_promotion_decision_only_for_genap(): void
     {
-        $admin = User::factory()->admin()->create();
-        $student = Siswa::factory()->create();
-        $year = TahunAjaran::factory()->create(['semester' => 'Genap']);
-        Pengampu::factory()->create(['kelas_id' => $student->kelas_id, 'tahun_ajaran_id' => $year->id]);
-
-        $this->actingAs($admin)->post(route('admin.keputusan-kenaikan.store'), [
-            'tahun_ajaran_id' => $year->id,
+        [$user, $student, $year] = $this->waliContext('Genap');
+        $year->update(['tahun' => '2026/2027', 'aktif' => true]);
+        RiwayatPenempatanSiswa::factory()->create([
             'siswa_id' => $student->id,
+            'kelas_id' => $student->kelas_id,
+            'tahun_ajaran_id' => $year->id,
+            'mulai_pada' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($user)->put(route('guru.wali.rapor.data.update', $student), [
+            'tahun_ajaran_id' => $year->id,
             'keputusan_kenaikan' => 'naik',
-        ])->assertSessionHas('success');
+        ])->assertRedirect();
         $this->assertDatabaseHas('data_rapor_siswa', [
             'siswa_id' => $student->id,
             'tahun_ajaran_id' => $year->id,
             'keputusan_kenaikan' => 'naik',
-            'keputusan_oleh' => $admin->id,
+            'keputusan_oleh' => $user->id,
         ]);
 
         $ganjil = TahunAjaran::factory()->create(['semester' => 'Ganjil']);
         Pengampu::factory()->create(['kelas_id' => $student->kelas_id, 'tahun_ajaran_id' => $ganjil->id]);
-        $this->actingAs($admin)->post(route('admin.keputusan-kenaikan.store'), [
+        $this->actingAs($user)->put(route('guru.wali.rapor.data.update', $student), [
             'tahun_ajaran_id' => $ganjil->id,
-            'siswa_id' => $student->id,
             'keputusan_kenaikan' => 'naik',
-        ])->assertStatus(422);
+        ])->assertSessionHasErrors('keputusan_kenaikan');
     }
 
     public function test_wali_can_save_period_data_and_extracurricular_only_for_own_class(): void
@@ -181,7 +181,8 @@ class RaporSiswaControllerTest extends TestCase
             'nama_kegiatan' => 'Kegiatan Periode Lain',
         ]);
 
-        $this->actingAs($user)->get(route('guru.wali.rapor.show', ['siswa' => $student, 'tahun_ajaran_id' => $year->id]))
+        $preview = $this->actingAs($user)->get(route('guru.wali.rapor.show', ['siswa' => $student, 'tahun_ajaran_id' => $year->id]));
+        $preview
             ->assertOk()
             ->assertSee($student->nama)
             ->assertSee($student->nis)
@@ -197,15 +198,16 @@ class RaporSiswaControllerTest extends TestCase
             ->assertSee('NIP-001')
             ->assertSee($longDescription)
             ->assertSee('Pramuka')
-            ->assertSee('Sakit: 2')
-            ->assertSee('Izin: Belum diisi')
-            ->assertSee('Tanpa keterangan: Belum diisi')
             ->assertSee('Catatan periode ini.')
-            ->assertSee('Belum ditetapkan')
+            ->assertSee('Nilai akhir mata pelajaran')
+            ->assertSee('belum ditetapkan karena')
             ->assertSee('Cetak Lengkap')
             ->assertSee('Cetak Isi')
             ->assertDontSee('Kegiatan Milik Siswa Lain')
             ->assertDontSee('Kegiatan Periode Lain');
+        $this->assertMatchesRegularExpression('/Sakit\s*<\/p>\s*<p[^>]*>\s*2\s*<span[^>]*>\s*hari/s', $preview->getContent());
+        $this->assertMatchesRegularExpression('/Izin\s*<\/p>\s*<p[^>]*>\s*Belum diisi/s', $preview->getContent());
+        $this->assertMatchesRegularExpression('/Tanpa Keterangan\s*<\/p>\s*<p[^>]*>\s*Belum diisi/s', $preview->getContent());
 
         $print = $this->actingAs($user)->get(route('guru.wali.rapor.print', ['siswa' => $student, 'tahun_ajaran_id' => $year->id, 'format' => 'lengkap']));
         $print->assertOk()
@@ -224,17 +226,19 @@ class RaporSiswaControllerTest extends TestCase
             ->assertSee('NIP-001')
             ->assertDontSee('Kegiatan Milik Siswa Lain')
             ->assertDontSee('Kegiatan Periode Lain');
-        $this->assertSame(1, substr_count($print->getContent(), 'Pramuka: Aktif'));
+        $this->assertSame(1, preg_match_all('/<tr[^>]*>(?:(?!<tr).)*?Pramuka(?:(?!<tr).)*?Aktif(?:(?!<tr).)*?<\/tr>/s', $print->getContent()));
 
         $inside = $this->actingAs($user)->get(route('guru.wali.rapor.print', ['siswa' => $student, 'tahun_ajaran_id' => $year->id, 'format' => 'isi']));
         $inside->assertOk()
             ->assertDontSee('data-report-cover')
             ->assertSee($longDescription)
             ->assertSee('SD Tersimpan')
-            ->assertSee('Pramuka: Aktif')
+            ->assertSee('Pramuka')
+            ->assertSee('Aktif')
             ->assertSee('Nilai Akhir')
             ->assertDontSee('KKM')
             ->assertDontSee('KKTP');
+        $this->assertSame(1, preg_match_all('/<tr[^>]*>(?:(?!<tr).)*?Pramuka(?:(?!<tr).)*?Aktif(?:(?!<tr).)*?<\/tr>/s', $inside->getContent()));
 
         $this->assertSame(1, DataRaporSiswa::query()->count());
         $this->assertSame(3, EkstrakurikulerSiswa::query()->count());
@@ -249,7 +253,8 @@ class RaporSiswaControllerTest extends TestCase
             'keputusan_kenaikan' => 'naik',
         ]);
 
-        $this->actingAs($user)->get(route('guru.wali.rapor.show', ['siswa' => $student, 'tahun_ajaran_id' => $year->id]))
+        $response = $this->actingAs($user)->get(route('guru.wali.rapor.show', ['siswa' => $student, 'tahun_ajaran_id' => $year->id]));
+        $response
             ->assertOk()
             ->assertDontSee('Keputusan Kenaikan Kelas')
             ->assertDontSee('Naik kelas');
@@ -281,14 +286,15 @@ class RaporSiswaControllerTest extends TestCase
     {
         [$user, $student, $year] = $this->waliContext();
 
-        $this->actingAs($user)->get(route('guru.wali.rapor.show', ['siswa' => $student, 'tahun_ajaran_id' => $year->id]))
+        $response = $this->actingAs($user)->get(route('guru.wali.rapor.show', ['siswa' => $student, 'tahun_ajaran_id' => $year->id]));
+        $response
             ->assertOk()
             ->assertSee('Belum tersedia')
             ->assertSee('Nama belum tersedia')
-            ->assertSee('Sakit: Belum diisi')
-            ->assertSee('Izin: Belum diisi')
             ->assertDontSee('SD Tersimpan')
             ->assertDontSee('Nama Wali Contoh');
+        $this->assertMatchesRegularExpression('/Sakit\s*<\/p>\s*<p[^>]*>\s*Belum diisi/s', $response->getContent());
+        $this->assertMatchesRegularExpression('/Izin\s*<\/p>\s*<p[^>]*>\s*Belum diisi/s', $response->getContent());
     }
 
     /** @return array{User, Siswa, TahunAjaran} */

@@ -94,7 +94,8 @@ class DeskripsiRaporControllerTest extends TestCase
             'siswa' => $student,
             'tahun_ajaran_id' => $assignment->tahun_ajaran_id,
         ]))->assertOk()
-            ->assertSee('Draf deskripsi tersimpan; perlu ditinjau ulang.')
+            ->assertSee('Draf deskripsi tersimpan;')
+            ->assertSee('perlu ditinjau ulang.')
             ->assertSee('Deskripsi lama yang tetap dipertahankan untuk ditinjau kembali.');
 
         $response = $this->actingAs($user)->get(route('guru.wali.rapor.print', [
