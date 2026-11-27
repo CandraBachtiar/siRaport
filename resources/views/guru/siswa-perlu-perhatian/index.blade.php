@@ -18,6 +18,13 @@
         </div>
         <p class="mt-3 text-xs leading-5 text-slate-500">Angka utama menghitung siswa unik. Satu siswa dapat muncul pada beberapa kategori, jadi angka-angka ini tidak dijumlahkan.</p>
 
+        @if (($summary['excludedScoreCount'] ?? 0) > 0)
+            <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900" role="status">
+                <strong>{{ $summary['excludedScoreCount'] }} nilai tersimpan tidak dipakai sebagai indikator perhatian.</strong>
+                Riwayat penempatan pada tanggal penilaian belum cocok atau bertabrakan. Nilai tetap tersimpan; minta Admin memeriksa riwayat penempatan.
+            </div>
+        @endif
+
         <details class="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
             <summary class="cursor-pointer px-5 py-4 text-sm font-bold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">Rincian hasil TP dan kategori</summary>
             <div class="border-t border-slate-100 px-5 py-4">

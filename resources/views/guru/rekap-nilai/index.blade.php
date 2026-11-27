@@ -41,6 +41,13 @@
                 <p class="mt-3 leading-6">Nilai akhir mata pelajaran belum dihitung. Sistem menampilkan hasil TP menurut metode rekap TP yang dipilih; bobot penilaian tidak dianggap sebagai bobot nilai akhir.</p>
             </div>
 
+            @if (($excludedScoreCount ?? 0) > 0)
+                <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900 print:hidden" role="status">
+                    <strong>{{ $excludedScoreCount }} nilai tersimpan tidak disertakan dalam rekap.</strong>
+                    Riwayat penempatan pada tanggal penilaian belum cocok atau bertabrakan. Nilai tetap tersimpan; minta Admin memeriksa riwayat penempatan.
+                </div>
+            @endif
+
             @if ($assessments->whereNull('kategori_asesmen')->isNotEmpty())
                 <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900" role="status">
                     <strong>{{ $assessments->whereNull('kategori_asesmen')->count() }} penilaian belum diklasifikasikan.</strong>

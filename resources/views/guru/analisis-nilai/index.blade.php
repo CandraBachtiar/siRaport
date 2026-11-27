@@ -24,6 +24,13 @@
         @else
             <div class="mt-6 flex flex-col gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-blue-900 sm:flex-row sm:items-center sm:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">Analisis Tingkat Kelas</p><h2 class="mt-1 text-lg font-extrabold">{{ $selectedAssignment->mataPelajaran->nama }} · {{ $selectedAssignment->kelas->tingkat }} {{ $selectedAssignment->kelas->nama }}</h2><p class="mt-1 text-xs">Periode Akademik: {{ $selectedAssignment->tahunAjaran->tahun }} — Semester {{ $selectedAssignment->tahunAjaran->semester }}</p></div><span class="rounded-full bg-white/80 px-3 py-1 text-xs font-bold">Nilai tugas per penilaian</span></div>
 
+            @if (($excludedScoreCount ?? 0) > 0)
+                <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900" role="status">
+                    <strong>{{ $excludedScoreCount }} nilai tersimpan tidak disertakan dalam analisis.</strong>
+                    Riwayat penempatan pada tanggal penilaian belum cocok atau bertabrakan. Nilai tetap tersimpan; minta Admin memeriksa riwayat penempatan.
+                </div>
+            @endif
+
             <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 @foreach ([
                     ['label' => 'Rata-rata nilai terisi', 'value' => $classStats['average'] === null ? '—' : number_format($classStats['average'], 2, ',', '.')],
